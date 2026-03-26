@@ -29,6 +29,19 @@ use Illuminate\Support\Facades\Log;
 
 Route::prefix('v1')->group(function () {
 
+    // Health check endpoint
+    Route::get('health', function () {
+        Log::info('Health check endpoint called');
+        return response()->json([
+            'status' => 'ok',
+            'app' => 'ClinicOS API',
+            'version' => '1.0.0',
+            'timestamp' => now()->toISOString(),
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+        ]);
+    });
+
     // Auth
     Route::prefix('auth')->group(function () {
         Route::post('register',         [AuthController::class, 'register']);
