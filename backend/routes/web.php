@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\PaymentWebController;
 use App\Http\Controllers\Web\GstReportWebController;
 use App\Http\Controllers\Web\PhotoVaultWebController;
 use App\Http\Controllers\Web\PrescriptionWebController;
+use App\Http\Controllers\Web\ClinicUserController;
 
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -135,4 +136,15 @@ Route::middleware(['auth'])->group(function () {
 
     // Prescriptions
     Route::get('/prescriptions', [PrescriptionWebController::class, 'index'])->name('prescriptions.index');
+
+    // Clinic Users (Staff Management)
+    Route::prefix('users')->name('clinic.users.')->group(function () {
+        Route::get('/', [ClinicUserController::class, 'index'])->name('index');
+        Route::get('/create', [ClinicUserController::class, 'create'])->name('create');
+        Route::post('/', [ClinicUserController::class, 'store'])->name('store');
+        Route::get('/{user}/edit', [ClinicUserController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [ClinicUserController::class, 'update'])->name('update');
+        Route::post('/{user}/toggle-status', [ClinicUserController::class, 'toggleStatus'])->name('toggle-status');
+        Route::delete('/{user}', [ClinicUserController::class, 'destroy'])->name('destroy');
+    });
 });
