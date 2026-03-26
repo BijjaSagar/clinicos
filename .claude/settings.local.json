@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc --track-changes=all /Users/akash/Downloads/ClinicBill/ClinicOS_Blueprint.docx -o /tmp/clinicbill.md)",
+      "Read(//tmp/**)"
+    ]
+  }
+}

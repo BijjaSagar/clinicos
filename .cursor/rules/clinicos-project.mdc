@@ -1,0 +1,176 @@
+---
+description: ClinicOS project context, architecture, and development guidelines
+alwaysApply: false
+---
+# ClinicOS Project Memory
+
+## Project Overview
+ClinicOS (क्लिनिक ओएस) is a cloud-based SaaS platform for Indian specialty clinics.
+- **Target:** Dermatology, Physiotherapy, Dental, Ophthalmology, Orthopaedics, ENT, Gynaecology
+- **Company:** RH Technology, Pune, Maharashtra
+- **MVP Focus:** Dermatology + Physiotherapy + Dental (highest volume specialties)
+
+## Tech Stack
+| Layer | Technology |
+|-------|------------|
+| Backend API | PHP 8.x + Laravel 11 |
+| Database | MySQL 8 + Redis + AWS S3 |
+| Web Frontend | React.js + Next.js (planned) |
+| Mobile App | Flutter 3.x (tablet + phone) |
+| Payments | Razorpay |
+| WhatsApp | Meta Cloud API (WhatsApp Business) |
+| AI | OpenAI Whisper (STT) + Claude API (field mapping) |
+| ABDM | NHA ABDM APIs (ABHA, HFR, FHIR R4) |
+
+## Directory Structure
+```
+/ClinicBill
+├── api/                    # OpenAPI 3.1 specification
+│   └── openapi.yaml
+├── backend/                # Laravel 11 API
+│   ├── app/
+│   │   ├── Http/Controllers/
+│   │   ├── Models/         # Eloquent models (TO CREATE)
+│   │   ├── Services/       # Business logic services
+│   │   └── Http/Requests/  # Form validation
+│   ├── database/
+│   │   ├── migrations/
+│   │   └── seeders/
+│   └── routes/api.php
+├── mobile/                 # Flutter app
+│   └── lib/
+│       ├── core/           # Theme, router, config
+│       ├── features/       # Feature modules
+│       ├── models/         # Data models (TO CREATE)
+│       └── services/       # API services (TO CREATE)
+└── database/
+    └── clinicos_schema.sql # Master MySQL schema
+```
+
+## Database Schema (Key Tables)
+- **Multi-tenancy:** clinics, clinic_locations, clinic_rooms, clinic_equipment
+- **Users:** users, personal_access_tokens
+- **Patients:** patients, patient_family_members
+- **Scheduling:** appointment_services, doctor_availability, appointments
+- **EMR:** visits, visit_lesions, visit_scales, visit_procedures
+- **Dental:** dental_teeth, dental_tooth_history, dental_lab_orders
+- **Physio:** physio_treatment_plans, physio_hep
+- **Ophthal:** ophthal_va_logs, ophthal_refractions
+- **Prescriptions:** prescriptions, prescription_drugs, indian_drugs
+- **Photos:** patient_photos
+- **Billing:** invoices, invoice_items, gst_sac_codes, payments
+- **WhatsApp:** whatsapp_messages
+- **ABDM:** abdm_consents, abdm_care_contexts
+- **Labs:** vendor_labs, lab_orders, lab_order_tests
+
+## GST Compliance (India)
+| Service Type | SAC Code | GST Rate |
+|--------------|----------|----------|
+| Clinical consultation | 999311 | 0% (Exempt) |
+| Cosmetic procedures | 999312 | 18% |
+| Physiotherapy | 999321 | 0% (Exempt) |
+| Health check packages | 999713 | 18% |
+
+## ABDM Integration Milestones
+- **M1:** ABHA creation/linking, facility QR code
+- **M2:** HIP - FHIR R4 health record sharing
+- **M3:** HIU - Receive records from other providers
+
+## Coding Standards
+
+### Backend (Laravel)
+- Use Eloquent relationships properly
+- Always scope queries with clinic_id for multi-tenancy
+- Add extensive logging for debugging
+- Follow PSR-12 coding standard
+- Use Form Requests for validation
+
+### Mobile (Flutter)
+- Use Riverpod for state management
+- Use go_router for navigation
+- Follow feature-first folder structure
+- Use Dio + Retrofit for API calls
+- Add comprehensive logging
+
+### Logging Rule (User Preference)
+**IMPORTANT:** Add console.log / Log::info() extensively throughout all files for debugging purposes.
+
+## Current Development Status
+
+### Completed (March 2026)
+- OpenAPI specification (api/openapi.yaml)
+- MySQL schema (database/clinicos_schema.sql)
+- **Complete Laravel migration matching schema** (33+ tables)
+- **All Eloquent Models** with relationships (30+ models)
+- **All Controllers** (AuthController, ClinicController, AppointmentController, etc.)
+- **WhatsAppService** for Meta Cloud API integration
+- **Mobile auth screens** (LoginScreen, RegisterScreen, ClinicSetupScreen)
+- **Mobile API layer** with Dio, storage service, auth provider
+- **InvoiceScreen** with GST breakdown and payment collection
+- Mobile UI screens (dashboard, patients, scheduling, billing, EMR)
+- Project memory/rules file for context persistence
+
+### Phase 2 Completed (March 26, 2026)
+- **EMR Templates** - Dermatology, Physiotherapy, and Dental specialty templates
+  - `DermatologyTemplate.php` - PASI/IGA/DLQI calculators, body map, lesion morphology
+  - `PhysiotherapyTemplate.php` - ROM, MMT, outcome measures (Oswestry, NDI), HEP
+  - `DentalTemplate.php` - Odontogram, periodontal charting, DMFT index
+- **Database Seeders** - Complete test data (30 patients, appointments, invoices)
+  - AppointmentServiceSeeder, DoctorAvailabilitySeeder, AppointmentSeeder
+  - VisitSeeder, IndianDrugSeeder, InvoiceSeeder, VendorSeeder
+- **Mobile EMR Integration** - Services, models, and providers
+  - EmrService, EmrTemplate model, Visit model, EmrProvider (Riverpod)
+- **ABDM Service** - Full ABHA/FHIR R4 integration
+  - AbdmService.php - ABHA verification, consent management, FHIR bundle builder
+  - AbdmController.php - REST endpoints for all ABDM operations
+- **React Web Frontend** - Complete admin dashboard
+  - Modern Vite + React 18 + TypeScript + Tailwind CSS
+  - Zustand for auth, React Query for data fetching
+  - Pages: Dashboard, Patients, Appointments, Calendar, Billing, Reports, Settings
+
+### Phase 3 Completed (March 26, 2026) - UI Redesign
+- **Dashboard Redesign** - Matching ClinicOS HTML design
+  - Dark sidebar with clinic switcher and navigation sections
+  - ABDM compliance status strip
+  - Stats row (patients, revenue, pending, no-show rate)
+  - Today's schedule with live queue
+  - WhatsApp activity feed
+  - Weekly revenue chart with GST breakdown
+  - AI suggestions panel
+  - Visits by type breakdown
+- **EMR Page** - Full patient EMR matching emr.html
+  - Patient header with ABHA badge
+  - Visit timeline sidebar with alerts
+  - AI dictation strip
+  - Chief complaint & history form
+  - Body map with lesion annotations
+  - Dermatological grading scales (PASI, IGA, DLQI)
+  - Procedure selection (Chemical Peel, LASER, PRP, etc.)
+  - Prescription table with Indian drug database
+  - Plan & follow-up section
+  - Auto-save with WhatsApp prescription sending
+- **Vendor Portal** - Lab & pharmacy vendor dashboard
+  - Lab order management table with status filters
+  - Partner clinic cards with stats
+  - Live activity notification feed
+  - Revenue by clinic breakdown
+  - Result upload with FHIR R4 integration
+- **Design System Update**
+  - Inter + Sora fonts for typography
+  - CSS variables for colors matching ClinicOS branding
+  - Status pills, delta badges, cards components
+  - Dark sidebar theme with navigation sections
+
+### Next Steps
+1. Add offline sync for mobile app (Hive/SQLite)
+2. Set up CI/CD and testing (PHPUnit, Flutter tests)
+3. AWS infrastructure deployment
+4. Performance optimization and security audit
+5. Connect frontend to actual backend APIs
+6. Add real-time features (WebSocket for queue updates)
+
+## Key Business Rules
+- Invoice numbers: CLNXXX-YYYY-NNNN format
+- ABHA format: 14-digit (91-XXXX-XXXX-XXXX)
+- Tooth notation: FDI (11-48 permanent, 51-85 primary)
+- Appointment status flow: booked → confirmed → checked_in → in_consultation → completed

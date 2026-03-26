@@ -1,0 +1,4364 @@
+openapi: 3.1.0
+
+info:
+  title: ClinicOS API
+  version: 1.0.0
+  description: |
+    Specialty-First EMR & Practice Management API for Indian Clinics.
+    Built by RH Technology, Pune.
+
+    ## Authentication
+    Use Bearer token from the `/auth/login` endpoint.
+    Include it on every authenticated request:
+    ```
+    Authorization: Bearer {token}
+    ```
+
+    ## Multi-tenancy
+    All endpoints are automatically scoped to the authenticated user's clinic.
+    No `clinic_id` parameter is needed; it is derived from the token.
+
+    ## Rate Limiting
+    100 requests/minute per clinic. Returns HTTP 429 on breach.
+
+    ## Specialties Supported
+    `dermatology` | `physiotherapy` | `dental` | `ophthalmology` | `orthopaedics` | `ent` | `gynaecology`
+
+    ## Date / Time Format
+    All dates use ISO 8601: `YYYY-MM-DD` for dates, `YYYY-MM-DDTHH:mm:ssZ` for timestamps.
+
+    ## Pagination
+    Paginated responses follow a consistent envelope:
+    ```json
+    { "data": [...], "meta": { "current_page": 1, "per_page": 15, "total": 120, "last_page": 8 } }
+    ```
+
+servers:
+  - url: https://api.clinicos.in/api/v1
+    description: Production
+
+  - url: https://staging-api.clinicos.in/api/v1
+    description: Staging
+
+tags:
+  - name: Auth
+    description: Registration, login, token management and password reset. No Bearer token required.
+  - name: Patients
+    description: Patient demographics, timeline, photos and vitals.
+  - name: Appointments
+    description: Booking, scheduling, queue management and doctor availability.
+  - name: EMR
+    description: Electronic Medical Records — visits, lesions, grading scales, dental chart and specialty templates.
+  - name: Prescriptions
+    description: Prescriptions and drug database search.
+  - name: Billing
+    description: Invoices, payments, Razorpay integration and GST reporting.
+  - name: WhatsApp
+    description: Messaging via Meta Cloud API — send, receive, templates and bulk campaigns.
+  - name: ABDM
+    description: Ayushman Bharat Digital Mission — ABHA creation, FHIR R4 record sharing and consent management.
+  - name: AI
+    description: Whisper speech-to-text transcription and Claude-powered field mapping, summaries and prescription suggestions.
+  - name: LabOrders
+    description: Lab order creation, status tracking and result delivery.
+  - name: Analytics
+    description: Dashboard KPIs, revenue trends, patient analytics and specialty-specific metrics.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY
+# ─────────────────────────────────────────────────────────────────────────────
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Sanctum personal access token from /auth/login
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # REUSABLE SCHEMAS
+  # ───────────────────────────────────────────────────────────────────────────
+  schemas:
+
+    # ── Core domain objects ─────────────────────────────────────────────────
+
+    Patient:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1042
+        clinic_id:
+          type: integer
+          example: 7
+        name:
+          type: string
+          example: "Priya Sharma"
+        dob:
+          type: string
+          format: date
+          example: "1992-06-15"
+        sex:
+          type: string
+          enum: [M, F, O]
+          example: "F"
+        phone:
+          type: string
+          example: "9876543210"
+        email:
+          type: string
+          format: email
+          example: "priya.sharma@gmail.com"
+        blood_group:
+          type: string
+          example: "B+"
+        abha_id:
+          type: string
+          description: 14-digit ABHA number
+          example: "91-1234-5678-9012"
+        abha_address:
+          type: string
+          example: "priya.sharma@abdm"
+        abdm_consent_active:
+          type: boolean
+          example: false
+        medical_history:
+          type: object
+          properties:
+            allergies:
+              type: array
+              items:
+                type: string
+              example: ["Penicillin"]
+            chronic_conditions:
+              type: array
+              items:
+                type: string
+              example: ["Type 2 Diabetes"]
+        family_history:
+          type: object
+          example: { "hypertension": true }
+        visit_count:
+          type: integer
+          example: 4
+        last_visit_date:
+          type: string
+          format: date
+          example: "2026-03-10"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 305
+        clinic_id:
+          type: integer
+          example: 7
+        patient_id:
+          type: integer
+          example: 1042
+        doctor_id:
+          type: integer
+          example: 3
+        room_id:
+          type: integer
+          nullable: true
+          example: 2
+        specialty:
+          type: string
+          example: "dermatology"
+        service_type:
+          type: string
+          example: "consultation"
+        scheduled_at:
+          type: string
+          format: date-time
+          example: "2026-03-27T10:30:00+05:30"
+        duration_mins:
+          type: integer
+          example: 15
+        status:
+          type: string
+          enum: [booked, confirmed, checked_in, in_consultation, completed, cancelled, no_show]
+          example: "booked"
+        token_number:
+          type: integer
+          nullable: true
+          example: 12
+        advance_paid:
+          type: string
+          format: decimal
+          example: "500.00"
+        pre_visit_notes:
+          type: string
+          nullable: true
+        reminder_sent:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Visit:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 789
+        clinic_id:
+          type: integer
+          example: 7
+        patient_id:
+          type: integer
+          example: 1042
+        appointment_id:
+          type: integer
+          nullable: true
+          example: 305
+        doctor_id:
+          type: integer
+          example: 3
+        specialty:
+          type: string
+          example: "dermatology"
+        status:
+          type: string
+          enum: [draft, finalised]
+          example: "draft"
+        structured_data:
+          type: object
+          description: Specialty-specific clinical fields stored as JSON
+          example:
+            chief_complaint: "Raised red plaques on elbows and knees for 3 months"
+            onset: "gradual"
+            distribution: "bilateral extensor surfaces"
+        notes:
+          type: string
+          nullable: true
+          example: "Patient has family history of psoriasis."
+        diagnosis:
+          type: string
+          nullable: true
+          example: "L40.0 - Plaque psoriasis"
+        plan:
+          type: string
+          nullable: true
+          example: "Start Clobetasol 0.05% ointment BD. PASI review in 4 weeks."
+        ai_summary:
+          type: string
+          nullable: true
+          description: AI-generated patient-friendly summary
+        fhir_bundle:
+          type: object
+          nullable: true
+          description: FHIR R4 Composition bundle generated at finalisation
+        abdm_care_context_id:
+          type: string
+          nullable: true
+        abdm_pushed_at:
+          type: string
+          format: date-time
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        finalised_at:
+          type: string
+          format: date-time
+          nullable: true
+        lesions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesion'
+        scales:
+          type: array
+          items:
+            $ref: '#/components/schemas/GradingScale'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Lesion:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 41
+        visit_id:
+          type: integer
+          example: 789
+        body_region:
+          type: string
+          example: "left_elbow"
+        x_pct:
+          type: number
+          format: float
+          example: 72.5
+        y_pct:
+          type: number
+          format: float
+          example: 48.3
+        lesion_type:
+          type: string
+          example: "plaque"
+        size_cm:
+          type: number
+          format: float
+          nullable: true
+          example: 3.5
+        colour:
+          type: string
+          nullable: true
+          example: "erythematous"
+        border:
+          type: string
+          nullable: true
+          example: "well-defined"
+        surface:
+          type: string
+          nullable: true
+          example: "silvery scales"
+        notes:
+          type: string
+          nullable: true
+
+    GradingScale:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 22
+        visit_id:
+          type: integer
+          example: 789
+        scale_name:
+          type: string
+          example: "PASI"
+        score:
+          type: number
+          format: float
+          example: 8.4
+        components:
+          type: object
+          nullable: true
+          example:
+            head: 1.2
+            trunk: 2.8
+            upper_limbs: 2.4
+            lower_limbs: 2.0
+
+    Prescription:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 500
+        visit_id:
+          type: integer
+          example: 789
+        patient_id:
+          type: integer
+          example: 1042
+        doctor_id:
+          type: integer
+          example: 3
+        clinic_id:
+          type: integer
+          example: 7
+        drugs:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescriptionDrug'
+        hpr_signed_ref:
+          type: string
+          nullable: true
+        fhir_resource_id:
+          type: string
+          nullable: true
+        sent_via_whatsapp:
+          type: boolean
+          example: false
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        pdf_url:
+          type: string
+          nullable: true
+          example: "https://s3.ap-south-1.amazonaws.com/clinicos/rx/500.pdf"
+        created_at:
+          type: string
+          format: date-time
+
+    PrescriptionDrug:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1201
+        prescription_id:
+          type: integer
+          example: 500
+        drug_name:
+          type: string
+          example: "Clobetasol Propionate"
+        generic_name:
+          type: string
+          nullable: true
+          example: "Clobetasol"
+        dose:
+          type: string
+          example: "0.05% ointment"
+        frequency:
+          type: string
+          example: "Twice daily"
+        duration:
+          type: string
+          nullable: true
+          example: "4 weeks"
+        instructions:
+          type: string
+          nullable: true
+          example: "Apply thinly to affected areas. Avoid face."
+        route:
+          type: string
+          example: "topical"
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 900
+        clinic_id:
+          type: integer
+          example: 7
+        patient_id:
+          type: integer
+          example: 1042
+        visit_id:
+          type: integer
+          nullable: true
+          example: 789
+        invoice_number:
+          type: string
+          example: "INV-2026-0042"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItem'
+        subtotal:
+          type: string
+          format: decimal
+          example: "800.00"
+        gst_amount:
+          type: string
+          format: decimal
+          example: "144.00"
+        total:
+          type: string
+          format: decimal
+          example: "944.00"
+        paid:
+          type: string
+          format: decimal
+          example: "0.00"
+        payment_status:
+          type: string
+          enum: [pending, partial, paid]
+          example: "pending"
+        irn:
+          type: string
+          nullable: true
+          description: e-Invoice IRN from GSP
+        razorpay_payment_id:
+          type: string
+          nullable: true
+        pdf_url:
+          type: string
+          nullable: true
+        whatsapp_link_sent:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    InvoiceItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2201
+        invoice_id:
+          type: integer
+          example: 900
+        description:
+          type: string
+          example: "Dermatology Consultation"
+        sac_code:
+          type: string
+          nullable: true
+          example: "999311"
+        gst_rate:
+          type: number
+          example: 18
+        unit_price:
+          type: string
+          format: decimal
+          example: "800.00"
+        quantity:
+          type: integer
+          example: 1
+        gst_amount:
+          type: string
+          format: decimal
+          example: "144.00"
+        total:
+          type: string
+          format: decimal
+          example: "944.00"
+
+    WhatsappMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3300
+        clinic_id:
+          type: integer
+          example: 7
+        patient_id:
+          type: integer
+          nullable: true
+          example: 1042
+        direction:
+          type: string
+          enum: [outbound, inbound]
+          example: "outbound"
+        wa_message_id:
+          type: string
+          nullable: true
+          example: "wamid.HBgL..."
+        template_name:
+          type: string
+          nullable: true
+          example: "appointment_reminder"
+        body:
+          type: string
+          example: "Your appointment with Dr. Meera is confirmed for 27 Mar at 10:30 AM."
+        status:
+          type: string
+          enum: [sent, delivered, read, failed]
+          example: "delivered"
+        created_at:
+          type: string
+          format: date-time
+
+    AbdmConsent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 77
+        patient_id:
+          type: integer
+          example: 1042
+        clinic_id:
+          type: integer
+          example: 7
+        consent_id:
+          type: string
+          example: "ABDM-CNS-20260327-ABC123"
+        status:
+          type: string
+          enum: [REQUESTED, GRANTED, DENIED, REVOKED, EXPIRED]
+          example: "REQUESTED"
+        purpose:
+          type: string
+          example: "CAREMGT"
+        artifact:
+          type: object
+          nullable: true
+          description: Full consent artefact JSON returned by ABDM HIE-CM
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LabOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 601
+        clinic_id:
+          type: integer
+          example: 7
+        patient_id:
+          type: integer
+          example: 1042
+        visit_id:
+          type: integer
+          nullable: true
+          example: 789
+        doctor_id:
+          type: integer
+          example: 3
+        vendor_id:
+          type: integer
+          nullable: true
+          example: 12
+        order_number:
+          type: string
+          example: "LAB-2026-0099"
+        tests:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "CBC"
+              name:
+                type: string
+                example: "Complete Blood Count"
+              urgent:
+                type: boolean
+                example: false
+        is_urgent:
+          type: boolean
+          example: false
+        status:
+          type: string
+          enum: [new, accepted, processing, ready, sent, cancelled]
+          example: "new"
+        result_pdf_url:
+          type: string
+          nullable: true
+        result_sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    # ── Utility schemas ─────────────────────────────────────────────────────
+
+    ApiError:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: "The given data was invalid."
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            phone: ["The phone field is required."]
+        code:
+          type: string
+          nullable: true
+          example: "VALIDATION_FAILED"
+
+    PaginatedMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 15
+        total:
+          type: integer
+          example: 120
+        last_page:
+          type: integer
+          example: 8
+        from:
+          type: integer
+          example: 1
+        to:
+          type: integer
+          example: 15
+
+    PaginatedPatients:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Patient'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+
+    PaginatedAppointments:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Appointment'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+
+    PaginatedInvoices:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+
+    PaginatedMessages:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WhatsappMessage'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+
+  # ── Common responses ──────────────────────────────────────────────────────
+  responses:
+    Unauthorized:
+      description: Missing or invalid Bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            message: "Unauthenticated."
+
+    Forbidden:
+      description: Authenticated but insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            message: "This action is unauthorized."
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            message: "No query results for model [Patient]."
+
+    UnprocessableEntity:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            message: "Server Error"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AUTH
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Register clinic and admin user
+      description: |
+        Creates a new clinic tenant and its first owner/admin user in a single request.
+        Returns an auth token immediately so the user can begin setup.
+      operationId: authRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clinic_name, specialty, city, name, email, password]
+              properties:
+                clinic_name:
+                  type: string
+                  example: "Sharma Skin Clinic"
+                specialty:
+                  type: string
+                  example: "dermatology"
+                city:
+                  type: string
+                  example: "Pune"
+                gstin:
+                  type: string
+                  nullable: true
+                  example: "27AAACS1429B1Z1"
+                name:
+                  type: string
+                  example: "Dr. Meera Sharma"
+                email:
+                  type: string
+                  format: email
+                  example: "dr.meera@sharmaskinclinic.in"
+                phone:
+                  type: string
+                  example: "9823456701"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "SecurePass@123"
+                password_confirmation:
+                  type: string
+                  example: "SecurePass@123"
+      responses:
+        '201':
+          description: Clinic and user created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: "1|abc123xyz..."
+                      user:
+                        $ref: '#/components/schemas/Patient'
+                      clinic:
+                        type: object
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login and obtain Bearer token
+      description: |
+        Authenticates a clinic staff member. Returns a Sanctum personal access token,
+        the user object, and the clinic profile.
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "dr.meera@sharmaskinclinic.in"
+                password:
+                  type: string
+                  format: password
+                  example: "SecurePass@123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: "1|abc123xyz..."
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          name:
+                            type: string
+                            example: "Dr. Meera Sharma"
+                          email:
+                            type: string
+                            example: "dr.meera@sharmaskinclinic.in"
+                          role:
+                            type: string
+                            example: "doctor"
+                          specialty:
+                            type: string
+                            example: "dermatology"
+                      clinic:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 7
+                          name:
+                            type: string
+                            example: "Sharma Skin Clinic"
+                          plan:
+                            type: string
+                            example: "small"
+                          specialties:
+                            type: array
+                            items:
+                              type: string
+                            example: ["dermatology"]
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                message: "These credentials do not match our records."
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Refresh access token
+      description: Issues a new token, revoking the old one.
+      operationId: authRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  example: "1|abc123xyz..."
+      responses:
+        '200':
+          description: New token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: "2|newtoken..."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke current token
+      description: Deletes the current access token from the database. Subsequent requests with this token will be rejected.
+      operationId: authLogout
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Request password reset link
+      description: Sends a password reset email to the registered address.
+      operationId: authForgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "dr.meera@sharmaskinclinic.in"
+      responses:
+        '200':
+          description: Reset link sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset link sent to your email."
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Reset password using token
+      description: Consumes the reset token from the email link and updates the password.
+      operationId: authResetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token, password, password_confirmation]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "dr.meera@sharmaskinclinic.in"
+                token:
+                  type: string
+                  example: "a1b2c3d4e5f6..."
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "NewSecure@456"
+                password_confirmation:
+                  type: string
+                  example: "NewSecure@456"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password has been reset."
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PATIENTS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /patients:
+    get:
+      tags: [Patients]
+      summary: List / search patients
+      description: Returns a paginated list of patients scoped to the clinic. Supports full-text search by name or phone.
+      operationId: patientIndex
+      parameters:
+        - name: search
+          in: query
+          description: Full-text search on name or phone number
+          schema:
+            type: string
+            example: "Priya"
+        - name: specialty
+          in: query
+          description: Filter by patients who have visited this specialty
+          schema:
+            type: string
+            example: "dermatology"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: Paginated patient list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPatients'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Patients]
+      summary: Create patient
+      description: Registers a new patient in the clinic. Phone number must be unique within the clinic.
+      operationId: patientStore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone]
+              properties:
+                name:
+                  type: string
+                  example: "Priya Sharma"
+                dob:
+                  type: string
+                  format: date
+                  example: "1992-06-15"
+                sex:
+                  type: string
+                  enum: [M, F, O]
+                  example: "F"
+                phone:
+                  type: string
+                  example: "9876543210"
+                email:
+                  type: string
+                  format: email
+                  example: "priya.sharma@gmail.com"
+                blood_group:
+                  type: string
+                  example: "B+"
+                medical_history:
+                  type: object
+                  properties:
+                    allergies:
+                      type: array
+                      items:
+                        type: string
+                      example: ["Penicillin"]
+                    chronic_conditions:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '201':
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patient:
+                    $ref: '#/components/schemas/Patient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /patients/{id}:
+    get:
+      tags: [Patients]
+      summary: Get patient
+      description: Returns full patient details including ABHA status and medical history.
+      operationId: patientShow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1042
+      responses:
+        '200':
+          description: Patient details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patient:
+                    $ref: '#/components/schemas/Patient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Patients]
+      summary: Update patient
+      description: Updates patient demographics or medical history. Only supply fields to be changed.
+      operationId: patientUpdate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1042
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Priya Gupta"
+                phone:
+                  type: string
+                  example: "9876543210"
+                email:
+                  type: string
+                  format: email
+                blood_group:
+                  type: string
+                medical_history:
+                  type: object
+      responses:
+        '200':
+          description: Patient updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patient:
+                    $ref: '#/components/schemas/Patient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+    delete:
+      tags: [Patients]
+      summary: Delete (soft-delete) patient
+      description: Soft-deletes the patient. All associated records are retained but hidden from queries.
+      operationId: patientDelete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1042
+      responses:
+        '200':
+          description: Patient deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Patient deleted."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{id}/timeline:
+    get:
+      tags: [Patients]
+      summary: Patient visit timeline
+      description: Returns a chronological list of all visits, prescriptions, invoices and messages for a patient.
+      operationId: patientTimeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1042
+      responses:
+        '200':
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum: [visit, prescription, invoice, message]
+                        date:
+                          type: string
+                          format: date-time
+                        summary:
+                          type: string
+                        id:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{id}/vitals:
+    get:
+      tags: [Patients]
+      summary: Patient vitals history
+      description: Returns structured vitals recorded across all visits (BP, weight, temperature, SpO2, etc.)
+      operationId: patientVitals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1042
+      responses:
+        '200':
+          description: Vitals history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vitals:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        visit_id:
+                          type: integer
+                        date:
+                          type: string
+                          format: date
+                        bp_systolic:
+                          type: integer
+                        bp_diastolic:
+                          type: integer
+                        weight_kg:
+                          type: number
+                        temperature_f:
+                          type: number
+                        spo2:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{id}/photos:
+    post:
+      tags: [Patients]
+      summary: Upload patient photo
+      description: Uploads a clinical photo to the encrypted S3 photo vault. Requires patient consent.
+      operationId: patientUploadPhoto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1042
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo, consent_obtained]
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG or PNG, max 10MB)
+                visit_id:
+                  type: integer
+                  nullable: true
+                  example: 789
+                body_region:
+                  type: string
+                  example: "left_elbow"
+                condition_tag:
+                  type: string
+                  example: "psoriasis"
+                consent_obtained:
+                  type: boolean
+                  example: true
+      responses:
+        '201':
+          description: Photo uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photo:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      s3_key:
+                        type: string
+                      url:
+                        type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /patients/search-drug:
+    post:
+      tags: [Patients]
+      summary: Drug search (patient context)
+      description: Searches the drug database in the context of a patient's allergy profile.
+      operationId: patientDrugSearch
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Drug name query (minimum 2 characters)
+          schema:
+            type: string
+            example: "clobetasol"
+      responses:
+        '200':
+          description: Matching drugs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  drugs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        generic:
+                          type: string
+                        category:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # APPOINTMENTS & SCHEDULING
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      description: Returns appointments for the clinic, filterable by date, doctor, status or patient.
+      operationId: appointmentIndex
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2026-03-27"
+        - name: doctor_id
+          in: query
+          schema:
+            type: integer
+            example: 3
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [booked, confirmed, checked_in, in_consultation, completed, cancelled, no_show]
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+            example: 1042
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Appointment list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppointments'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Appointments]
+      summary: Book appointment
+      description: Creates a new appointment. Validates against doctor availability and room conflicts.
+      operationId: appointmentStore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id, doctor_id, specialty, service_type, scheduled_at]
+              properties:
+                patient_id:
+                  type: integer
+                  example: 1042
+                doctor_id:
+                  type: integer
+                  example: 3
+                specialty:
+                  type: string
+                  example: "dermatology"
+                service_type:
+                  type: string
+                  example: "consultation"
+                scheduled_at:
+                  type: string
+                  format: date-time
+                  example: "2026-03-27T10:30:00+05:30"
+                duration_mins:
+                  type: integer
+                  default: 15
+                  example: 20
+                room_id:
+                  type: integer
+                  nullable: true
+                  example: 2
+                pre_visit_notes:
+                  type: string
+                  nullable: true
+                  example: "Recurring psoriasis flare"
+      responses:
+        '201':
+          description: Appointment booked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /appointments/{id}:
+    get:
+      tags: [Appointments]
+      summary: Get appointment
+      operationId: appointmentShow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 305
+      responses:
+        '200':
+          description: Appointment details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Appointments]
+      summary: Update appointment
+      description: Reschedule, change service type or update notes.
+      operationId: appointmentUpdate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 305
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scheduled_at:
+                  type: string
+                  format: date-time
+                  example: "2026-03-28T11:00:00+05:30"
+                duration_mins:
+                  type: integer
+                  example: 30
+                pre_visit_notes:
+                  type: string
+                status:
+                  type: string
+                  enum: [booked, confirmed, cancelled]
+      responses:
+        '200':
+          description: Appointment updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Appointments]
+      summary: Cancel appointment
+      operationId: appointmentCancel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 305
+      responses:
+        '200':
+          description: Appointment cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Appointment cancelled."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments/slots:
+    get:
+      tags: [Appointments]
+      summary: Get available time slots
+      description: Returns open 15/20/30-minute slots for a doctor on a given date.
+      operationId: appointmentSlots
+      parameters:
+        - name: doctor_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 3
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-03-27"
+      responses:
+        '200':
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  slots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        start:
+                          type: string
+                          format: date-time
+                          example: "2026-03-27T09:00:00+05:30"
+                        end:
+                          type: string
+                          format: date-time
+                          example: "2026-03-27T09:15:00+05:30"
+                        available:
+                          type: boolean
+                          example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /appointments/queue/today:
+    get:
+      tags: [Appointments]
+      summary: Today's live queue
+      description: Returns today's appointment queue sorted by token number and check-in time. Updates in real time via polling.
+      operationId: appointmentQueue
+      parameters:
+        - name: doctor_id
+          in: query
+          schema:
+            type: integer
+            example: 3
+      responses:
+        '200':
+          description: Queue list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queue:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appointment'
+                  current_token:
+                    type: integer
+                    example: 7
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /appointments/{id}/check-in:
+    put:
+      tags: [Appointments]
+      summary: Check in patient
+      description: Marks patient as arrived at the clinic. Assigns a token number.
+      operationId: appointmentCheckIn
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 305
+      responses:
+        '200':
+          description: Checked in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+                  token_number:
+                    type: integer
+                    example: 12
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments/{id}/start:
+    put:
+      tags: [Appointments]
+      summary: Start consultation
+      description: Moves the appointment status to `in_consultation`.
+      operationId: appointmentStart
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 305
+      responses:
+        '200':
+          description: Consultation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments/{id}/complete:
+    put:
+      tags: [Appointments]
+      summary: Complete appointment
+      description: Marks consultation as complete.
+      operationId: appointmentComplete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 305
+      responses:
+        '200':
+          description: Appointment completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment:
+                    $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /schedule/calendar:
+    get:
+      tags: [Appointments]
+      summary: Calendar view
+      description: Returns appointments grouped by doctor/day for a week or day view in the scheduler UI.
+      operationId: scheduleCalendar
+      parameters:
+        - name: view
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: week
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2026-03-24"
+        - name: doctor_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Calendar appointments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /doctors/{id}/availability:
+    get:
+      tags: [Appointments]
+      summary: Get doctor availability
+      description: Returns the weekly availability schedule for a doctor including breaks and leave.
+      operationId: doctorAvailabilityGet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 3
+      responses:
+        '200':
+          description: Availability schedule
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  availability:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        day:
+                          type: string
+                          example: "Monday"
+                        start_time:
+                          type: string
+                          example: "09:00"
+                        end_time:
+                          type: string
+                          example: "13:00"
+                        break_start:
+                          type: string
+                          nullable: true
+                        break_end:
+                          type: string
+                          nullable: true
+                        is_available:
+                          type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Appointments]
+      summary: Update doctor availability
+      description: Saves the doctor's weekly availability template.
+      operationId: doctorAvailabilityPut
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                availability:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day:
+                        type: string
+                        example: "Monday"
+                      start_time:
+                        type: string
+                        example: "09:00"
+                      end_time:
+                        type: string
+                        example: "13:00"
+                      is_available:
+                        type: boolean
+                        example: true
+      responses:
+        '200':
+          description: Availability updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Availability updated."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EMR / VISITS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /visits:
+    get:
+      tags: [EMR]
+      summary: List visits
+      description: Returns visits for the clinic, filterable by patient, date range or doctor.
+      operationId: visitIndex
+      parameters:
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+            example: 1042
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2026-01-01"
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2026-03-31"
+        - name: doctor_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Visits list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Visit'
+                  meta:
+                    $ref: '#/components/schemas/PaginatedMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [EMR]
+      summary: Create visit (EMR draft)
+      description: Opens a new visit draft linked to an appointment. Returns a blank specialty template.
+      operationId: visitCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id, appointment_id, specialty, doctor_id]
+              properties:
+                patient_id:
+                  type: integer
+                  example: 1042
+                appointment_id:
+                  type: integer
+                  example: 305
+                specialty:
+                  type: string
+                  enum: [dermatology, physiotherapy, dental, ophthalmology, orthopaedics, ent, gynaecology]
+                  example: "dermatology"
+                doctor_id:
+                  type: integer
+                  example: 3
+      responses:
+        '201':
+          description: Visit created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visit:
+                    $ref: '#/components/schemas/Visit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /visits/{id}:
+    get:
+      tags: [EMR]
+      summary: Get visit
+      description: Returns the full visit with lesions, scales, prescriptions, photos and lab orders.
+      operationId: visitShow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      responses:
+        '200':
+          description: Visit details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visit:
+                    $ref: '#/components/schemas/Visit'
+                  template:
+                    type: object
+                    description: Specialty field schema for the UI form
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [EMR]
+      summary: Update visit (auto-save)
+      description: |
+        Auto-saves structured visit fields. Merges `fields` into the `structured_data` JSON column.
+        Also accepts top-level `notes`, `diagnosis`, and `plan`.
+      operationId: visitUpdate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fields:
+                  type: object
+                  description: Specialty-specific structured data key-value pairs
+                  example:
+                    chief_complaint: "Raised red plaques for 3 months"
+                    distribution: "bilateral extensor surfaces"
+                    koebner_phenomenon: true
+                notes:
+                  type: string
+                  example: "Patient anxious about treatment."
+                diagnosis:
+                  type: string
+                  example: "L40.0 - Plaque psoriasis"
+                plan:
+                  type: string
+                  example: "Clobetasol 0.05% ointment BD. Review in 4 weeks."
+      responses:
+        '200':
+          description: Visit updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visit:
+                    $ref: '#/components/schemas/Visit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /visits/{id}/finalise:
+    post:
+      tags: [EMR]
+      summary: Finalise visit
+      description: |
+        Locks the visit as finalised. Generates a FHIR R4 Composition bundle.
+        If the patient has an active ABDM consent, the record is automatically pushed to the HIE-CM.
+      operationId: visitFinalise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      responses:
+        '200':
+          description: Visit finalised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visit:
+                    $ref: '#/components/schemas/Visit'
+                  fhir_pushed:
+                    type: boolean
+                    example: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /visits/{id}/lesions:
+    post:
+      tags: [EMR]
+      summary: Add lesion annotation
+      description: |
+        Pins a lesion annotation on the interactive body map.
+        Coordinates are percentages (0–100) relative to the body region image.
+      operationId: visitAddLesion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body_region, x_pct, y_pct, lesion_type]
+              properties:
+                body_region:
+                  type: string
+                  example: "left_elbow"
+                x_pct:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 100
+                  example: 72.5
+                y_pct:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 100
+                  example: 48.3
+                lesion_type:
+                  type: string
+                  description: "macule | papule | plaque | vesicle | pustule | nodule | patch | wheal"
+                  example: "plaque"
+                size_cm:
+                  type: number
+                  format: float
+                  nullable: true
+                  example: 3.5
+                colour:
+                  type: string
+                  nullable: true
+                  example: "erythematous"
+                border:
+                  type: string
+                  nullable: true
+                  example: "well-defined"
+                surface:
+                  type: string
+                  nullable: true
+                  example: "silvery scales"
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: Lesion added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lesion:
+                    $ref: '#/components/schemas/Lesion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /visits/{id}/lesions/{lesionId}:
+    put:
+      tags: [EMR]
+      summary: Update lesion
+      description: Updates an existing lesion annotation on the body map.
+      operationId: visitUpdateLesion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+        - name: lesionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 41
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lesion_type:
+                  type: string
+                  example: "plaque"
+                size_cm:
+                  type: number
+                colour:
+                  type: string
+                surface:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Lesion updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lesion:
+                    $ref: '#/components/schemas/Lesion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /visits/{id}/scales:
+    post:
+      tags: [EMR]
+      summary: Save grading scales
+      description: |
+        Saves one or more clinical grading scale scores for the visit.
+        Supported scales: PASI, IGA, DLQI, BSA, VAS, ROM, MMT, CDR, HFA, BBS, Berg, UPDRS, OHIP-14, and more.
+      operationId: visitSaveScales
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scales]
+              properties:
+                scales:
+                  type: array
+                  items:
+                    type: object
+                    required: [scale, score]
+                    properties:
+                      scale:
+                        type: string
+                        example: "PASI"
+                      score:
+                        type: number
+                        format: float
+                        example: 8.4
+                      components:
+                        type: object
+                        nullable: true
+                        example:
+                          head: 1.2
+                          trunk: 2.8
+                          upper_limbs: 2.4
+                          lower_limbs: 2.0
+      responses:
+        '200':
+          description: Scales saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Scales saved"
+                  count:
+                    type: integer
+                    example: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /visits/{id}/dental/{toothId}:
+    put:
+      tags: [EMR]
+      summary: Update dental tooth record
+      description: |
+        Updates a single tooth in the FDI dental chart.
+        Tooth codes follow FDI notation: 11-18, 21-28, 31-38, 41-48 (permanent);
+        51-55, 61-65, 71-75, 81-85 (primary).
+      operationId: visitUpdateTooth
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Visit ID
+          schema:
+            type: integer
+          example: 789
+        - name: toothId
+          in: path
+          required: true
+          description: FDI tooth code
+          schema:
+            type: string
+          example: "26"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: "present | missing | extracted | implant"
+                  example: "present"
+                caries:
+                  type: string
+                  description: "none | initial | moderate | advanced"
+                  example: "moderate"
+                restoration:
+                  type: string
+                  description: "none | amalgam | composite | crown | bridge | rct"
+                  example: "none"
+                mobility:
+                  type: integer
+                  minimum: 0
+                  maximum: 3
+                  nullable: true
+                  example: 1
+                pocketing_mm:
+                  type: array
+                  description: 6-point probing depths [MB, B, DB, ML, L, DL]
+                  items:
+                    type: integer
+                  example: [3, 2, 3, 2, 2, 3]
+                recession_mm:
+                  type: number
+                  nullable: true
+                  example: 1.5
+                bop:
+                  type: boolean
+                  nullable: true
+                  example: false
+                procedure_today:
+                  type: string
+                  nullable: true
+                  example: "Scaling"
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Tooth record updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tooth:
+                    type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PRESCRIPTIONS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /prescriptions/{visitId}:
+    get:
+      tags: [Prescriptions]
+      summary: Get prescription for a visit
+      description: Returns the prescription and all drugs for a specific visit.
+      operationId: prescriptionByVisit
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      responses:
+        '200':
+          description: Prescription details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prescription:
+                    $ref: '#/components/schemas/Prescription'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /prescriptions:
+    post:
+      tags: [Prescriptions]
+      summary: Create prescription
+      description: Creates a prescription with one or more drugs for a visit. Generates a signed PDF on S3.
+      operationId: prescriptionStore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visit_id, patient_id, drugs]
+              properties:
+                visit_id:
+                  type: integer
+                  example: 789
+                patient_id:
+                  type: integer
+                  example: 1042
+                drugs:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [drug_name, dose, frequency]
+                    properties:
+                      drug_name:
+                        type: string
+                        example: "Clobetasol Propionate"
+                      generic_name:
+                        type: string
+                        nullable: true
+                        example: "Clobetasol"
+                      dose:
+                        type: string
+                        example: "0.05% ointment"
+                      frequency:
+                        type: string
+                        example: "Twice daily"
+                      duration:
+                        type: string
+                        nullable: true
+                        example: "4 weeks"
+                      instructions:
+                        type: string
+                        nullable: true
+                        example: "Apply thinly to affected areas. Avoid face and groin."
+                      route:
+                        type: string
+                        default: "oral"
+                        example: "topical"
+      responses:
+        '201':
+          description: Prescription created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prescription:
+                    $ref: '#/components/schemas/Prescription'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /drugs/search:
+    get:
+      tags: [Prescriptions]
+      summary: Drug database search
+      description: Searches the curated Indian drug database by name, generic or brand. Supports specialty-specific filtering.
+      operationId: drugSearch
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "methotrexate"
+        - name: specialty
+          in: query
+          schema:
+            type: string
+            example: "dermatology"
+      responses:
+        '200':
+          description: Matching drugs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  drugs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                          example: "Methotrexate"
+                        generic_name:
+                          type: string
+                          example: "Methotrexate"
+                        category:
+                          type: string
+                          example: "Immunosuppressant"
+                        common_doses:
+                          type: array
+                          items:
+                            type: string
+                          example: ["7.5mg weekly", "15mg weekly"]
+                        route:
+                          type: string
+                          example: "oral"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BILLING & INVOICES
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /invoices:
+    get:
+      tags: [Billing]
+      summary: List invoices
+      description: Returns paginated invoices, filterable by status, patient and date range.
+      operationId: invoiceIndex
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, partial, paid]
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+            example: 1042
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2026-03-01"
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2026-03-31"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: Invoice list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvoices'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Billing]
+      summary: Create invoice
+      description: Creates a draft invoice with line items. GST is auto-calculated per SAC code.
+      operationId: invoiceStore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id, items]
+              properties:
+                patient_id:
+                  type: integer
+                  example: 1042
+                visit_id:
+                  type: integer
+                  nullable: true
+                  example: 789
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [description, unit_price]
+                    properties:
+                      description:
+                        type: string
+                        example: "Dermatology Consultation"
+                      sac_code:
+                        type: string
+                        nullable: true
+                        example: "999311"
+                      gst_rate:
+                        type: number
+                        default: 18
+                        example: 18
+                      unit_price:
+                        type: number
+                        format: float
+                        example: 800
+                      quantity:
+                        type: integer
+                        default: 1
+                        example: 1
+      responses:
+        '201':
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /invoices/{id}:
+    get:
+      tags: [Billing]
+      summary: Get invoice
+      operationId: invoiceShow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      responses:
+        '200':
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Billing]
+      summary: Update invoice
+      description: Update line items or patient details on a draft invoice. Cannot update after finalisation.
+      operationId: invoiceUpdate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/InvoiceItem'
+      responses:
+        '200':
+          description: Invoice updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Billing]
+      summary: Delete invoice
+      description: Soft-deletes a draft invoice. Finalised invoices cannot be deleted; use a credit note.
+      operationId: invoiceDelete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      responses:
+        '200':
+          description: Invoice deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invoice deleted."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /invoices/{id}/finalise:
+    post:
+      tags: [Billing]
+      summary: Finalise invoice
+      description: Locks the invoice, generates a sequential invoice number, and creates the PDF on S3.
+      operationId: invoiceFinalise
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      responses:
+        '200':
+          description: Invoice finalised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /invoices/{id}/record-payment:
+    post:
+      tags: [Billing]
+      summary: Record manual payment
+      description: Records a cash, card or UPI payment against an invoice without going through Razorpay.
+      operationId: invoiceRecordPayment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, method]
+              properties:
+                amount:
+                  type: number
+                  format: float
+                  example: 944.00
+                method:
+                  type: string
+                  enum: [cash, card, upi, cheque, neft]
+                  example: "upi"
+                reference:
+                  type: string
+                  nullable: true
+                  example: "UPI ref: 123456789"
+      responses:
+        '200':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /invoices/{id}/razorpay/initiate:
+    post:
+      tags: [Billing]
+      summary: Initiate Razorpay payment order
+      description: Creates a Razorpay order linked to the invoice. Returns the order ID for the Razorpay checkout.
+      operationId: invoiceRazorpayInitiate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      responses:
+        '200':
+          description: Razorpay order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  razorpay_order_id:
+                    type: string
+                    example: "order_PQmxyz123"
+                  amount_paise:
+                    type: integer
+                    example: 94400
+                  currency:
+                    type: string
+                    example: "INR"
+                  key:
+                    type: string
+                    description: Razorpay publishable key
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /invoices/{id}/razorpay/verify:
+    post:
+      tags: [Billing]
+      summary: Verify Razorpay payment
+      description: Verifies the HMAC signature from Razorpay checkout callback and marks the invoice as paid.
+      operationId: invoiceRazorpayVerify
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [razorpay_order_id, razorpay_payment_id, razorpay_signature]
+              properties:
+                razorpay_order_id:
+                  type: string
+                  example: "order_PQmxyz123"
+                razorpay_payment_id:
+                  type: string
+                  example: "pay_PQmxyz456"
+                razorpay_signature:
+                  type: string
+                  example: "abc123def456..."
+      responses:
+        '200':
+          description: Payment verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paid:
+                    type: boolean
+                    example: true
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+        '400':
+          description: Signature verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /invoices/{id}/pdf:
+    get:
+      tags: [Billing]
+      summary: Download invoice PDF
+      description: Returns a pre-signed S3 URL for the invoice PDF, valid for 15 minutes.
+      operationId: invoicePdf
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      responses:
+        '200':
+          description: PDF URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    example: "https://s3.ap-south-1.amazonaws.com/clinicos/invoices/900.pdf?X-Amz-Signature=..."
+                  expires_at:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /invoices/{id}/send-whatsapp:
+    post:
+      tags: [Billing]
+      summary: Send payment link via WhatsApp
+      description: Generates a Razorpay payment link and sends it to the patient's WhatsApp number.
+      operationId: invoiceSendWhatsapp
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Payment link sent to patient."
+                  wa_message_id:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reports/gst-summary:
+    get:
+      tags: [Billing]
+      summary: GST monthly summary report
+      description: Returns GST-wise revenue breakdown (CGST + SGST) for the specified month, suitable for GSTR-1 filing.
+      operationId: reportGstSummary
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 3
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 2026
+      responses:
+        '200':
+          description: GST summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: string
+                    example: "March 2026"
+                  total_revenue:
+                    type: string
+                    example: "124500.00"
+                  total_gst:
+                    type: string
+                    example: "22410.00"
+                  breakdown:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sac_code:
+                          type: string
+                        gst_rate:
+                          type: number
+                        taxable_amount:
+                          type: string
+                        cgst:
+                          type: string
+                        sgst:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reports/outstanding:
+    get:
+      tags: [Billing]
+      summary: Outstanding receivables report
+      description: Returns all unpaid and partially paid invoices with ageing buckets (0-30, 31-60, 61-90, 90+ days).
+      operationId: reportOutstanding
+      responses:
+        '200':
+          description: Outstanding report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_outstanding:
+                    type: string
+                    example: "45800.00"
+                  invoices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # WHATSAPP
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /whatsapp/messages:
+    get:
+      tags: [WhatsApp]
+      summary: List WhatsApp messages
+      description: Returns paginated message log for the clinic (both inbound and outbound).
+      operationId: whatsappMessages
+      parameters:
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [inbound, outbound]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMessages'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/send:
+    post:
+      tags: [WhatsApp]
+      summary: Send free-form message
+      description: Sends a text message to a patient. Only allowed within the 24-hour customer service window.
+      operationId: whatsappSend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id, body]
+              properties:
+                patient_id:
+                  type: integer
+                  example: 1042
+                body:
+                  type: string
+                  example: "Dear Priya ji, your follow-up appointment is confirmed for 27 March at 10:30 AM. Please arrive 10 minutes early."
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    $ref: '#/components/schemas/WhatsappMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/send-bulk:
+    post:
+      tags: [WhatsApp]
+      summary: Send bulk template messages
+      description: Sends a pre-approved template to multiple patients. Useful for follow-up campaigns.
+      operationId: whatsappSendBulk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [template_name, patient_ids]
+              properties:
+                template_name:
+                  type: string
+                  example: "recall_followup"
+                patient_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1042, 1043, 1044]
+                variables:
+                  type: object
+                  nullable: true
+                  example:
+                    clinic_name: "Sharma Skin Clinic"
+                    date: "30 March 2026"
+      responses:
+        '200':
+          description: Bulk send queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued:
+                    type: integer
+                    example: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/appointment-reminder/{appointmentId}:
+    post:
+      tags: [WhatsApp]
+      summary: Send appointment reminder
+      description: Sends the `appointment_reminder` template to the patient for a specific appointment.
+      operationId: whatsappAppointmentReminder
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 305
+      responses:
+        '200':
+          description: Reminder sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wa_message_id:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/prescription/{visitId}:
+    post:
+      tags: [WhatsApp]
+      summary: Send prescription via WhatsApp
+      description: Sends the prescription PDF and summary to the patient's WhatsApp number.
+      operationId: whatsappPrescription
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      responses:
+        '200':
+          description: Prescription sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wa_message_id:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/payment-link/{invoiceId}:
+    post:
+      tags: [WhatsApp]
+      summary: Send payment link via WhatsApp
+      description: Sends a Razorpay payment link for the invoice to the patient's WhatsApp.
+      operationId: whatsappPaymentLink
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 900
+      responses:
+        '200':
+          description: Payment link sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payment_link:
+                    type: string
+                    example: "https://rzp.io/l/abc123"
+                  wa_message_id:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/templates:
+    get:
+      tags: [WhatsApp]
+      summary: List approved templates
+      description: Returns all Meta-approved WhatsApp message templates for the clinic's WABA.
+      operationId: whatsappTemplates
+      responses:
+        '200':
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "appointment_reminder"
+                        status:
+                          type: string
+                          example: "APPROVED"
+                        category:
+                          type: string
+                          example: "UTILITY"
+                        language:
+                          type: string
+                          example: "en"
+                        variables:
+                          type: array
+                          items:
+                            type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/stats:
+    get:
+      tags: [WhatsApp]
+      summary: WhatsApp messaging statistics
+      description: Returns delivery stats (sent, delivered, read, failed) over the last 30 days.
+      operationId: whatsappStats
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period_days:
+                    type: integer
+                    example: 30
+                  sent:
+                    type: integer
+                    example: 340
+                  delivered:
+                    type: integer
+                    example: 322
+                  read:
+                    type: integer
+                    example: 298
+                  failed:
+                    type: integer
+                    example: 18
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /whatsapp/webhook:
+    post:
+      tags: [WhatsApp]
+      security: []
+      summary: Inbound webhook (Meta Cloud API)
+      description: |
+        Receives inbound messages and status updates from Meta.
+        Verified via X-Hub-Signature-256 header. Not for direct client use.
+      operationId: whatsappInboundWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Meta Cloud API webhook payload
+      responses:
+        '200':
+          description: Acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  acknowledged:
+                    type: boolean
+                    example: true
+
+  /whatsapp/status-webhook:
+    post:
+      tags: [WhatsApp]
+      security: []
+      summary: Message status webhook (Meta Cloud API)
+      description: Receives delivery status updates (delivered, read, failed) for outbound messages.
+      operationId: whatsappStatusWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  acknowledged:
+                    type: boolean
+                    example: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ABDM
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /abdm/abha/create:
+    post:
+      tags: [ABDM]
+      summary: Create ABHA health ID
+      description: |
+        Creates a new 14-digit ABHA number for a patient.
+        Supports Aadhaar OTP flow or mobile OTP flow.
+        The ABHA is linked to the patient record automatically.
+      operationId: abdmCreateAbha
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method, mobile, otp, patient_id]
+              properties:
+                method:
+                  type: string
+                  enum: [aadhaar, mobile]
+                  example: "aadhaar"
+                aadhaar_last4:
+                  type: string
+                  description: Required when method is aadhaar
+                  minLength: 4
+                  maxLength: 4
+                  nullable: true
+                  example: "5678"
+                mobile:
+                  type: string
+                  description: 10-digit mobile number
+                  example: "9876543210"
+                otp:
+                  type: string
+                  description: 6-digit OTP received via SMS
+                  example: "482310"
+                patient_id:
+                  type: integer
+                  example: 1042
+      responses:
+        '200':
+          description: ABHA created and linked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  abha_number:
+                    type: string
+                    example: "91-1234-5678-9012"
+                  abha_address:
+                    type: string
+                    example: "priya.sharma@abdm"
+                  patient:
+                    $ref: '#/components/schemas/Patient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /abdm/abha/verify:
+    post:
+      tags: [ABDM]
+      summary: Verify and link existing ABHA
+      description: Verifies an existing ABHA number via OTP and links it to a patient record.
+      operationId: abdmVerifyAbha
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [abha_id, patient_id, otp]
+              properties:
+                abha_id:
+                  type: string
+                  example: "91-1234-5678-9012"
+                patient_id:
+                  type: integer
+                  example: 1042
+                otp:
+                  type: string
+                  example: "391045"
+      responses:
+        '200':
+          description: ABHA verified and linked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                    example: true
+                  patient:
+                    $ref: '#/components/schemas/Patient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /abdm/fhir/push/{visitId}:
+    post:
+      tags: [ABDM]
+      summary: Push FHIR record to ABDM
+      description: |
+        Manually pushes a finalised visit as a FHIR R4 Composition bundle to the ABDM HIE-CM.
+        Requires the patient to have an ABHA number and active consent.
+        This is triggered automatically on visit finalisation if consent is active.
+      operationId: abdmPushFhir
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      responses:
+        '200':
+          description: Record pushed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pushed:
+                    type: boolean
+                    example: true
+                  care_context_ref:
+                    type: string
+                    example: "CC-789"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: Patient has no ABHA ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /abdm/fhir/pull:
+    post:
+      tags: [ABDM]
+      summary: Pull health records from ABDM
+      description: Initiates an HIU request to pull FHIR records from other healthcare providers with patient consent.
+      operationId: abdmPullFhir
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id]
+              properties:
+                patient_id:
+                  type: integer
+                  example: 1042
+      responses:
+        '200':
+          description: Records pulled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /abdm/consent/request:
+    post:
+      tags: [ABDM]
+      summary: Request ABDM consent
+      description: |
+        Sends a consent request to the patient via ABDM HIE-CM.
+        The patient approves/denies via the ABDM app. The result is delivered to the consent webhook.
+      operationId: abdmRequestConsent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id, purpose, from, to, hi_types]
+              properties:
+                patient_id:
+                  type: integer
+                  example: 1042
+                purpose:
+                  type: string
+                  enum: [CAREMGT, BTG, PKD, PATRQT, PUBHLTH, HPAYMT]
+                  description: "CAREMGT=Care Management, BTG=Break The Glass, PKD=Patient Known Data, PATRQT=Patient Request, PUBHLTH=Public Health, HPAYMT=Healthcare Payment"
+                  example: "CAREMGT"
+                from:
+                  type: string
+                  format: date
+                  example: "2025-01-01"
+                to:
+                  type: string
+                  format: date
+                  example: "2026-12-31"
+                hi_types:
+                  type: array
+                  items:
+                    type: string
+                  description: "FHIR resource types to access"
+                  example: ["Prescription", "DiagnosticReport", "OPConsultation"]
+      responses:
+        '200':
+          description: Consent request submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consent_request_id:
+                    type: string
+                    example: "ABDM-CNS-20260327-ABC123"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /abdm/consents:
+    get:
+      tags: [ABDM]
+      summary: List ABDM consents
+      description: Returns all consent requests for the clinic, optionally filtered by patient.
+      operationId: abdmConsents
+      parameters:
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+            example: 1042
+      responses:
+        '200':
+          description: Consents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AbdmConsent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /abdm/webhook/consent:
+    post:
+      tags: [ABDM]
+      security: []
+      summary: ABDM consent webhook
+      description: |
+        Receives consent approval/denial notifications from ABDM HIE-CM.
+        NHA-signed requests. Not for direct client use.
+      operationId: abdmConsentWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                consentRequestId:
+                  type: string
+                status:
+                  type: string
+                  enum: [GRANTED, DENIED, REVOKED, EXPIRED]
+                consentArtefact:
+                  type: object
+                  nullable: true
+      responses:
+        '200':
+          description: Acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  acknowledged:
+                    type: boolean
+
+  /abdm/webhook/health-info:
+    post:
+      tags: [ABDM]
+      security: []
+      summary: ABDM health info webhook
+      description: Receives encrypted FHIR bundles from ABDM after HIU data pull is approved.
+      operationId: abdmHealthInfoWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  acknowledged:
+                    type: boolean
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AI
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /ai/transcribe:
+    post:
+      tags: [AI]
+      summary: Transcribe audio (Whisper STT)
+      description: |
+        Accepts a clinical audio recording and returns a raw transcript via OpenAI Whisper.
+        Supports English, Hindi and Marathi. Maximum file size: 25MB.
+      operationId: aiTranscribe
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                  description: Audio file (webm, mp4, m4a, wav, mp3 — max 25MB)
+                language:
+                  type: string
+                  enum: [en, hi, mr]
+                  default: en
+                  example: "en"
+      responses:
+        '200':
+          description: Transcript
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transcript:
+                    type: string
+                    example: "Patient presents with a 2 centimetre raised red plaque on the left elbow for 3 months. Koebner phenomenon positive. No itching. VAS pain 3 out of 10."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /ai/map-fields:
+    post:
+      tags: [AI]
+      summary: Map transcript to EMR fields (Claude)
+      description: |
+        Takes a raw transcript and specialty context, then returns structured EMR field values
+        extracted by Claude. The returned `fields` object can be merged directly into the visit's
+        `structured_data`.
+      operationId: aiMapFields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [transcript, specialty]
+              properties:
+                transcript:
+                  type: string
+                  maxLength: 5000
+                  example: "Patient presents with 2 cm raised red plaque on the left elbow for 3 months. Koebner phenomenon positive. VAS pain 3/10."
+                specialty:
+                  type: string
+                  example: "dermatology"
+                template:
+                  type: array
+                  nullable: true
+                  description: Optional field schema to guide mapping
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                      type:
+                        type: string
+                      description:
+                        type: string
+      responses:
+        '200':
+          description: Mapped EMR fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fields:
+                    type: object
+                    example:
+                      lesion_type: "plaque"
+                      size_cm: 2.0
+                      location: "left elbow"
+                      colour: "erythematous"
+                      duration_months: 3
+                      koebner_phenomenon: true
+                      vas_pain: 3
+                  transcript:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /ai/summarise/{visitId}:
+    post:
+      tags: [AI]
+      summary: Generate patient-friendly summary (Claude)
+      description: |
+        Generates a readable consultation summary from a finalised EMR visit.
+        The summary is in plain language suitable to share with the patient via WhatsApp.
+        Saved back to the visit record as `ai_summary`.
+      operationId: aiSummarise
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 789
+      responses:
+        '200':
+          description: Summary generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: string
+                    example: "You were seen today for psoriasis affecting your elbows and knees. Your PASI score is 8.4 (moderate). Dr. Sharma has prescribed Clobetasol ointment twice daily for 4 weeks. Please avoid sun exposure and report any skin thinning."
+                  visit_id:
+                    type: integer
+                    example: 789
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /ai/suggest-rx:
+    post:
+      tags: [AI]
+      summary: Suggest prescription (Claude)
+      description: |
+        Given a diagnosis and patient context, suggests a standard prescription template.
+        The doctor reviews and edits before saving. Never auto-prescribes.
+      operationId: aiSuggestRx
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [diagnosis, specialty]
+              properties:
+                diagnosis:
+                  type: string
+                  example: "L40.0 - Plaque psoriasis, moderate"
+                specialty:
+                  type: string
+                  example: "dermatology"
+                patient_age:
+                  type: integer
+                  nullable: true
+                  example: 33
+                patient_sex:
+                  type: string
+                  enum: [M, F, O]
+                  nullable: true
+                  example: "F"
+                allergies:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Penicillin"]
+                current_meds:
+                  type: array
+                  items:
+                    type: string
+                  example: []
+      responses:
+        '200':
+          description: Prescription suggestion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestion:
+                    type: object
+                    properties:
+                      drugs:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrescriptionDrug'
+                      notes:
+                        type: string
+                        example: "Review in 4 weeks. Monitor for skin atrophy with prolonged use."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LAB ORDERS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /lab-orders:
+    get:
+      tags: [LabOrders]
+      summary: List lab orders
+      description: Returns lab orders for the clinic. Filterable by status, patient or date.
+      operationId: labOrderIndex
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, accepted, processing, ready, sent, cancelled]
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+        - name: urgent
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Lab orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LabOrder'
+                  meta:
+                    $ref: '#/components/schemas/PaginatedMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [LabOrders]
+      summary: Create lab order
+      description: Creates a new lab order for a patient, optionally linked to a visit and vendor.
+      operationId: labOrderStore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id, tests]
+              properties:
+                patient_id:
+                  type: integer
+                  example: 1042
+                visit_id:
+                  type: integer
+                  nullable: true
+                  example: 789
+                vendor_id:
+                  type: integer
+                  nullable: true
+                  example: 12
+                tests:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [code, name]
+                    properties:
+                      code:
+                        type: string
+                        example: "CBC"
+                      name:
+                        type: string
+                        example: "Complete Blood Count"
+                      urgent:
+                        type: boolean
+                        default: false
+                is_urgent:
+                  type: boolean
+                  default: false
+                  example: false
+      responses:
+        '201':
+          description: Lab order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lab_order:
+                    $ref: '#/components/schemas/LabOrder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /lab-orders/{id}:
+    get:
+      tags: [LabOrders]
+      summary: Get lab order
+      operationId: labOrderShow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 601
+      responses:
+        '200':
+          description: Lab order details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lab_order:
+                    $ref: '#/components/schemas/LabOrder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lab-orders/{id}/status:
+    put:
+      tags: [LabOrders]
+      summary: Update lab order status
+      description: Advances the lab order through the workflow (new → accepted → processing → ready → sent).
+      operationId: labOrderStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 601
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [accepted, processing, ready, sent, cancelled]
+                  example: "processing"
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lab_order:
+                    $ref: '#/components/schemas/LabOrder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lab/catalog:
+    get:
+      tags: [LabOrders]
+      summary: Lab test catalog
+      description: Returns the list of available lab tests from all connected vendors.
+      operationId: labCatalog
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            example: "thyroid"
+        - name: vendor_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Test catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tests:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                          example: "TSH"
+                        name:
+                          type: string
+                          example: "Thyroid Stimulating Hormone"
+                        vendor_name:
+                          type: string
+                          example: "Thyrocare"
+                        price:
+                          type: string
+                          example: "350.00"
+                        tat_hours:
+                          type: integer
+                          example: 24
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ANALYTICS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: Dashboard KPI summary
+      description: Returns headline metrics for the clinic dashboard — today's appointments, revenue, queue and WhatsApp stats.
+      operationId: analyticsDashboard
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month]
+            default: month
+      responses:
+        '200':
+          description: KPI summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: string
+                    example: "month"
+                  appointments_count:
+                    type: integer
+                    example: 142
+                  new_patients:
+                    type: integer
+                    example: 28
+                  revenue_total:
+                    type: string
+                    example: "124500.00"
+                  outstanding:
+                    type: string
+                    example: "45800.00"
+                  whatsapp_sent:
+                    type: integer
+                    example: 340
+                  queue_today:
+                    type: integer
+                    example: 18
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /analytics/revenue:
+    get:
+      tags: [Analytics]
+      summary: Revenue analytics
+      description: Returns revenue time series data, optionally grouped by day, week or month.
+      operationId: analyticsRevenue
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-01-01"
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-03-31"
+        - name: group_by
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: month
+      responses:
+        '200':
+          description: Revenue data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: string
+                    example: "365200.00"
+                  series:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        period:
+                          type: string
+                          example: "2026-03"
+                        revenue:
+                          type: string
+                          example: "124500.00"
+                        invoices:
+                          type: integer
+                          example: 48
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /analytics/patients:
+    get:
+      tags: [Analytics]
+      summary: Patient analytics
+      description: Returns new vs. returning patient trends, retention rates and recall metrics.
+      operationId: analyticsPatients
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter, year]
+            default: month
+      responses:
+        '200':
+          description: Patient analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_patients:
+                    type: integer
+                    example: 842
+                  new_this_period:
+                    type: integer
+                    example: 28
+                  returning_this_period:
+                    type: integer
+                    example: 114
+                  retention_rate_pct:
+                    type: number
+                    example: 72.4
+                  due_for_recall:
+                    type: integer
+                    example: 37
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /analytics/specialties:
+    get:
+      tags: [Analytics]
+      summary: Specialty performance metrics
+      description: Returns revenue, appointment count and average PASI/VAS/ROM scores per specialty.
+      operationId: analyticsSpecialties
+      responses:
+        '200':
+          description: Specialty metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  specialties:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        specialty:
+                          type: string
+                          example: "dermatology"
+                        appointments:
+                          type: integer
+                          example: 89
+                        revenue:
+                          type: string
+                          example: "78400.00"
+                        avg_scale_score:
+                          type: number
+                          nullable: true
+                          example: 7.2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
