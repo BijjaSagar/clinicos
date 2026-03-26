@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest' => \Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
             'clinic.auth' => \App\Http\Middleware\ClinicAuthMiddleware::class,
             'super_admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'role' => \App\Http\Middleware\CheckRole::class,
         ]);
 
         // Redirect guests to login

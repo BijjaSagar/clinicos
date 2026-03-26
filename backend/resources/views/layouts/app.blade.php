@@ -203,44 +203,95 @@ if (!function_exists('route_exists')) {
         <nav class="flex-1 px-3 py-2 overflow-y-auto">
             @php
                 $currentRoute = request()->route()?->getName() ?? '';
+                $userRole = auth()->user()?->role ?? 'staff';
                 
-                $navSections = [
-                    [
-                        'label' => 'Clinic',
-                        'items' => [
-                            ['route' => 'dashboard', 'label' => 'Dashboard', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>', 'badge' => null],
-                            ['route' => 'schedule', 'label' => 'Schedule', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>', 'badge' => '14', 'badgeColor' => 'blue'],
-                            ['route' => 'patients.index', 'label' => 'Patients', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null],
-                            ['route' => 'emr.index', 'label' => 'EMR / Notes', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>', 'badge' => null],
-                            ['route' => 'whatsapp.index', 'label' => 'WhatsApp', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>', 'badge' => '3', 'badgeColor' => 'red'],
-                        ]
-                    ],
-                    [
-                        'label' => 'Billing',
-                        'items' => [
-                            ['route' => 'billing.index', 'label' => 'Invoices', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>', 'badge' => null],
-                            ['route' => 'payments.index', 'label' => 'Payments', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>', 'badge' => null],
-                            ['route' => 'gst-reports.index', 'label' => 'GST Reports', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>', 'badge' => null],
-                        ]
-                    ],
-                    [
-                        'label' => 'Clinical',
-                        'items' => [
-                            ['route' => 'photo-vault.index', 'label' => 'Photo Vault', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null],
-                            ['route' => 'prescriptions.index', 'label' => 'Prescriptions', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>', 'badge' => null],
-                            ['route' => 'vendor.index', 'label' => 'Lab Orders', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>', 'badge' => null],
-                        ]
-                    ],
-                    [
-                        'label' => 'Admin',
-                        'items' => [
-                            ['route' => 'clinic.users.index', 'label' => 'Users & Staff', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>', 'badge' => null],
-                            ['route' => 'abdm.index', 'label' => 'ABDM Centre', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>', 'badge' => null],
-                            ['route' => 'analytics.index', 'label' => 'Analytics', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>', 'badge' => null],
-                            ['route' => 'settings.index', 'label' => 'Settings', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null],
-                        ]
-                    ],
+                // Define which roles can access which menu items
+                $roleAccess = [
+                    'owner' => ['all'], // Owner has access to everything
+                    'doctor' => ['dashboard', 'schedule', 'patients', 'emr', 'whatsapp', 'billing', 'photo-vault', 'prescriptions', 'vendor', 'analytics'],
+                    'receptionist' => ['dashboard', 'schedule', 'patients', 'whatsapp', 'billing', 'payments', 'gst-reports'],
+                    'nurse' => ['dashboard', 'schedule', 'patients', 'emr', 'photo-vault', 'prescriptions'],
+                    'staff' => ['dashboard', 'schedule'],
                 ];
+                
+                $userAccess = $roleAccess[$userRole] ?? $roleAccess['staff'];
+                $hasAllAccess = in_array('all', $userAccess);
+                
+                // Helper to check access
+                $canAccess = function($key) use ($userAccess, $hasAllAccess) {
+                    return $hasAllAccess || in_array($key, $userAccess);
+                };
+                
+                $navSections = [];
+                
+                // CLINIC Section
+                $clinicItems = [];
+                $clinicItems[] = ['route' => 'dashboard', 'label' => 'Dashboard', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>', 'badge' => null, 'key' => 'dashboard'];
+                $clinicItems[] = ['route' => 'schedule', 'label' => 'Schedule', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>', 'badge' => '14', 'badgeColor' => 'blue', 'key' => 'schedule'];
+                if ($canAccess('patients')) {
+                    $clinicItems[] = ['route' => 'patients.index', 'label' => 'Patients', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null, 'key' => 'patients'];
+                }
+                if ($canAccess('emr')) {
+                    $clinicItems[] = ['route' => 'emr.index', 'label' => 'EMR / Notes', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>', 'badge' => null, 'key' => 'emr'];
+                }
+                if ($canAccess('whatsapp')) {
+                    $clinicItems[] = ['route' => 'whatsapp.index', 'label' => 'WhatsApp', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>', 'badge' => '3', 'badgeColor' => 'red', 'key' => 'whatsapp'];
+                }
+                $navSections[] = ['label' => 'Clinic', 'items' => $clinicItems];
+                
+                // BILLING Section (only if user has access to any billing feature)
+                if ($canAccess('billing') || $canAccess('payments') || $canAccess('gst-reports')) {
+                    $billingItems = [];
+                    if ($canAccess('billing')) {
+                        $billingItems[] = ['route' => 'billing.index', 'label' => 'Invoices', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>', 'badge' => null, 'key' => 'billing'];
+                    }
+                    if ($canAccess('payments')) {
+                        $billingItems[] = ['route' => 'payments.index', 'label' => 'Payments', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>', 'badge' => null, 'key' => 'payments'];
+                    }
+                    if ($canAccess('gst-reports')) {
+                        $billingItems[] = ['route' => 'gst-reports.index', 'label' => 'GST Reports', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>', 'badge' => null, 'key' => 'gst-reports'];
+                    }
+                    if (count($billingItems) > 0) {
+                        $navSections[] = ['label' => 'Billing', 'items' => $billingItems];
+                    }
+                }
+                
+                // CLINICAL Section (only if user has access to any clinical feature)
+                if ($canAccess('photo-vault') || $canAccess('prescriptions') || $canAccess('vendor')) {
+                    $clinicalItems = [];
+                    if ($canAccess('photo-vault')) {
+                        $clinicalItems[] = ['route' => 'photo-vault.index', 'label' => 'Photo Vault', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null, 'key' => 'photo-vault'];
+                    }
+                    if ($canAccess('prescriptions')) {
+                        $clinicalItems[] = ['route' => 'prescriptions.index', 'label' => 'Prescriptions', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>', 'badge' => null, 'key' => 'prescriptions'];
+                    }
+                    if ($canAccess('vendor')) {
+                        $clinicalItems[] = ['route' => 'vendor.index', 'label' => 'Lab Orders', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>', 'badge' => null, 'key' => 'vendor'];
+                    }
+                    if (count($clinicalItems) > 0) {
+                        $navSections[] = ['label' => 'Clinical', 'items' => $clinicalItems];
+                    }
+                }
+                
+                // ADMIN Section (only for owner and doctor roles)
+                if (in_array($userRole, ['owner', 'doctor'])) {
+                    $adminItems = [];
+                    // Users & Staff - ONLY for owner
+                    if ($userRole === 'owner') {
+                        $adminItems[] = ['route' => 'clinic.users.index', 'label' => 'Users & Staff', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>', 'badge' => null, 'key' => 'users'];
+                    }
+                    $adminItems[] = ['route' => 'abdm.index', 'label' => 'ABDM Centre', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>', 'badge' => null, 'key' => 'abdm'];
+                    if ($canAccess('analytics')) {
+                        $adminItems[] = ['route' => 'analytics.index', 'label' => 'Analytics', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>', 'badge' => null, 'key' => 'analytics'];
+                    }
+                    // Settings - ONLY for owner
+                    if ($userRole === 'owner') {
+                        $adminItems[] = ['route' => 'settings.index', 'label' => 'Settings', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null, 'key' => 'settings'];
+                    }
+                    if (count($adminItems) > 0) {
+                        $navSections[] = ['label' => 'Admin', 'items' => $adminItems];
+                    }
+                }
             @endphp
 
             @foreach($navSections as $section)

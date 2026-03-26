@@ -36,109 +36,161 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Dashboard
+    // ═══════════════════════════════════════════════════════════════════════
+    // ALL ROLES - Dashboard & Schedule (everyone can access)
+    // ═══════════════════════════════════════════════════════════════════════
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
-    // Schedule (alias for appointments)
     Route::get('/schedule', [AppointmentWebController::class, 'index'])->name('schedule');
 
-    // Patients
-    Route::prefix('patients')->name('patients.')->group(function () {
-        Route::get('/', [PatientWebController::class, 'index'])->name('index');
-        Route::get('/create', [PatientWebController::class, 'create'])->name('create');
-        Route::post('/', [PatientWebController::class, 'store'])->name('store');
-        Route::get('/{patient}', [PatientWebController::class, 'show'])->name('show');
-        Route::get('/{patient}/edit', [PatientWebController::class, 'edit'])->name('edit');
-        Route::put('/{patient}', [PatientWebController::class, 'update'])->name('update');
-        Route::delete('/{patient}', [PatientWebController::class, 'destroy'])->name('destroy');
-        Route::post('/{patient}/upload-photo', [PatientWebController::class, 'uploadPhoto'])->name('upload-photo');
-        Route::get('/{patient}/photos/{photo}', [PatientWebController::class, 'viewPhoto'])->name('view-photo');
-        Route::delete('/{patient}/photos/{photo}', [PatientWebController::class, 'deletePhoto'])->name('delete-photo');
+    // ═══════════════════════════════════════════════════════════════════════
+    // PATIENTS - owner, doctor, receptionist, nurse
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor,receptionist,nurse'])->group(function () {
+        Route::prefix('patients')->name('patients.')->group(function () {
+            Route::get('/', [PatientWebController::class, 'index'])->name('index');
+            Route::get('/create', [PatientWebController::class, 'create'])->name('create');
+            Route::post('/', [PatientWebController::class, 'store'])->name('store');
+            Route::get('/{patient}', [PatientWebController::class, 'show'])->name('show');
+            Route::get('/{patient}/edit', [PatientWebController::class, 'edit'])->name('edit');
+            Route::put('/{patient}', [PatientWebController::class, 'update'])->name('update');
+            Route::delete('/{patient}', [PatientWebController::class, 'destroy'])->name('destroy');
+            Route::post('/{patient}/upload-photo', [PatientWebController::class, 'uploadPhoto'])->name('upload-photo');
+            Route::get('/{patient}/photos/{photo}', [PatientWebController::class, 'viewPhoto'])->name('view-photo');
+            Route::delete('/{patient}/photos/{photo}', [PatientWebController::class, 'deletePhoto'])->name('delete-photo');
+        });
     });
 
-    // Appointments
-    Route::prefix('appointments')->name('appointments.')->group(function () {
-        Route::get('/', [AppointmentWebController::class, 'index'])->name('index');
-        Route::get('/create', [AppointmentWebController::class, 'create'])->name('create');
-        Route::post('/', [AppointmentWebController::class, 'store'])->name('store');
-        Route::get('/{appointment}', [AppointmentWebController::class, 'show'])->name('show');
-        Route::put('/{appointment}/status', [AppointmentWebController::class, 'updateStatus'])->name('status');
-        Route::delete('/{appointment}', [AppointmentWebController::class, 'destroy'])->name('destroy');
+    // ═══════════════════════════════════════════════════════════════════════
+    // APPOINTMENTS - owner, doctor, receptionist, nurse
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor,receptionist,nurse'])->group(function () {
+        Route::prefix('appointments')->name('appointments.')->group(function () {
+            Route::get('/', [AppointmentWebController::class, 'index'])->name('index');
+            Route::get('/create', [AppointmentWebController::class, 'create'])->name('create');
+            Route::post('/', [AppointmentWebController::class, 'store'])->name('store');
+            Route::get('/{appointment}', [AppointmentWebController::class, 'show'])->name('show');
+            Route::put('/{appointment}/status', [AppointmentWebController::class, 'updateStatus'])->name('status');
+            Route::delete('/{appointment}', [AppointmentWebController::class, 'destroy'])->name('destroy');
+        });
     });
 
-    // EMR
-    Route::prefix('emr')->name('emr.')->group(function () {
-        Route::get('/', [EmrWebController::class, 'index'])->name('index');
-        Route::get('/{patient}/{visit}', [EmrWebController::class, 'show'])->name('show');
-        Route::post('/{patient}/create', [EmrWebController::class, 'create'])->name('create');
-        Route::patch('/{patient}/{visit}', [EmrWebController::class, 'update'])->name('update');
-        Route::post('/{patient}/{visit}/finalise', [EmrWebController::class, 'finalise'])->name('finalise');
+    // ═══════════════════════════════════════════════════════════════════════
+    // EMR / NOTES - owner, doctor, nurse (NOT receptionist)
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor,nurse'])->group(function () {
+        Route::prefix('emr')->name('emr.')->group(function () {
+            Route::get('/', [EmrWebController::class, 'index'])->name('index');
+            Route::get('/{patient}/{visit}', [EmrWebController::class, 'show'])->name('show');
+            Route::post('/{patient}/create', [EmrWebController::class, 'create'])->name('create');
+            Route::patch('/{patient}/{visit}', [EmrWebController::class, 'update'])->name('update');
+            Route::post('/{patient}/{visit}/finalise', [EmrWebController::class, 'finalise'])->name('finalise');
+            
+            // EMR sub-features
+            Route::post('/{patient}/{visit}/lesions', [EmrWebController::class, 'addLesion'])->name('add-lesion');
+            Route::delete('/{patient}/{visit}/lesions/{lesion}', [EmrWebController::class, 'removeLesion'])->name('remove-lesion');
+            Route::post('/{patient}/{visit}/scales', [EmrWebController::class, 'saveScales'])->name('save-scales');
+            Route::post('/{patient}/{visit}/procedures', [EmrWebController::class, 'saveProcedures'])->name('save-procedures');
+            Route::post('/{patient}/{visit}/prescription', [EmrWebController::class, 'savePrescription'])->name('save-prescription');
+        });
         
-        // EMR sub-features
-        Route::post('/{patient}/{visit}/lesions', [EmrWebController::class, 'addLesion'])->name('add-lesion');
-        Route::delete('/{patient}/{visit}/lesions/{lesion}', [EmrWebController::class, 'removeLesion'])->name('remove-lesion');
-        Route::post('/{patient}/{visit}/scales', [EmrWebController::class, 'saveScales'])->name('save-scales');
-        Route::post('/{patient}/{visit}/procedures', [EmrWebController::class, 'saveProcedures'])->name('save-procedures');
-        Route::post('/{patient}/{visit}/prescription', [EmrWebController::class, 'savePrescription'])->name('save-prescription');
-    });
-    
-    // Drug Search API (for EMR)
-    Route::get('/api/drugs/search', [EmrWebController::class, 'searchDrugs'])->name('api.drugs.search');
-
-    // ABDM
-    Route::get('/abdm', function () {
-        return view('abdm.index');
-    })->name('abdm.index');
-
-    // Billing / Invoices
-    Route::prefix('billing')->name('billing.')->group(function () {
-        Route::get('/', [BillingWebController::class, 'index'])->name('index');
-        Route::get('/create', [BillingWebController::class, 'create'])->name('create');
-        Route::post('/', [BillingWebController::class, 'store'])->name('store');
-        Route::get('/{invoice}', [BillingWebController::class, 'show'])->name('show');
-        Route::get('/{invoice}/pdf', [BillingWebController::class, 'pdf'])->name('pdf');
-        Route::post('/{invoice}/send-whatsapp', [BillingWebController::class, 'sendWhatsApp'])->name('send-whatsapp');
-        Route::post('/{invoice}/mark-paid', [BillingWebController::class, 'markPaid'])->name('mark-paid');
+        // Drug Search API (for EMR)
+        Route::get('/api/drugs/search', [EmrWebController::class, 'searchDrugs'])->name('api.drugs.search');
     });
 
-    // Payments
-    Route::get('/payments', [PaymentWebController::class, 'index'])->name('payments.index');
-
-    // GST Reports
-    Route::get('/gst-reports', [GstReportWebController::class, 'index'])->name('gst-reports.index');
-
-    // WhatsApp
-    Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
-        Route::get('/', [WhatsAppWebController::class, 'index'])->name('index');
-        Route::post('/send', [WhatsAppWebController::class, 'send'])->name('send');
-        Route::post('/broadcast', [WhatsAppWebController::class, 'broadcast'])->name('broadcast');
+    // ═══════════════════════════════════════════════════════════════════════
+    // ABDM - owner, doctor
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor'])->group(function () {
+        Route::get('/abdm', function () {
+            return view('abdm.index');
+        })->name('abdm.index');
     });
 
-    // Analytics
-    Route::get('/analytics', [AnalyticsWebController::class, 'index'])->name('analytics.index');
+    // ═══════════════════════════════════════════════════════════════════════
+    // BILLING / INVOICES - owner, doctor, receptionist
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor,receptionist'])->group(function () {
+        Route::prefix('billing')->name('billing.')->group(function () {
+            Route::get('/', [BillingWebController::class, 'index'])->name('index');
+            Route::get('/create', [BillingWebController::class, 'create'])->name('create');
+            Route::post('/', [BillingWebController::class, 'store'])->name('store');
+            Route::get('/{invoice}', [BillingWebController::class, 'show'])->name('show');
+            Route::get('/{invoice}/pdf', [BillingWebController::class, 'pdf'])->name('pdf');
+            Route::post('/{invoice}/send-whatsapp', [BillingWebController::class, 'sendWhatsApp'])->name('send-whatsapp');
+            Route::post('/{invoice}/mark-paid', [BillingWebController::class, 'markPaid'])->name('mark-paid');
+        });
+    });
 
-    // Settings
+    // ═══════════════════════════════════════════════════════════════════════
+    // PAYMENTS - owner, receptionist
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:receptionist'])->group(function () {
+        Route::get('/payments', [PaymentWebController::class, 'index'])->name('payments.index');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GST REPORTS - owner, receptionist
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:receptionist'])->group(function () {
+        Route::get('/gst-reports', [GstReportWebController::class, 'index'])->name('gst-reports.index');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // WHATSAPP - owner, doctor, receptionist
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor,receptionist'])->group(function () {
+        Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
+            Route::get('/', [WhatsAppWebController::class, 'index'])->name('index');
+            Route::post('/send', [WhatsAppWebController::class, 'send'])->name('send');
+            Route::post('/broadcast', [WhatsAppWebController::class, 'broadcast'])->name('broadcast');
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ANALYTICS - owner, doctor
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor'])->group(function () {
+        Route::get('/analytics', [AnalyticsWebController::class, 'index'])->name('analytics.index');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SETTINGS - owner ONLY (owner check happens in middleware - owner bypasses)
+    // ═══════════════════════════════════════════════════════════════════════
     Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/', [SettingsWebController::class, 'index'])->name('index');
-        Route::post('/clinic', [SettingsWebController::class, 'updateClinic'])->name('clinic');
-        Route::post('/billing', [SettingsWebController::class, 'updateBilling'])->name('billing');
+        Route::get('/', [SettingsWebController::class, 'index'])->name('index')->middleware('role:owner');
+        Route::post('/clinic', [SettingsWebController::class, 'updateClinic'])->name('clinic')->middleware('role:owner');
+        Route::post('/billing', [SettingsWebController::class, 'updateBilling'])->name('billing')->middleware('role:owner');
     });
 
-    // Vendor Portal (Lab Orders)
-    Route::prefix('vendor')->name('vendor.')->group(function () {
-        Route::get('/', [VendorWebController::class, 'index'])->name('index');
-        Route::post('/orders/{order}/accept', [VendorWebController::class, 'acceptOrder'])->name('accept');
-        Route::post('/orders/{order}/upload', [VendorWebController::class, 'uploadResult'])->name('upload');
+    // ═══════════════════════════════════════════════════════════════════════
+    // LAB ORDERS (Vendor) - owner, doctor
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor'])->group(function () {
+        Route::prefix('vendor')->name('vendor.')->group(function () {
+            Route::get('/', [VendorWebController::class, 'index'])->name('index');
+            Route::post('/orders/{order}/accept', [VendorWebController::class, 'acceptOrder'])->name('accept');
+            Route::post('/orders/{order}/upload', [VendorWebController::class, 'uploadResult'])->name('upload');
+        });
     });
 
-    // Photo Vault
-    Route::get('/photo-vault', [PhotoVaultWebController::class, 'index'])->name('photo-vault.index');
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHOTO VAULT - owner, doctor, nurse
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor,nurse'])->group(function () {
+        Route::get('/photo-vault', [PhotoVaultWebController::class, 'index'])->name('photo-vault.index');
+    });
 
-    // Prescriptions
-    Route::get('/prescriptions', [PrescriptionWebController::class, 'index'])->name('prescriptions.index');
+    // ═══════════════════════════════════════════════════════════════════════
+    // PRESCRIPTIONS - owner, doctor, nurse
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware(['role:doctor,nurse'])->group(function () {
+        Route::get('/prescriptions', [PrescriptionWebController::class, 'index'])->name('prescriptions.index');
+    });
 
-    // Clinic Users (Staff Management)
-    Route::prefix('users')->name('clinic.users.')->group(function () {
+    // ═══════════════════════════════════════════════════════════════════════
+    // CLINIC USERS / STAFF MANAGEMENT - owner ONLY
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('users')->name('clinic.users.')->middleware('role:owner')->group(function () {
         Route::get('/', [ClinicUserController::class, 'index'])->name('index');
         Route::get('/create', [ClinicUserController::class, 'create'])->name('create');
         Route::post('/', [ClinicUserController::class, 'store'])->name('store');
