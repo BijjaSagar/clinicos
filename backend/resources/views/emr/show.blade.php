@@ -160,7 +160,7 @@
     </div>
     <div style="margin-left:auto;display:flex;gap:8px">
       <a href="{{ route('whatsapp.index') }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);text-decoration:none">💬 WhatsApp</a>
-      <a href="{{ route('billing.create') }}?patient_id={{ $patient->id }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);text-decoration:none">🧾 Create Invoice</a>
+      <a href="{{ route('billing.create') }}?patient_id={{ $patient->id }}&visit_id={{ $visit->id }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);text-decoration:none">🧾 Create Invoice</a>
       @if($visit->status !== 'finalised')
       <button type="button" onclick="completeVisit()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:white">✓ Complete Visit</button>
       @endif
