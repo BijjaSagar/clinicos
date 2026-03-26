@@ -1,248 +1,271 @@
-# ClinicOS Deployment Guide for Hostinger PHP Server
+# ClinicOS — Hostinger Deployment Guide
 
-## Domain: https://clinic0s.com
+## Prerequisites
+- Hostinger Business/Cloud hosting (PHP 8.2+)
+- MySQL 8.0 database created in Hostinger hPanel
+- SSH access or File Manager access
+- Composer installed on your local machine
 
 ---
 
-## Step 1: Prepare Your Local Files
+## Folder Structure on Hostinger
 
-### Build React Frontend
-```bash
-cd /Users/akash/Downloads/ClinicBill/web
-npm install
-npm run build
+Your Hostinger File Manager should look like this after deployment:
+
 ```
-This creates a `dist/` folder with your production-ready React app.
-
----
-
-## Step 2: Upload Files to Hostinger
-
-### Option A: Using File Manager (Easiest)
-
-1. **Login to Hostinger hPanel**
-2. Go to **Files → File Manager**
-3. Navigate to `public_html/`
-
-#### Upload React Frontend:
-- Upload all contents of `web/dist/` directly to `public_html/`
-  - `index.html`
-  - `assets/` folder
-
-#### Upload Laravel Backend:
-- Create folder `public_html/api/`
-- Upload the entire `backend/` folder contents to `public_html/api/`
-
-### Option B: Using FTP
-Use FileZilla or similar FTP client with your Hostinger FTP credentials.
-
----
-
-## Step 3: Configure Laravel Backend
-
-### 3.1 Create/Edit `.env` file in `public_html/api/`
-
-```env
-APP_NAME=ClinicOS
-APP_ENV=production
-APP_KEY=
-APP_DEBUG=false
-APP_URL=https://clinic0s.com
-
-LOG_CHANNEL=stack
-LOG_LEVEL=error
-
-# DATABASE - Get these from Hostinger hPanel → Databases
-DB_CONNECTION=mysql
-DB_HOST=localhost
-DB_PORT=3306
-DB_DATABASE=u123456789_clinicos
-DB_USERNAME=u123456789_clinicos
-DB_PASSWORD=YOUR_DATABASE_PASSWORD
-
-BROADCAST_DRIVER=log
-CACHE_DRIVER=file
-FILESYSTEM_DISK=local
-QUEUE_CONNECTION=sync
-SESSION_DRIVER=file
-SESSION_LIFETIME=120
-
-SANCTUM_STATEFUL_DOMAINS=clinic0s.com,www.clinic0s.com
+/home/username/
+├── public_html/          ← LARAVEL PUBLIC FOLDER CONTENTS GO HERE
+│   ├── index.php
+│   ├── .htaccess
+│   ├── css/
+│   ├── js/
+│   └── favicon.ico
+└── clinicos/             ← REST OF LARAVEL PROJECT GOES HERE
+    ├── app/
+    ├── bootstrap/
+    ├── config/
+    ├── database/
+    ├── resources/
+    ├── routes/
+    ├── storage/
+    ├── vendor/
+    └── artisan
 ```
 
-### 3.2 Run Laravel Commands via SSH or Hostinger Terminal
+---
 
-1. Go to **Hostinger hPanel → Advanced → SSH Access**
-2. Enable SSH and connect
-3. Run these commands:
+## Step-by-Step Deployment
+
+### 1. Prepare Files Locally
 
 ```bash
-cd public_html/api
-
-# Install dependencies
-php composer.phar install --no-dev --optimize-autoloader
-
-# Generate app key
-php artisan key:generate
-
-# Run migrations
-php artisan migrate
-
-# Seed database with sample data
-php artisan db:seed
-
-# Cache configuration
+cd backend/
+composer install --optimize-autoloader --no-dev
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
 
----
+### 2. Upload to Hostinger
 
-## Step 4: Configure .htaccess Files
+- Upload **ALL contents** of `backend/` **EXCEPT the `public/` folder** to `/home/username/clinicos/`
+- Upload **contents** of `backend/public/` to `/home/username/public_html/`
 
-### 4.1 Main `.htaccess` in `public_html/.htaccess`
-
-```apache
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
-    
-    # API requests go to Laravel
-    RewriteRule ^api/(.*)$ api/public/index.php [L]
-    
-    # Don't rewrite existing files
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-    
-    # React SPA - send all other requests to index.html
-    RewriteRule ^ index.html [L]
-</IfModule>
-```
-
-### 4.2 Laravel `.htaccess` in `public_html/api/public/.htaccess`
-
-```apache
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-
-    RewriteEngine On
-
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
-```
-
----
-
-## Step 5: Database Setup
-
-### 5.1 Create Database in Hostinger
-1. Go to **Hostinger hPanel → Databases → MySQL Databases**
-2. Click **Create New Database**
-3. Note down:
-   - Database name
-   - Username
-   - Password
-
-### 5.2 Import Schema (Optional - if not using migrations)
-1. Go to **Databases → phpMyAdmin**
-2. Select your database
-3. Click **Import**
-4. Upload `database/clinicos_schema.sql`
-
----
-
-## Step 6: Set Folder Permissions
-
-Via SSH or File Manager, set these permissions:
+You can use:
+- Hostinger File Manager (zip upload then extract)
+- FTP client (FileZilla, Cyberduck)
+- SSH + rsync (fastest)
 
 ```bash
-cd public_html/api
-chmod -R 755 storage
-chmod -R 755 bootstrap/cache
+# Via rsync (SSH)
+rsync -avz --exclude='public' backend/ username@yourhost.hostinger.com:/home/username/clinicos/
+rsync -avz backend/public/ username@yourhost.hostinger.com:/home/username/public_html/
+```
+
+### 3. Update index.php on the Server
+
+Edit `/home/username/public_html/index.php` and change these two lines:
+
+```php
+// BEFORE (default Laravel paths — relative to public/)
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
+```
+
+To:
+
+```php
+// AFTER (point to clinicos/ folder one level up from public_html)
+require __DIR__.'/../clinicos/vendor/autoload.php';
+$app = require_once __DIR__.'/../clinicos/bootstrap/app.php';
+```
+
+Also update the maintenance mode check line:
+
+```php
+// AFTER
+if (file_exists($maintenance = __DIR__.'/../clinicos/storage/framework/maintenance.php')) {
+```
+
+### 4. Configure .env
+
+Copy `.env.example` to `.env` in `/home/username/clinicos/` and fill in:
+
+```env
+APP_NAME="ClinicOS"
+APP_ENV=production
+APP_KEY=                          # Generated in step 6
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+LOG_CHANNEL=daily
+LOG_LEVEL=error
+
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=your_db_name
+DB_USERNAME=your_db_user
+DB_PASSWORD=your_db_password
+
+CACHE_STORE=file
+SESSION_DRIVER=file
+QUEUE_CONNECTION=sync
+
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.hostinger.com
+MAIL_PORT=465
+MAIL_USERNAME=noreply@yourdomain.com
+MAIL_PASSWORD=your_email_password
+MAIL_ENCRYPTION=ssl
+MAIL_FROM_ADDRESS=noreply@yourdomain.com
+MAIL_FROM_NAME="ClinicOS"
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=ap-south-1
+AWS_BUCKET=
+
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+SANCTUM_STATEFUL_DOMAINS=yourdomain.com,www.yourdomain.com
+```
+
+### 5. Set Permissions (via SSH)
+
+```bash
+chmod -R 755 /home/username/clinicos/
+chmod -R 775 /home/username/clinicos/storage/
+chmod -R 775 /home/username/clinicos/bootstrap/cache/
+```
+
+### 6. Generate App Key
+
+```bash
+cd /home/username/clinicos/
+php artisan key:generate
+```
+
+### 7. Run Migrations + Seeders
+
+```bash
+cd /home/username/clinicos/
+php artisan migrate --force
+php artisan db:seed --force
+```
+
+### 8. Set up Storage Link
+
+```bash
+php artisan storage:link
+```
+
+This creates a symlink from `public_html/storage` → `clinicos/storage/app/public`.
+
+### 9. Clear and Re-cache Everything
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
 ```
 
 ---
 
-## Step 7: Test Your Deployment
+## Hostinger PHP Settings (via hPanel > PHP Configuration)
 
-1. **Frontend:** https://clinic0s.com
-2. **API Health Check:** https://clinic0s.com/api/v1/health
-3. **Login Page:** https://clinic0s.com/login
+Add these to your `php.ini` or Custom PHP Settings:
+
+```ini
+max_execution_time = 300
+max_input_time = 300
+memory_limit = 256M
+upload_max_filesize = 50M
+post_max_size = 50M
+```
+
+Required PHP extensions (enable in hPanel):
+- `pdo_mysql`
+- `mbstring`
+- `openssl`
+- `tokenizer`
+- `xml`
+- `ctype`
+- `json`
+- `bcmath`
+- `fileinfo`
+- `gd` or `imagick`
+
+---
+
+## Domain Configuration
+
+1. In hPanel > Domains, point your domain's **document root** to `public_html/`
+2. Enable **SSL certificate** (Let's Encrypt — free in hPanel)
+3. Enable **Force HTTPS** redirect
+
+---
+
+## Cron Jobs (for scheduled tasks)
+
+In hPanel > Advanced > Cron Jobs, add:
+
+```
+* * * * * /usr/local/bin/php /home/username/clinicos/artisan schedule:run >> /dev/null 2>&1
+```
+
+This powers:
+- Appointment reminders (WhatsApp/SMS)
+- Queue processing (when using `database` driver)
+- Activity log cleanup
 
 ---
 
 ## Troubleshooting
 
-### Common Issues:
-
-1. **500 Internal Server Error**
-   - Check `.env` file exists
-   - Check folder permissions
-   - Check PHP version (needs 8.1+)
-
-2. **API Not Working**
-   - Check `.htaccess` files
-   - Verify database connection
-
-3. **CORS Errors**
-   - Add to `api/config/cors.php`:
-   ```php
-   'allowed_origins' => ['https://clinic0s.com'],
-   ```
-
-4. **Blank Page**
-   - Clear browser cache
-   - Check browser console for errors
+| Symptom | Fix |
+|---------|-----|
+| **500 Error** | Check `clinicos/storage/logs/laravel.log`, verify storage/ permissions |
+| **White page / blank** | Set `APP_DEBUG=true` temporarily, check logs |
+| **Database connection error** | Verify DB credentials in `.env`, check DB host (usually `localhost`) |
+| **Class not found** | Run `composer dump-autoload` |
+| **Views not loading** | Run `php artisan view:clear && php artisan view:cache` |
+| **Routes returning 404** | Run `php artisan route:cache`, verify `.htaccess` is uploaded |
+| **CORS errors** | Verify `SANCTUM_STATEFUL_DOMAINS` in `.env` |
+| **File upload fails** | Check `upload_max_filesize` in PHP settings, verify `storage/` is writable |
+| **Token mismatch** | Run `php artisan config:clear && php artisan cache:clear` |
 
 ---
 
-## File Structure After Deployment
+## Updating the Application
 
-```
-public_html/
-├── .htaccess                 ← Main routing rules
-├── index.html                ← React app entry
-├── assets/
-│   ├── index-xxxxx.js
-│   └── index-xxxxx.css
-└── api/
-    ├── app/
-    ├── config/
-    ├── database/
-    ├── routes/
-    ├── storage/
-    ├── vendor/
-    ├── .env                  ← Laravel environment
-    ├── artisan
-    ├── composer.json
-    └── public/
-        ├── .htaccess         ← Laravel routing
-        └── index.php         ← Laravel entry point
+```bash
+# Local — rebuild optimised assets
+composer install --optimize-autoloader --no-dev
+
+# Upload changed files via FTP/rsync
+
+# On server (via SSH)
+cd /home/username/clinicos/
+php artisan down                 # Enable maintenance mode
+php artisan migrate --force      # Run new migrations
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan up                   # Disable maintenance mode
 ```
 
 ---
 
-## Quick Reference
+## Security Checklist
 
-| URL | Purpose |
-|-----|---------|
-| https://clinic0s.com | React Dashboard |
-| https://clinic0s.com/login | Login Page |
-| https://clinic0s.com/api/v1/* | Laravel API |
-| https://clinic0s.com/api/v1/health | API Health Check |
+- [ ] `APP_DEBUG=false` in production
+- [ ] `APP_KEY` is set and unique
+- [ ] `.env` file is NOT accessible from the web (`.htaccess` blocks it)
+- [ ] `vendor/`, `storage/`, `bootstrap/cache/` are outside `public_html/`
+- [ ] SSL certificate is active and HTTPS is forced
+- [ ] Database user has only the necessary privileges (no SUPER/GRANT)
+- [ ] `composer.json` is NOT accessible from web
+- [ ] Razorpay keys are production keys, not test keys

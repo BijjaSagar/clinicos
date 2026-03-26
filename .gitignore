@@ -55,3 +55,6 @@ coverage/
 *.bak
 *.tmp
 *.temp
+Archive.zip
+backend.zip
+*.zip

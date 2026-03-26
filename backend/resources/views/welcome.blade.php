@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicOS — Specialty-First EMR for India</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #1447e6;
+      --blue-dark: #0f35b8;
+      --blue-light: #eff3ff;
+      --teal: #0891b2;
+      --teal-light: #e0f2fe;
+      --green: #059669;
+      --green-light: #ecfdf5;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+      --dark: #0d1117;
+      --dark2: #161b27;
+      --text: #1a1f2e;
+      --text2: #4b5563;
+      --text3: #9ca3af;
+      --border: #e5e7eb;
+      --bg: #f9fafb;
+      --white: #ffffff;
+      --radius: 12px;
+      --radius-lg: 20px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.1), 0 12px 40px rgba(0,0,0,.08);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+    }
+    .logo-mark {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 15px;
+      font-family: 'Sora', sans-serif;
+    }
+    .logo-text { font-weight: 700; font-size: 17px; font-family: 'Sora', sans-serif; }
+    .logo-hi { font-size: 11px; color: var(--text3); font-weight: 400; margin-top: -2px; }
+    .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+    .nav-links a { text-decoration: none; color: var(--text2); font-size: 14px; font-weight: 500; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; text-decoration: none; }
+    .btn-ghost { background: transparent; color: var(--text2); }
+    .btn-ghost:hover { background: var(--bg); color: var(--text); }
+    .btn-primary { background: var(--blue); color: white; }
+    .btn-primary:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(20,71,230,.3); }
+    .btn-lg { padding: 13px 28px; font-size: 15px; border-radius: 10px; }
+    .btn-outline { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+    .btn-outline:hover { background: var(--blue-light); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 96px 24px 80px;
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue-light); color: var(--blue);
+      padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+    h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(36px, 4vw, 54px); font-weight: 800; line-height: 1.1;
+      letter-spacing: -1.5px; margin-bottom: 20px; color: var(--dark);
+    }
+    h1 .accent { color: var(--blue); }
+    .hero-sub { font-size: 17px; color: var(--text2); line-height: 1.7; margin-bottom: 36px; max-width: 480px; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
+    .hero-stats { display: flex; gap: 32px; }
+    .stat-item { }
+    .stat-num { font-family: 'Sora', sans-serif; font-size: 24px; font-weight: 700; color: var(--dark); }
+    .stat-label { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+    .hero-visual {
+      position: relative;
+    }
+    .hero-card-main {
+      background: var(--dark2);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,.2);
+    }
+    .card-topbar {
+      background: #1e2535;
+      padding: 12px 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .card-topbar-title { margin-left: 8px; font-size: 12px; color: #6b7280; font-weight: 500; }
+    .card-body { padding: 20px; }
+    .patient-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .patient-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 16px;
+    }
+    .patient-info h4 { color: white; font-size: 14px; font-weight: 600; }
+    .patient-info p { color: #6b7280; font-size: 12px; margin-top: 2px; }
+    .badge-specialty {
+      margin-left: auto;
+      background: rgba(20,71,230,.2); color: #93c5fd;
+      padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 600;
+    }
+    .emr-section-title { color: #6b7280; font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    .body-map-wrapper {
+      background: #111827; border-radius: 10px; padding: 12px;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .body-svg { width: 56px; flex-shrink: 0; }
+    .lesion-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .lesion-tag {
+      background: rgba(239,68,68,.15); color: #fca5a5;
+      padding: 3px 9px; border-radius: 6px; font-size: 11px;
+    }
+    .lesion-tag.g { background: rgba(16,185,129,.15); color: #6ee7b7; }
+    .lesion-tag.b { background: rgba(59,130,246,.15); color: #93c5fd; }
+    .fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .field-block { background: #1e2535; border-radius: 8px; padding: 8px 10px; }
+    .field-label { color: #6b7280; font-size: 10px; font-weight: 500; }
+    .field-value { color: #e5e7eb; font-size: 12px; font-weight: 600; margin-top: 2px; }
+    .ai-strip {
+      background: linear-gradient(135deg, rgba(20,71,230,.15), rgba(8,145,178,.15));
+      border: 1px solid rgba(20,71,230,.2);
+      border-radius: 8px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ai-icon { width: 24px; height: 24px; border-radius: 6px; background: var(--blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ai-text { color: #93c5fd; font-size: 11px; }
+    .ai-text strong { display: block; font-weight: 600; font-size: 12px; }
+
+    .floating-card {
+      position: absolute;
+      background: white;
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      padding: 12px 16px;
+      font-size: 12px;
+    }
+    .fc-whatsapp { bottom: -20px; left: -24px; display: flex; align-items: center; gap: 8px; min-width: 220px; }
+    .fc-abha { top: 24px; right: -24px; display: flex; align-items: center; gap: 8px; min-width: 180px; }
+    .wa-icon { width: 32px; height: 32px; border-radius: 8px; background: #25D366; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .abha-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg,#f97316,#ef4444); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .fc-text strong { font-weight: 600; font-size: 12px; color: var(--text); display: block; }
+    .fc-text span { color: var(--text3); font-size: 11px; }
+
+    /* ── SPECIALTIES ── */
+    .section { padding: 80px 24px; }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-label { color: var(--blue); font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 12px; }
+    h2 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(28px, 3vw, 42px); font-weight: 800; line-height: 1.15;
+      letter-spacing: -1px; color: var(--dark); margin-bottom: 16px;
+    }
+    .section-sub { font-size: 17px; color: var(--text2); max-width: 560px; line-height: 1.7; }
+
+    .specialties-bg { background: var(--bg); }
+    .specialties-tabs { display: flex; gap: 8px; margin: 48px 0 32px; flex-wrap: wrap; }
+    .spec-tab {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 100px;
+      background: white; border: 1.5px solid var(--border);
+      font-size: 13px; font-weight: 600; color: var(--text2);
+      cursor: pointer; transition: all .2s;
+    }
+    .spec-tab:hover { border-color: var(--blue); color: var(--blue); }
+    .spec-tab.active { background: var(--blue); border-color: var(--blue); color: white; }
+    .spec-tab-icon { font-size: 16px; }
+    .spec-content { display: none; }
+    .spec-content.active { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    .spec-features h3 { font-family: 'Sora', sans-serif; font-size: 24px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+    .spec-features p { color: var(--text2); margin-bottom: 24px; line-height: 1.7; }
+    .spec-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .spec-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--text2); }
+    .check { width: 20px; height: 20px; border-radius: 50%; background: var(--green-light); color: var(--green); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; margin-top: 1px; }
+    .spec-card-preview {
+      background: var(--dark2); border-radius: 16px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,.15);
+    }
+    .spec-card-header {
+      background: #1e2535; padding: 14px 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .spec-card-header-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--blue), var(--teal));
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .spec-card-header h4 { color: white; font-size: 13px; font-weight: 600; }
+    .spec-card-header p { color: #6b7280; font-size: 11px; }
+    .spec-card-body { padding: 16px 20px; }
+
+    /* ── MODULES GRID ── */
+    .modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+    .module-card {
+      background: white; border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 28px; transition: all .25s;
+    }
+    .module-card:hover { border-color: var(--blue); box-shadow: 0 8px 32px rgba(20,71,230,.08); transform: translateY(-2px); }
+    .module-num { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: .08em; margin-bottom: 16px; }
+    .module-icon {
+      width: 48px; height: 48px; border-radius: 12px; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .module-card h3 { font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+    .module-card p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .module-chip {
+      display: inline-block; margin-top: 12px;
+      background: var(--blue-light); color: var(--blue);
+      padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .steps-bg { background: var(--dark); }
+    .steps-bg h2, .steps-bg .section-label { color: white; }
+    .steps-bg .section-sub { color: #94a3b8; }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 56px; position: relative; }
+    .steps-grid::before {
+      content: ''; position: absolute; top: 36px; left: 20%; right: 20%;
+      height: 1px; background: linear-gradient(90deg, transparent, #334155, #334155, transparent);
+    }
+    .step { padding: 32px; position: relative; }
+    .step-num {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 1.5px solid #334155; background: var(--dark);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #94a3b8; margin-bottom: 24px;
+    }
+    .step.active-step .step-num { border-color: var(--blue); background: var(--blue); color: white; }
+    .step h3 { color: white; font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+    .step p { color: #64748b; font-size: 14px; line-height: 1.65; }
+
+    /* ── ABDM ── */
+    .abdm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; margin-top: 56px; }
+    .abdm-features { display: flex; flex-direction: column; gap: 20px; }
+    .abdm-item { display: flex; gap: 16px; align-items: flex-start; }
+    .abdm-dot {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      background: var(--green-light); display: flex; align-items: center; justify-content: center;
+      color: var(--green); font-size: 16px;
+    }
+    .abdm-item h4 { font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .abdm-item p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .abdm-visual {
+      background: var(--dark2); border-radius: 20px; padding: 28px;
+      box-shadow: 0 16px 56px rgba(0,0,0,.12);
+    }
+    .abdm-visual h4 { color: white; font-size: 14px; font-weight: 600; margin-bottom: 20px; }
+    .abdm-milestone { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
+    .milestone-dot {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; font-size: 11px;
+      display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+    .ms-done { background: rgba(5,150,105,.2); color: #6ee7b7; }
+    .ms-prog { background: rgba(20,71,230,.2); color: #93c5fd; }
+    .ms-pend { background: #1e2535; color: #6b7280; }
+    .milestone-text h5 { font-size: 13px; font-weight: 600; color: #e5e7eb; margin-bottom: 2px; }
+    .milestone-text p { font-size: 12px; color: #6b7280; line-height: 1.5; }
+
+    /* ── AI ── */
+    .ai-bg { background: linear-gradient(135deg, #0d1117 0%, #0d1f3c 100%); }
+    .ai-bg h2 { color: white; }
+    .ai-bg .section-label { color: #60a5fa; }
+    .ai-bg .section-sub { color: #94a3b8; }
+    .ai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; margin-top: 56px; }
+    .ai-cards { display: flex; flex-direction: column; gap: 16px; }
+    .ai-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px; padding: 20px; display: flex; gap: 16px; align-items: flex-start;
+    }
+    .ai-card-icon { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .ai-card h4 { color: white; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .ai-card p { color: #6b7280; font-size: 13px; line-height: 1.6; }
+    .dictation-demo {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px; padding: 24px;
+    }
+    .demo-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .rec-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(239,68,68,.2); border: 1.5px solid rgba(239,68,68,.4);
+      display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 14px;
+    }
+    .demo-header h4 { color: white; font-size: 13px; font-weight: 600; }
+    .demo-header p { color: #6b7280; font-size: 11px; }
+    .transcript-box {
+      background: rgba(0,0,0,.3); border-radius: 10px; padding: 14px;
+      font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 16px;
+      border-left: 2px solid #3b82f6;
+      font-style: italic;
+    }
+    .mapped-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .map-field { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); border-radius: 8px; padding: 8px 12px; }
+    .map-field span { color: #6b7280; font-size: 10px; font-weight: 500; display: block; }
+    .map-field strong { color: #6ee7b7; font-size: 12px; }
+
+    /* ── PRICING ── */
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px; }
+    .price-card {
+      background: white; border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px; position: relative;
+    }
+    .price-card.popular {
+      border-color: var(--blue);
+      box-shadow: 0 8px 40px rgba(20,71,230,.12);
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--blue); color: white;
+      padding: 4px 14px; border-radius: 100px; font-size: 11px; font-weight: 700;
+      white-space: nowrap;
+    }
+    .price-plan { font-size: 13px; font-weight: 600; color: var(--text3); margin-bottom: 8px; }
+    .price-hi { font-size: 12px; color: var(--text3); }
+    .price-amount { margin: 16px 0; }
+    .price-amount .rupee { font-size: 20px; font-weight: 700; color: var(--dark); vertical-align: top; margin-top: 6px; display: inline-block; }
+    .price-amount .num { font-family: 'Sora', sans-serif; font-size: 44px; font-weight: 800; color: var(--dark); line-height: 1; }
+    .price-amount .period { font-size: 13px; color: var(--text3); }
+    .price-desc { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .price-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .price-features li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
+    .price-features li::before { content: '✓'; width: 18px; height: 18px; border-radius: 50%; background: var(--green-light); color: var(--green); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* ── COMPARISON ── */
+    .compare-table { width: 100%; border-collapse: collapse; margin-top: 48px; }
+    .compare-table th { padding: 16px 20px; text-align: left; font-size: 13px; font-weight: 700; color: var(--text3); background: var(--bg); }
+    .compare-table th:first-child { border-radius: 12px 0 0 12px; }
+    .compare-table th:last-child { border-radius: 0 12px 12px 0; text-align: center; color: var(--blue); }
+    .compare-table td { padding: 14px 20px; font-size: 14px; color: var(--text2); border-bottom: 1px solid var(--border); }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table td:last-child { text-align: center; }
+    .yes { color: var(--green); font-size: 18px; }
+    .no { color: var(--text3); font-size: 18px; }
+    .partial { color: var(--amber); font-size: 13px; font-weight: 600; }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: linear-gradient(135deg, var(--blue) 0%, #0f35b8 100%);
+      padding: 80px 24px; text-align: center;
+    }
+    .cta-section h2 { color: white; max-width: 600px; margin: 0 auto 16px; }
+    .cta-section p { color: rgba(255,255,255,.7); font-size: 17px; max-width: 480px; margin: 0 auto 40px; }
+    .cta-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .btn-white { background: white; color: var(--blue); }
+    .btn-white:hover { background: var(--blue-light); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+    .btn-outline-white { background: transparent; color: white; border: 1.5px solid rgba(255,255,255,.4); }
+    .btn-outline-white:hover { background: rgba(255,255,255,.1); }
+
+    /* ── FOOTER ── */
+    footer { background: var(--dark); color: #94a3b8; padding: 64px 24px 32px; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+    .footer-brand p { font-size: 13px; color: #64748b; line-height: 1.7; margin-top: 12px; max-width: 260px; }
+    .footer-col h5 { color: white; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-col a { color: #64748b; font-size: 13px; text-decoration: none; transition: color .2s; }
+    .footer-col a:hover { color: white; }
+    .footer-bottom { border-top: 1px solid #1e293b; padding-top: 28px; display: flex; justify-content: space-between; align-items: center; }
+    .footer-bottom p { font-size: 12px; color: #475569; }
+    .footer-logo { color: white; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px; }
+    .trust-chips { display: flex; gap: 12px; }
+    .trust-chip {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.04); border: 1px solid #1e293b;
+      border-radius: 8px; padding: 6px 12px; font-size: 11px; color: #64748b;
+    }
+
+    /* mobile */
+    @media (max-width: 768px) {
+      .hero { grid-template-columns: 1fr; gap: 48px; padding: 64px 20px 48px; }
+      .hero-visual { display: none; }
+      .modules-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .steps-grid::before { display: none; }
+      .spec-content.active, .abdm-grid, .ai-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+      h2 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="{{ url('/') }}">
+      <div class="logo-mark">C</div>
+      <div>
+        <div class="logo-text">ClinicOS</div>
+        <div class="logo-hi">क्लिनिक ओएस</div>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#specialties">Specialties</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#abdm">ABDM</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#about">About</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="{{ route('login') }}" class="btn btn-ghost">Sign in</a>
+      <a href="{{ route('register') }}" class="btn btn-primary">Start free trial</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="overflow: hidden;">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span></span>
+        Built for India's 8 lakh+ specialty clinics
+      </div>
+      <h1>The clinic OS that <span class="accent">thinks like a specialist</span></h1>
+      <p class="hero-sub">Specialty-first EMR, intelligent scheduling, GST billing, ABDM compliance, and WhatsApp communication — in one platform designed for Indian specialty clinics.</p>
+      <div class="hero-actions">
+        <a href="{{ route('register') }}" class="btn btn-primary btn-lg">Start 30-day free trial</a>
+        <a href="#features" class="btn btn-outline btn-lg">View demo</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num">8L+</div>
+          <div class="stat-label">Target clinics</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">7</div>
+          <div class="stat-label">Specialties</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">₹1,499</div>
+          <div class="stat-label">Starting/month</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-card-main">
+        <div class="card-topbar">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+          <span class="card-topbar-title">ClinicOS — Patient Visit</span>
+        </div>
+        <div class="card-body">
+          <div class="patient-header">
+            <div class="patient-avatar">P</div>
+            <div class="patient-info">
+              <h4>Priya Mehta, 28F</h4>
+              <p>ABHA: 91-2847-3910-4562 · Visit #4</p>
+            </div>
+            <div class="badge-specialty">Dermatology</div>
+          </div>
+          <div class="emr-section-title">Lesion Map</div>
+          <div class="body-map-wrapper">
+            <svg class="body-svg" viewBox="0 0 60 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="30" cy="12" rx="10" ry="11" fill="#374151"/>
+              <rect x="16" y="24" width="28" height="36" rx="6" fill="#374151"/>
+              <rect x="5" y="25" width="10" height="28" rx="5" fill="#374151"/>
+              <rect x="45" y="25" width="10" height="28" rx="5" fill="#374151"/>
+              <rect x="17" y="62" width="12" height="36" rx="6" fill="#374151"/>
+              <rect x="31" y="62" width="12" height="36" rx="6" fill="#374151"/>
+              <circle cx="23" cy="38" r="4" fill="#ef4444" opacity=".7"/>
+              <circle cx="36" cy="32" r="3" fill="#ef4444" opacity=".5"/>
+              <circle cx="28" cy="45" r="2.5" fill="#f59e0b" opacity=".8"/>
+            </svg>
+            <div class="lesion-tags">
+              <span class="lesion-tag">Left Cheek · Plaque 2cm</span>
+              <span class="lesion-tag">Forehead · Papule</span>
+              <span class="lesion-tag b">Jaw · Macule</span>
+              <span class="lesion-tag g">PASI: 8.4</span>
+              <span class="lesion-tag g">IGA: Grade 3</span>
+            </div>
+          </div>
+          <div class="fields-row">
+            <div class="field-block">
+              <div class="field-label">Chief Complaint</div>
+              <div class="field-value">Acne · Worsening</div>
+            </div>
+            <div class="field-block">
+              <div class="field-label">Duration</div>
+              <div class="field-value">8 months</div>
+            </div>
+            <div class="field-block">
+              <div class="field-label">Procedure Today</div>
+              <div class="field-value">Chemical Peel 30%</div>
+            </div>
+            <div class="field-block">
+              <div class="field-label">Next Review</div>
+              <div class="field-value">6 weeks · WhatsApp ✓</div>
+            </div>
+          </div>
+          <div class="ai-strip">
+            <div class="ai-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+            </div>
+            <div class="ai-text">
+              <strong>AI Summary generated</strong>
+              Grade 3 acne, treatment plan: topical retinoid + peel series × 4
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="floating-card fc-whatsapp">
+        <div class="wa-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.025.507 3.934 1.395 5.605L0 24l6.537-1.368A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.844 0-3.574-.489-5.07-1.344l-.364-.214-3.78.791.812-3.682-.236-.38A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+        </div>
+        <div class="fc-text">
+          <strong>WhatsApp sent</strong>
+          <span>Prescription + next appt. reminder</span>
+        </div>
+      </div>
+      <div class="floating-card fc-abha">
+        <div class="abha-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="fc-text">
+          <strong>ABDM Compliant</strong>
+          <span>FHIR R4 record synced</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPECIALTIES -->
+<section class="section specialties-bg" id="specialties">
+  <div class="section-inner">
+    <div class="section-label">Specialty-First Design</div>
+    <h2>Built for how <em>you</em> practise</h2>
+    <p class="section-sub">Every specialty gets its own purpose-built clinical documentation experience — not a generic form with a different label.</p>
+    <div class="specialties-tabs">
+      <button class="spec-tab active" onclick="switchSpec('derm', event)"><span class="spec-tab-icon">🧴</span> Dermatology</button>
+      <button class="spec-tab" onclick="switchSpec('physio', event)"><span class="spec-tab-icon">🦵</span> Physiotherapy</button>
+      <button class="spec-tab" onclick="switchSpec('dental', event)"><span class="spec-tab-icon">🦷</span> Dental</button>
+      <button class="spec-tab" onclick="switchSpec('ophthal', event)"><span class="spec-tab-icon">👁</span> Ophthalmology</button>
+      <button class="spec-tab" onclick="switchSpec('ortho', event)"><span class="spec-tab-icon">🦴</span> Orthopaedics</button>
+      <button class="spec-tab" onclick="switchSpec('ent', event)"><span class="spec-tab-icon">👂</span> ENT</button>
+      <button class="spec-tab" onclick="switchSpec('gynae', event)"><span class="spec-tab-icon">🩺</span> Gynaecology</button>
+    </div>
+
+    <!-- DERM -->
+    <div class="spec-content active" id="spec-derm">
+      <div class="spec-features">
+        <h3>Dermatology EMR</h3>
+        <p>From lesion mapping to before/after photo management — every tool a dermatologist actually needs, built in from day one.</p>
+        <ul class="spec-list">
+          <li><span class="check">✓</span> Interactive body diagram — tap to annotate lesion site, type, size, colour</li>
+          <li><span class="check">✓</span> Auto-calculated PASI, IGA, and DLQI grading scales</li>
+          <li><span class="check">✓</span> Before/after photo vault with side-by-side comparison per body region</li>
+          <li><span class="check">✓</span> Procedure codes: LASER, PRP, Botox, Chemical Peel, Fillers</li>
+          <li><span class="check">✓</span> 6-week follow-up trigger auto-sent via WhatsApp</li>
+          <li><span class="check">✓</span> Digital consent for photos, stored with timestamp</li>
+        </ul>
+      </div>
+      <div class="spec-card-preview">
+        <div class="spec-card-header">
+          <div class="spec-card-header-icon">🧴</div>
+          <div><h4>Dermatology Visit Note</h4><p>Psoriasis — Follow-up #3</p></div>
+        </div>
+        <div class="spec-card-body">
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <span style="background:rgba(239,68,68,.12);color:#fca5a5;padding:3px 10px;border-radius:6px;font-size:11px">PASI Score: 8.4</span>
+            <span style="background:rgba(20,71,230,.12);color:#93c5fd;padding:3px 10px;border-radius:6px;font-size:11px">IGA: Grade 3</span>
+            <span style="background:rgba(245,158,11,.12);color:#fcd34d;padding:3px 10px;border-radius:6px;font-size:11px">DLQI: 14</span>
+          </div>
+          <div style="background:#111827;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;color:#6b7280;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Today's Procedure</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Type</div><div style="color:#e5e7eb;font-size:12px;font-weight:600">Chemical Peel 30% SA</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Area</div><div style="color:#e5e7eb;font-size:12px;font-weight:600">Face, T-zone</div></div>
+            </div>
+          </div>
+          <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#6ee7b7">
+            📸 Before/After photos captured — linked to this visit
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHYSIO -->
+    <div class="spec-content" id="spec-physio">
+      <div class="spec-features">
+        <h3>Physiotherapy EMR</h3>
+        <p>Session-by-session clinical documentation with goal tracking, ROM measurements, and WhatsApp home exercise delivery.</p>
+        <ul class="spec-list">
+          <li><span class="check">✓</span> Initial assessment: ROM table, MMT grading 0–5, VAS pain scale</li>
+          <li><span class="check">✓</span> Session notes with delta indicators (today vs last session ROM)</li>
+          <li><span class="check">✓</span> Treatment modality codes: TENS, ultrasound, manual therapy, exercise</li>
+          <li><span class="check">✓</span> Outcome measures: Barthel, FIM, DASH, WOMAC — auto-scored</li>
+          <li><span class="check">✓</span> Home Exercise Programme sent to patient via WhatsApp with images</li>
+          <li><span class="check">✓</span> SMART goal setting framework (2-week and 8-week targets)</li>
+        </ul>
+      </div>
+      <div class="spec-card-preview">
+        <div class="spec-card-header">
+          <div class="spec-card-header-icon">🦵</div>
+          <div><h4>Session Note #6</h4><p>Right Knee — ACL Rehab Protocol</p></div>
+        </div>
+        <div class="spec-card-body">
+          <div style="background:#111827;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;color:#6b7280;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">ROM Today vs Last Session</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#94a3b8;font-size:12px">Knee Flexion (Active)</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="color:#6b7280;font-size:11px">Prev: 85°</span>
+                  <span style="color:#6ee7b7;font-size:13px;font-weight:700">Now: 102°</span>
+                  <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">+17°</span>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#94a3b8;font-size:12px">VAS Pain Score</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="color:#6b7280;font-size:11px">Prev: 5/10</span>
+                  <span style="color:#6ee7b7;font-size:13px;font-weight:700">Now: 3/10</span>
+                  <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">↓2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="background:rgba(20,71,230,.08);border:1px solid rgba(20,71,230,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#93c5fd">
+            🏃 HEP sent via WhatsApp: 4 exercises with video links
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DENTAL -->
+    <div class="spec-content" id="spec-dental">
+      <div class="spec-features">
+        <h3>Dental EMR</h3>
+        <p>Full 32-tooth FDI chart with per-tooth treatment history, X-ray attachments, lab work orders, and sterilisation logs.</p>
+        <ul class="spec-list">
+          <li><span class="check">✓</span> Interactive 32-tooth FDI notation chart — tap any tooth to record</li>
+          <li><span class="check">✓</span> Per-tooth: restorations, caries, periodontal status, treatment history</li>
+          <li><span class="check">✓</span> X-ray (RVG/OPG) attached directly to the relevant tooth</li>
+          <li><span class="check">✓</span> Treatment plan with cost estimates, priority, and status tracking</li>
+          <li><span class="check">✓</span> Lab work order (crown, bridge) sent to lab via WhatsApp/PDF</li>
+          <li><span class="check">✓</span> Full 6-point periodontal probing chart with BOP and recession</li>
+        </ul>
+      </div>
+      <div class="spec-card-preview">
+        <div class="spec-card-header">
+          <div class="spec-card-header-icon">🦷</div>
+          <div><h4>Tooth #36 — Lower Left 6</h4><p>Root Canal + Crown Planned</p></div>
+        </div>
+        <div class="spec-card-body">
+          <div style="background:#111827;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Status</div><div style="color:#fca5a5;font-size:12px;font-weight:600">Caries — Advanced</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Procedure</div><div style="color:#e5e7eb;font-size:12px;font-weight:600">RCT + PFM Crown</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Estimate</div><div style="color:#fcd34d;font-size:12px;font-weight:600">₹12,000</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Lab Delivery</div><div style="color:#6ee7b7;font-size:12px;font-weight:600">2025-04-08</div></div>
+            </div>
+          </div>
+          <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#fcd34d">
+            🔬 RVG X-ray attached · Lab work order sent to DentPro Lab
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPHTHAL -->
+    <div class="spec-content" id="spec-ophthal">
+      <div class="spec-features">
+        <h3>Ophthalmology EMR</h3>
+        <p>Structured VA logs, refraction prescriptions, slit lamp findings, and auto-generated spectacle prescription PDFs.</p>
+        <ul class="spec-list">
+          <li><span class="check">✓</span> VA log per visit: unaided, pinhole, BCVA — plotted as trend</li>
+          <li><span class="check">✓</span> Refraction: Sphere / Cylinder / Axis / Add for distance and near</li>
+          <li><span class="check">✓</span> Slit lamp: AC grade, corneal clarity, LOCS lens grading</li>
+          <li><span class="check">✓</span> IOP Goldmann applanation with time and method</li>
+          <li><span class="check">✓</span> Fundus photo attachment with optic disc CDR recording</li>
+          <li><span class="check">✓</span> Auto-generate spectacle prescription PDF for optical dispensing</li>
+        </ul>
+      </div>
+      <div class="spec-card-preview">
+        <div class="spec-card-header">
+          <div class="spec-card-header-icon">👁</div>
+          <div><h4>Refraction &amp; VA Log</h4><p>Ramesh Kumar, 52M · Visit #2</p></div>
+        </div>
+        <div class="spec-card-body">
+          <div style="background:#111827;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;color:#6b7280;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Refraction</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <div style="color:#6b7280;font-size:10px;margin-bottom:4px">Right Eye (OD)</div>
+                <div style="color:#e5e7eb;font-size:12px;font-weight:600">-2.50 / -0.75 × 180</div>
+                <div style="color:#6b7280;font-size:11px;margin-top:2px">VA: 6/6</div>
+              </div>
+              <div>
+                <div style="color:#6b7280;font-size:10px;margin-bottom:4px">Left Eye (OS)</div>
+                <div style="color:#e5e7eb;font-size:12px;font-weight:600">-3.00 / -1.00 × 175</div>
+                <div style="color:#6b7280;font-size:11px;margin-top:2px">VA: 6/9</div>
+              </div>
+            </div>
+          </div>
+          <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#6ee7b7">
+            📄 Spectacle prescription PDF auto-generated &amp; sent via WhatsApp
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORTHO -->
+    <div class="spec-content" id="spec-ortho">
+      <div class="spec-features">
+        <h3>Orthopaedics EMR</h3>
+        <p>Joint examination templates, AO fracture classification, implant records, and surgery follow-up milestones.</p>
+        <ul class="spec-list">
+          <li><span class="check">✓</span> Joint templates: shoulder, knee, hip, spine, wrist, ankle with special tests</li>
+          <li><span class="check">✓</span> AO/OTA fracture classification with X-ray annotation capability</li>
+          <li><span class="check">✓</span> Implant records: manufacturer, catalogue number, torque values</li>
+          <li><span class="check">✓</span> Post-surgical protocol with auto-scheduled follow-up milestones</li>
+          <li><span class="check">✓</span> Physiotherapy referral with specific instructions from same visit</li>
+          <li><span class="check">✓</span> ROM and power grading per joint with trend tracking</li>
+        </ul>
+      </div>
+      <div class="spec-card-preview">
+        <div class="spec-card-header">
+          <div class="spec-card-header-icon">🦴</div>
+          <div><h4>Knee Examination</h4><p>Right Knee — ACL Injury</p></div>
+        </div>
+        <div class="spec-card-body">
+          <div style="background:#111827;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;color:#6b7280;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Special Tests</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between"><span style="color:#94a3b8;font-size:12px">Lachman Test</span><span style="background:rgba(239,68,68,.15);color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">Positive</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:#94a3b8;font-size:12px">Anterior Drawer</span><span style="background:rgba(239,68,68,.15);color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">Positive</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:#94a3b8;font-size:12px">McMurray's Test</span><span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">Negative</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENT -->
+    <div class="spec-content" id="spec-ent">
+      <div class="spec-features">
+        <h3>ENT EMR</h3>
+        <p>Audiogram entry, tympanogram results, nasal endoscopy findings, and vertigo assessment scales — all structured.</p>
+        <ul class="spec-list">
+          <li><span class="check">✓</span> Audiogram: air and bone conduction thresholds plotted visually</li>
+          <li><span class="check">✓</span> Tympanogram: Type A/B/C/As/Ad with peak compliance</li>
+          <li><span class="check">✓</span> Nasal endoscopy and otoscopy structured findings</li>
+          <li><span class="check">✓</span> DHI (Dizziness Handicap Inventory) auto-scored from inputs</li>
+          <li><span class="check">✓</span> BPPV documentation with Dix-Hallpike test results</li>
+          <li><span class="check">✓</span> Hearing aid prescription with fitting parameters</li>
+        </ul>
+      </div>
+      <div class="spec-card-preview">
+        <div class="spec-card-header">
+          <div class="spec-card-header-icon">👂</div>
+          <div><h4>Audiogram Report</h4><p>Right Ear — Sensorineural Loss</p></div>
+        </div>
+        <div class="spec-card-body">
+          <div style="background:#111827;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;color:#6b7280;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Pure Tone Average</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Right (AC)</div><div style="color:#fca5a5;font-size:16px;font-weight:700">52 dB HL</div><div style="color:#6b7280;font-size:11px">Moderate Loss</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Left (AC)</div><div style="color:#6ee7b7;font-size:16px;font-weight:700">22 dB HL</div><div style="color:#6b7280;font-size:11px">Normal</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GYNAE -->
+    <div class="spec-content" id="spec-gynae">
+      <div class="spec-features">
+        <h3>Gynaecology EMR</h3>
+        <p>Obstetric history, antenatal visit sequences by gestational week, menstrual tracking, and colposcopy findings.</p>
+        <ul class="spec-list">
+          <li><span class="check">✓</span> Obstetric history: LMP, EDD auto-calculated, gravida/para notation</li>
+          <li><span class="check">✓</span> Structured antenatal visit protocol by gestational week (8W to 38W)</li>
+          <li><span class="check">✓</span> Menstrual history: cycle tracking, PCOD markers over multiple visits</li>
+          <li><span class="check">✓</span> Colposcopy: VIA/VILI results, Pap smear history, cervical biopsy</li>
+          <li><span class="check">✓</span> USG report attachment linked to visit date</li>
+          <li><span class="check">✓</span> Contraception counselling records with follow-up scheduling</li>
+        </ul>
+      </div>
+      <div class="spec-card-preview">
+        <div class="spec-card-header">
+          <div class="spec-card-header-icon">🩺</div>
+          <div><h4>Antenatal Visit — 20W</h4><p>Sneha Patil · G2P1</p></div>
+        </div>
+        <div class="spec-card-body">
+          <div style="background:#111827;border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">LMP</div><div style="color:#e5e7eb;font-size:12px;font-weight:600">2024-11-10</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">EDD</div><div style="color:#fcd34d;font-size:12px;font-weight:600">2025-08-17</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Gestational Age</div><div style="color:#6ee7b7;font-size:12px;font-weight:600">20 weeks 3 days</div></div>
+              <div style="background:#1e2535;border-radius:8px;padding:8px 10px"><div style="color:#6b7280;font-size:10px">Next Visit</div><div style="color:#e5e7eb;font-size:12px;font-weight:600">24W — 4 weeks</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODULES -->
+<section class="section" id="features">
+  <div class="section-inner">
+    <div class="section-label">9 Integrated Modules</div>
+    <h2>Everything your clinic needs, <br>nothing it doesn't</h2>
+    <p class="section-sub">Each module is designed to save time or generate revenue. If it does neither, it doesn't ship.</p>
+    <div class="modules-grid">
+      <div class="module-card">
+        <div class="module-num">01</div>
+        <div class="module-icon" style="background:#eff3ff">📋</div>
+        <h3>Specialty EMR</h3>
+        <p>10 specialty-specific template packs. Custom field builder. Voice-to-EMR AI assistant. Every doctor sees their own home screen.</p>
+        <span class="module-chip">10 specialties</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">02</div>
+        <div class="module-icon" style="background:#ecfdf5">📅</div>
+        <h3>Smart Scheduling</h3>
+        <p>Multi-resource management — doctor slots, treatment rooms, and equipment. Procedure-aware booking with advance payment.</p>
+        <span class="module-chip">Multi-resource</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">03</div>
+        <div class="module-icon" style="background:#f0f9ff">👤</div>
+        <h3>Patient Profile</h3>
+        <p>Longitudinal record — all visits, prescriptions, photos, and communications in one timeline. ABHA-linked for national portability.</p>
+        <span class="module-chip">ABHA-linked</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">04</div>
+        <div class="module-icon" style="background:#fff7ed">💊</div>
+        <h3>Digital Prescription</h3>
+        <p>40,000+ Indian drug database with generic and brand names. Dosage templates, interaction checking, HPR-signed for ABDM.</p>
+        <span class="module-chip">HPR-signed</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">05</div>
+        <div class="module-icon" style="background:#fdf4ff">📸</div>
+        <h3>Photo Vault</h3>
+        <p>Before/after photo management with body-map tagging, side-by-side comparison, and encrypted cloud storage. Consent-first.</p>
+        <span class="module-chip">Dermatology</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">06</div>
+        <div class="module-icon" style="background:#fffbeb">🧾</div>
+        <h3>GST Billing</h3>
+        <p>Medical SAC codes for every service type. GST invoice PDF. Razorpay UPI collection. TDS tracking. e-Invoice for high turnover.</p>
+        <span class="module-chip">India-native</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">07</div>
+        <div class="module-icon" style="background:#f0fdf4">💬</div>
+        <h3>WhatsApp Comms</h3>
+        <p>Full patient communication workflow via WhatsApp — bookings, reminders, prescriptions, payment links, follow-up triggers.</p>
+        <span class="module-chip">Two-way</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">08</div>
+        <div class="module-icon" style="background:#fff1f2">🛡️</div>
+        <h3>ABDM Compliance</h3>
+        <p>ABHA creation, HFR registration, FHIR R4 health record sharing, consent management. Full ABDM stack certified.</p>
+        <span class="module-chip">FHIR R4</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">09</div>
+        <div class="module-icon" style="background:#f8fafc">📊</div>
+        <h3>Clinic Analytics</h3>
+        <p>Revenue, appointment, and patient retention reports. Specialty KPIs — session completion rates, treatment response tracking.</p>
+        <span class="module-chip">Specialty KPIs</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section steps-bg">
+  <div class="section-inner">
+    <div class="section-label" style="color:#60a5fa">Getting started</div>
+    <h2>From sign-up to first patient<br>in under 30 minutes</h2>
+    <p class="section-sub" style="color:#94a3b8">No IT team required. No data migration nightmare. No week-long training. Just a clinic that runs better from day one.</p>
+    <div class="steps-grid">
+      <div class="step active-step">
+        <div class="step-num">1</div>
+        <h3>Set up your clinic</h3>
+        <p>Enter your clinic name, select your specialties, add your doctors, and configure appointment types. ABDM HFR registration guided step-by-step.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Register patients</h3>
+        <p>Create patient profiles with ABHA ID in one tap — Aadhaar OTP or mobile. Medical history intake form sent automatically via WhatsApp.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>See patients, not screens</h3>
+        <p>Tap the specialty template. Dictate or type. AI fills the fields. WhatsApp sends the prescription. Invoice raised in 2 clicks. Done.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABDM -->
+<section class="section" id="abdm">
+  <div class="section-inner">
+    <div class="section-label">Regulatory Compliance</div>
+    <h2>ABDM compliance built in,<br>not bolted on</h2>
+    <p class="section-sub">As AB-PMJAY empanelment moves towards mandatory ABDM compliance, ClinicOS ensures you're never behind.</p>
+    <div class="abdm-grid">
+      <div class="abdm-features">
+        <div class="abdm-item">
+          <div class="abdm-dot">🆔</div>
+          <div>
+            <h4>ABHA Patient ID</h4>
+            <p>Create or link a patient's 14-digit ABHA health ID at registration — scan Aadhaar OTP or mobile. One tap, done.</p>
+          </div>
+        </div>
+        <div class="abdm-item">
+          <div class="abdm-dot">🏥</div>
+          <div>
+            <h4>Health Facility Registry (HFR)</h4>
+            <p>Guided HFR registration for your clinic. Auto-generates your facility QR code for Scan &amp; Share OPD registration.</p>
+          </div>
+        </div>
+        <div class="abdm-item">
+          <div class="abdm-dot">📤</div>
+          <div>
+            <h4>FHIR R4 Health Records</h4>
+            <p>All clinical records generated in ClinicOS are stored and shareable in FHIR R4 — prescriptions, visit notes, lab reports.</p>
+          </div>
+        </div>
+        <div class="abdm-item">
+          <div class="abdm-dot">🤝</div>
+          <div>
+            <h4>Consent Management</h4>
+            <p>Patient approves record sharing in-app. Consent log maintained for audit. DPDP Act compliant at every step.</p>
+          </div>
+        </div>
+      </div>
+      <div class="abdm-visual">
+        <h4>ABDM Certification Milestones</h4>
+        <div class="abdm-milestone">
+          <div class="milestone-dot ms-done">M1</div>
+          <div class="milestone-text">
+            <h5>ABHA Creation &amp; Linking</h5>
+            <p>ABHA creation API, patient record linking, facility QR for Scan &amp; Share</p>
+          </div>
+        </div>
+        <div class="abdm-milestone">
+          <div class="milestone-dot ms-prog">M2</div>
+          <div class="milestone-text">
+            <h5>Health Information Provider (HIP)</h5>
+            <p>FHIR R4 care contexts, consent handling, HIE-CM integration, WASA certificate</p>
+          </div>
+        </div>
+        <div class="abdm-milestone">
+          <div class="milestone-dot ms-pend">M3</div>
+          <div class="milestone-text">
+            <h5>Health Information User (HIU)</h5>
+            <p>Receive records from other providers with patient consent — full portability</p>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:12px;background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:8px;font-size:12px;color:#6ee7b7">
+          ✅ CERT-IN WASA Security Audit included in Group Practice plan
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI -->
+<section class="section ai-bg">
+  <div class="section-inner">
+    <div class="section-label">AI Documentation</div>
+    <h2>5 minutes saved per patient.<br>2 extra slots per day.</h2>
+    <p class="section-sub">The AI documentation assistant understands clinical context — not just voice-to-text, but voice-to-structured-EMR-fields.</p>
+    <div class="ai-grid">
+      <div class="ai-cards">
+        <div class="ai-card">
+          <div class="ai-card-icon" style="background:rgba(239,68,68,.15)">🎙️</div>
+          <div>
+            <h4>Voice-to-EMR Dictation</h4>
+            <p>Speak naturally in English or Hinglish after the consultation. AI maps speech to the correct structured fields in your specialty template. Works offline with Whisper-small on-device.</p>
+          </div>
+        </div>
+        <div class="ai-card">
+          <div class="ai-card-icon" style="background:rgba(20,71,230,.15)">📝</div>
+          <div>
+            <h4>Consultation Summary Generator</h4>
+            <p>One tap after completing the EMR. AI writes a patient-friendly summary in simple English or Hindi — diagnosis, treatment plan, and what to do next.</p>
+          </div>
+        </div>
+        <div class="ai-card">
+          <div class="ai-card-icon" style="background:rgba(16,185,129,.15)">💊</div>
+          <div>
+            <h4>Smart Prescription Templates</h4>
+            <p>AI analyses the diagnosis and suggests the standard prescription. 40,000+ Indian drug database. Drug interaction checker. Previous prescription reference.</p>
+          </div>
+        </div>
+      </div>
+      <div class="dictation-demo">
+        <div class="demo-header">
+          <div class="rec-btn">⏺</div>
+          <div>
+            <h4>Live Dictation Demo</h4>
+            <p>Dermatology — Priya Mehta, 28F</p>
+          </div>
+        </div>
+        <div class="transcript-box">
+          "Patient has a 2 centimetre raised red plaque on the left cheek for 2 months. PASI score is 8.4. Starting on topical betamethasone and oral doxycycline 100mg. Scheduled chemical peel in 2 weeks."
+        </div>
+        <div style="font-size:10px;color:#6b7280;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">AI-Mapped Fields</div>
+        <div class="mapped-fields">
+          <div class="map-field"><span>Location</span><strong>Left cheek</strong></div>
+          <div class="map-field"><span>Lesion Type</span><strong>Plaque (raised)</strong></div>
+          <div class="map-field"><span>Size</span><strong>2 cm</strong></div>
+          <div class="map-field"><span>Duration</span><strong>2 months</strong></div>
+          <div class="map-field"><span>PASI Score</span><strong>8.4</strong></div>
+          <div class="map-field"><span>Next Procedure</span><strong>Chemical Peel</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section specialties-bg" id="pricing">
+  <div class="section-inner">
+    <div class="section-label">Simple Pricing</div>
+    <h2>Less than one consultation fee<br>per month</h2>
+    <p class="section-sub">No setup fee. No per-patient charge. Cancel anytime. All plans include 30-day free trial.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-plan">Solo Practice</div>
+        <div class="price-hi">एकल क्लिनिक</div>
+        <div class="price-amount"><span class="rupee">₹</span><span class="num">1,499</span><span class="period">/month</span></div>
+        <p class="price-desc">1 doctor, 1 location. Full specialty EMR, scheduling, billing, WhatsApp, and ABHA. 500 patient records.</p>
+        <ul class="price-features">
+          <li>Full specialty EMR template</li>
+          <li>Smart scheduling calendar</li>
+          <li>GST-compliant billing</li>
+          <li>WhatsApp patient comms</li>
+          <li>ABHA patient ID creation</li>
+          <li>Before/After photo vault</li>
+          <li>500 patient records</li>
+        </ul>
+        <a href="{{ route('register') }}" class="btn btn-outline btn-lg" style="width:100%;justify-content:center">Start free trial</a>
+      </div>
+      <div class="price-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <div class="price-plan">Small Clinic</div>
+        <div class="price-hi">छोटी क्लिनिक</div>
+        <div class="price-amount"><span class="rupee">₹</span><span class="num">2,999</span><span class="period">/month</span></div>
+        <p class="price-desc">Up to 3 doctors, 1 location. Multi-doctor scheduling, room management, analytics, and AI assistant.</p>
+        <ul class="price-features">
+          <li>Everything in Solo</li>
+          <li>Up to 3 doctors</li>
+          <li>Multi-doctor scheduling</li>
+          <li>Room &amp; equipment slots</li>
+          <li>Clinic analytics dashboard</li>
+          <li>AI documentation assistant</li>
+          <li>Unlimited patient records</li>
+        </ul>
+        <a href="{{ route('register') }}" class="btn btn-primary btn-lg" style="width:100%;justify-content:center">Start free trial</a>
+      </div>
+      <div class="price-card">
+        <div class="price-plan">Group Practice</div>
+        <div class="price-hi">समूह क्लिनिक</div>
+        <div class="price-amount"><span class="rupee">₹</span><span class="num">5,999</span><span class="period">/month</span></div>
+        <p class="price-desc">Up to 8 doctors, 2 locations. Full ABDM stack, insurance/TPA billing, white-label option.</p>
+        <ul class="price-features">
+          <li>Everything in Small Clinic</li>
+          <li>Up to 8 doctors, 2 locations</li>
+          <li>Full ABDM stack (M1+M2+M3)</li>
+          <li>Insurance &amp; TPA billing</li>
+          <li>WASA security audit</li>
+          <li>White-label branding</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="{{ route('register') }}" class="btn btn-outline btn-lg" style="width:100%;justify-content:center">Start free trial</a>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--text3);font-size:13px;margin-top:24px">Additional doctor seats: ₹299/month · Hospital OPD departments: custom pricing</p>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="section">
+  <div class="section-inner">
+    <div class="section-label">Why ClinicOS</div>
+    <h2>Built for specialists,<br>not adapted for them</h2>
+    <p class="section-sub">Generic EMRs treat specialty needs as afterthoughts. ClinicOS treats them as the whole point.</p>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Practo / HealthPlix</th>
+          <th>DocPulse / Eka</th>
+          <th>ClinicOS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Specialty-specific EMR templates</td>
+          <td class="no">✕ Generic forms</td>
+          <td class="partial">Partial</td>
+          <td class="yes">✓ 10 specialty packs</td>
+        </tr>
+        <tr>
+          <td>Lesion / body diagram annotation</td>
+          <td class="no">✕</td>
+          <td class="no">✕</td>
+          <td class="yes">✓ Derm + Ortho</td>
+        </tr>
+        <tr>
+          <td>Dental FDI tooth chart (32-tooth)</td>
+          <td class="no">✕</td>
+          <td class="no">✕</td>
+          <td class="yes">✓ Full chart + X-ray</td>
+        </tr>
+        <tr>
+          <td>Physio session tracking + HEP</td>
+          <td class="no">✕</td>
+          <td class="no">✕</td>
+          <td class="yes">✓ ROM + MMT + WhatsApp HEP</td>
+        </tr>
+        <tr>
+          <td>Full ABDM stack (ABHA + HFR + FHIR)</td>
+          <td class="partial">ABHA only</td>
+          <td class="partial">ABHA only</td>
+          <td class="yes">✓ M1 + M2 + M3</td>
+        </tr>
+        <tr>
+          <td>WhatsApp prescription + follow-up</td>
+          <td class="partial">Booking only</td>
+          <td class="no">✕</td>
+          <td class="yes">✓ Full workflow</td>
+        </tr>
+        <tr>
+          <td>AI voice-to-EMR documentation</td>
+          <td class="no">✕</td>
+          <td class="no">✕</td>
+          <td class="yes">✓ Whisper + Claude AI</td>
+        </tr>
+        <tr>
+          <td>Medical GST SAC code billing</td>
+          <td class="partial">Basic</td>
+          <td class="partial">Basic</td>
+          <td class="yes">✓ All SAC codes + TDS</td>
+        </tr>
+        <tr>
+          <td>Starting price / month</td>
+          <td>₹1,499–₹5,000</td>
+          <td>₹2,000+</td>
+          <td class="yes">✓ ₹1,499</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Ready to run a clinic that runs itself?</h2>
+  <p>Join specialists across Dermatology, Physiotherapy, Dental, and Ophthalmology who've replaced paper and generic tools with ClinicOS.</p>
+  <div class="cta-actions">
+    <a href="{{ route('register') }}" class="btn btn-white btn-lg">Start 30-day free trial</a>
+    <a href="#features" class="btn btn-outline-white btn-lg">See a live demo</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="about">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">ClinicOS · क्लिनिक ओएस</div>
+        <p>Complete SaaS platform for India's specialty clinics. Built by RH Technology, Pune. Specialty-first, ABDM-compliant, India-native.</p>
+        <div class="trust-chips" style="margin-top:16px">
+          <div class="trust-chip">🔒 AES-256</div>
+          <div class="trust-chip">🇮🇳 AWS Mumbai</div>
+          <div class="trust-chip">✅ ABDM</div>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Product</h5>
+        <ul>
+          <li><a href="#features">Specialty EMR</a></li>
+          <li><a href="#features">Smart Scheduling</a></li>
+          <li><a href="#features">GST Billing</a></li>
+          <li><a href="#features">WhatsApp Comms</a></li>
+          <li><a href="#abdm">ABDM Compliance</a></li>
+          <li><a href="#features">AI Assistant</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Specialties</h5>
+        <ul>
+          <li><a href="#specialties">Dermatology</a></li>
+          <li><a href="#specialties">Physiotherapy</a></li>
+          <li><a href="#specialties">Dental</a></li>
+          <li><a href="#specialties">Ophthalmology</a></li>
+          <li><a href="#specialties">Orthopaedics</a></li>
+          <li><a href="#specialties">ENT &amp; Gynaecology</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#about">About RH Technology</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#">Security</a></li>
+          <li><a href="#">DPDP Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 RH Technology Pvt. Ltd., Pune, Maharashtra. All rights reserved.</p>
+      <p>CIN: U72900MH2026PTC000000 · GSTIN: 27XXXXX0000X1Z0</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function switchSpec(id, event) {
+    document.querySelectorAll('.spec-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.spec-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('spec-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

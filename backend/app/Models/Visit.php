@@ -121,6 +121,11 @@ class Visit extends Model
         return $this->hasOne(Prescription::class);
     }
 
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class);
+    }
+
     public function photos(): HasMany
     {
         return $this->hasMany(PatientPhoto::class);
