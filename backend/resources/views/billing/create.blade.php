@@ -12,13 +12,22 @@
             <p class="text-sm text-gray-500 mt-0.5">Generate a new invoice for a patient</p>
         </div>
 
+        {{-- Debug: Show if visit_id is being passed --}}
+        @if(request('visit_id'))
+        <div class="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg text-sm text-green-800">
+            ✅ Linking to Visit #{{ request('visit_id') }}
+        </div>
+        @else
+        <div class="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg text-sm text-yellow-800">
+            ⚠️ No visit linked - invoice will not appear in EMR Billing tab
+        </div>
+        @endif
+
         <form action="{{ route('billing.store') }}" method="POST" x-data="invoiceForm()" class="space-y-6">
             @csrf
             
             {{-- Visit ID (hidden, passed from EMR) --}}
-            @if(request('visit_id'))
             <input type="hidden" name="visit_id" value="{{ request('visit_id') }}">
-            @endif
 
             {{-- Patient Selection --}}
             <div class="bg-white rounded-xl border border-gray-200">

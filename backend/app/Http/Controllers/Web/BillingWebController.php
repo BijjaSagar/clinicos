@@ -73,11 +73,15 @@ class BillingWebController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('BillingWebController@store', $request->all());
+        Log::info('BillingWebController@store - Raw request', [
+            'all' => $request->all(),
+            'visit_id_raw' => $request->input('visit_id'),
+            'visit_id_filled' => $request->filled('visit_id'),
+        ]);
 
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'visit_id' => 'nullable|exists:visits,id',
+            'visit_id' => 'nullable|integer|exists:visits,id',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
             'items.*.quantity' => 'nullable|numeric|min:1',
@@ -110,11 +114,16 @@ class BillingWebController extends Controller
             $sgstAmount = round($taxableAmount * ($sgstRate / 100), 2);
             $total = $taxableAmount + $cgstAmount + $sgstAmount;
 
+            // Ensure visit_id is properly set (handle empty string as null)
+            $visitId = !empty($validated['visit_id']) ? (int)$validated['visit_id'] : null;
+            
+            Log::info('Creating invoice with visit_id', ['visit_id' => $visitId, 'validated_visit_id' => $validated['visit_id'] ?? 'not set']);
+
             // Create invoice
             $invoice = Invoice::create([
                 'clinic_id' => $clinicId,
                 'patient_id' => $validated['patient_id'],
-                'visit_id' => $validated['visit_id'] ?? null,
+                'visit_id' => $visitId,
                 'invoice_date' => now(),
                 'subtotal' => $subtotal,
                 'discount_amount' => $discountAmount,
