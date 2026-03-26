@@ -162,10 +162,7 @@
       <a href="{{ route('whatsapp.index') }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);text-decoration:none">💬 WhatsApp</a>
       <a href="{{ route('billing.create') }}?patient_id={{ $patient->id }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);text-decoration:none">🧾 Create Invoice</a>
       @if($visit->status !== 'finalised')
-      <form action="{{ route('emr.finalise', [$patient, $visit]) }}" method="POST" style="display:inline">
-        @csrf
-        <button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:white">✓ Complete Visit</button>
-      </form>
+      <button type="button" onclick="completeVisit()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:white">✓ Complete Visit</button>
       @endif
     </div>
   </div>
@@ -1298,16 +1295,29 @@
     });
   }
 
-  // Finalise visit
+  // Complete visit (top bar button)
+  function completeVisit() {
+    if (!confirm('Complete this visit? The consultation will be marked as completed.')) {
+      return;
+    }
+    submitFinaliseForm();
+  }
+
+  // Finalise visit (bottom bar button - with WhatsApp)
   function finaliseVisit() {
     if (!confirm('Are you sure you want to finalise this visit? This will mark the consultation as complete and send the prescription via WhatsApp.')) {
       return;
     }
-    
-    // Create a form and submit it
+    submitFinaliseForm();
+  }
+  
+  // Common form submission for finalising
+  function submitFinaliseForm() {
+    // Create a form and submit it outside the main form
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '{{ route('emr.finalise', [$patient, $visit]) }}';
+    form.style.display = 'none';
     
     const csrf = document.createElement('input');
     csrf.type = 'hidden';
