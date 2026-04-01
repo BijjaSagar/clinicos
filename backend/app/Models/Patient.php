@@ -40,6 +40,7 @@ class Patient extends Model
         'next_followup_date',
         'photo_consent_given',
         'photo_consent_at',
+        'photo_consent_signature_path',
     ];
 
     protected $casts = [

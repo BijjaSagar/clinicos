@@ -268,7 +268,7 @@
                      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
                      @click.self="showUploadModal = false"
                      style="display: none;">
-                    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+                    <div class="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto"
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="opacity-0 scale-95"
                          x-transition:enter-end="opacity-100 scale-100">
@@ -388,6 +388,8 @@
                                 <input type="text" name="condition_tag" placeholder="e.g., Acne, Chemical Peel, Laser"
                                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
+
+                            <x-photo-consent-signature :patient-id="$patient->id" title="Patient signature (optional)" />
 
                             {{-- Consent Checkbox --}}
                             <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">

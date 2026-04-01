@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Ayushman Bharat Digital Mission')
 
 @section('content')
-<div class="p-6 space-y-6" x-data="{ showAbhaModal: false, abhaStep: 1, verificationMethod: 'aadhaar' }">
+<div class="p-6 space-y-6" x-data="abdmData()">
     {{-- ABDM Status Banner --}}
     <div class="rounded-xl p-6" style="background: linear-gradient(135deg, #0d1117 0%, #0d1f3c 100%);">
         <div class="flex items-center gap-4">
@@ -48,6 +48,9 @@
                 </div>
                 <button @click="showAbhaModal = true" class="w-full mt-4 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
                     Create New ABHA
+                </button>
+                <button @click="showLinkModal = true" class="w-full mt-2 px-4 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors">
+                    Link Existing ABHA
                 </button>
             </div>
         </div>
@@ -243,30 +246,278 @@
                 </div>
 
                 <div class="flex justify-center gap-2">
-                    <input type="text" maxlength="1" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <input type="text" maxlength="1" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <input type="text" maxlength="1" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <input type="text" maxlength="1" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <input type="text" maxlength="1" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <input type="text" maxlength="1" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" x-model="otp1" maxlength="1" @input="$el.value.length === 1 && $refs.otp2.focus()" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" x-model="otp2" x-ref="otp2" maxlength="1" @input="$el.value.length === 1 && $refs.otp3.focus()" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" x-model="otp3" x-ref="otp3" maxlength="1" @input="$el.value.length === 1 && $refs.otp4.focus()" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" x-model="otp4" x-ref="otp4" maxlength="1" @input="$el.value.length === 1 && $refs.otp5.focus()" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" x-model="otp5" x-ref="otp5" maxlength="1" @input="$el.value.length === 1 && $refs.otp6.focus()" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" x-model="otp6" x-ref="otp6" maxlength="1" class="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
 
                 <div class="text-center">
-                    <button class="text-sm text-blue-600 hover:text-blue-700 font-medium">Resend OTP</button>
+                    <button @click="resendOtp()" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Resend OTP</button>
                     <span class="text-gray-400 mx-2">•</span>
-                    <span class="text-sm text-gray-500">Expires in 2:30</span>
+                    <span class="text-sm text-gray-500">Expires in <span x-text="otpTimer">2:30</span></span>
                 </div>
+
+                {{-- Error/Success Messages --}}
+                <div x-show="errorMsg" class="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700" x-text="errorMsg"></div>
+                <div x-show="successMsg" class="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700" x-text="successMsg"></div>
 
                 <div class="pt-4 flex justify-between">
                     <button @click="abhaStep = 2" class="px-6 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors">
                         Back
                     </button>
-                    <button @click="showAbhaModal = false; abhaStep = 1; alert('ABHA creation requires ABDM API integration. This is a demo interface.')" class="px-6 py-2.5 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors">
-                        Verify & Create ABHA
+                    <button @click="verifyOtp()" :disabled="loading" class="px-6 py-2.5 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50">
+                        <span x-show="!loading">Verify & Create ABHA</span>
+                        <span x-show="loading">Verifying...</span>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Step 4: Success --}}
+            <div x-show="abhaStep === 4" class="p-6 space-y-4">
+                <div class="text-center py-6">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">ABHA Created Successfully!</h3>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-xl">
+                        <p class="text-sm text-gray-500">ABHA Number</p>
+                        <p class="text-2xl font-bold text-blue-600 font-mono tracking-wider" x-text="createdAbhaId"></p>
+                        <p class="text-sm text-gray-500 mt-2">ABHA Address</p>
+                        <p class="text-lg font-semibold text-gray-900" x-text="createdAbhaAddress"></p>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button @click="showAbhaModal = false; abhaStep = 1; window.location.reload()" class="w-full px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
+                        Done
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Link Existing ABHA Modal --}}
+    <div x-show="showLinkModal" 
+         x-transition
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+         @click.self="showLinkModal = false">
+        
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" @click.stop>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Link Existing ABHA</h3>
+                <button @click="showLinkModal = false" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ABHA Number (14 digits)</label>
+                    <input type="text" x-model="linkAbhaId" placeholder="12-3456-7890-1234" maxlength="14" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg tracking-wider">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">ABHA Address (optional)</label>
+                    <input type="text" x-model="linkAbhaAddress" placeholder="username@abdm" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Link to Patient</label>
+                    <select x-model="linkPatientId" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select patient...</option>
+                        @foreach(\App\Models\Patient::where('clinic_id', auth()->user()->clinic_id)->whereNull('abha_id')->orderBy('name')->get() as $patient)
+                        <option value="{{ $patient->id }}">{{ $patient->name }} ({{ $patient->phone }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div x-show="linkError" class="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700" x-text="linkError"></div>
+
+                <button @click="linkAbha()" :disabled="!linkAbhaId || !linkPatientId || loading" class="w-full px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
+                    Link ABHA to Patient
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
+
+@push('scripts')
+<script>
+console.log('ABDM Centre loaded');
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('abdmData', () => ({
+        showAbhaModal: false,
+        showLinkModal: false,
+        abhaStep: 1,
+        verificationMethod: 'aadhaar',
+        loading: false,
+        
+        // Form data
+        aadhaarNumber: '',
+        mobileNumber: '',
+        txnId: '',
+        otp1: '', otp2: '', otp3: '', otp4: '', otp5: '', otp6: '',
+        otpTimer: '2:30',
+        
+        // Results
+        createdAbhaId: '',
+        createdAbhaAddress: '',
+        errorMsg: '',
+        successMsg: '',
+        
+        // Link modal
+        linkAbhaId: '',
+        linkAbhaAddress: '',
+        linkPatientId: '',
+        linkError: '',
+        
+        async generateOtp() {
+            this.loading = true;
+            this.errorMsg = '';
+            
+            try {
+                const endpoint = this.verificationMethod === 'aadhaar' 
+                    ? '{{ route('abdm.aadhaar.otp') }}'
+                    : '{{ route('abdm.mobile.otp') }}';
+                
+                const payload = this.verificationMethod === 'aadhaar'
+                    ? { aadhaar: this.aadhaarNumber.replace(/\s/g, '') }
+                    : { mobile: this.mobileNumber };
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.txnId = data.txnId;
+                    this.abhaStep = 3;
+                    this.startOtpTimer();
+                } else {
+                    this.errorMsg = data.error || 'Failed to generate OTP';
+                }
+            } catch (e) {
+                console.error('OTP generation error:', e);
+                this.errorMsg = 'Network error. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async verifyOtp() {
+            this.loading = true;
+            this.errorMsg = '';
+            
+            const otp = this.otp1 + this.otp2 + this.otp3 + this.otp4 + this.otp5 + this.otp6;
+            
+            if (otp.length !== 6) {
+                this.errorMsg = 'Please enter complete 6-digit OTP';
+                this.loading = false;
+                return;
+            }
+            
+            try {
+                const endpoint = this.verificationMethod === 'aadhaar'
+                    ? '{{ route('abdm.aadhaar.verify') }}'
+                    : '{{ route('abdm.mobile.verify') }}';
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    body: JSON.stringify({
+                        txnId: this.txnId,
+                        otp: otp,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.createdAbhaId = data.abha_id;
+                    this.createdAbhaAddress = data.abha_address;
+                    this.abhaStep = 4;
+                } else {
+                    this.errorMsg = data.error || 'OTP verification failed';
+                }
+            } catch (e) {
+                console.error('OTP verification error:', e);
+                this.errorMsg = 'Network error. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async linkAbha() {
+            this.loading = true;
+            this.linkError = '';
+            
+            try {
+                const response = await fetch('{{ route('abdm.link') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    body: JSON.stringify({
+                        patient_id: this.linkPatientId,
+                        abha_id: this.linkAbhaId.replace(/[^0-9]/g, ''),
+                        abha_address: this.linkAbhaAddress,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('ABHA linked successfully!');
+                    this.showLinkModal = false;
+                    window.location.reload();
+                } else {
+                    this.linkError = data.error || 'Failed to link ABHA';
+                }
+            } catch (e) {
+                console.error('Link ABHA error:', e);
+                this.linkError = 'Network error. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        startOtpTimer() {
+            let seconds = 150; // 2:30
+            const timer = setInterval(() => {
+                seconds--;
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                this.otpTimer = `${mins}:${secs.toString().padStart(2, '0')}`;
+                
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    this.otpTimer = '0:00';
+                }
+            }, 1000);
+        },
+        
+        resendOtp() {
+            this.otp1 = this.otp2 = this.otp3 = this.otp4 = this.otp5 = this.otp6 = '';
+            this.generateOtp();
+        }
+    }));
+});
+</script>
+@endpush
 @endsection

@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/api-v2.php'));
+
             Route::middleware('web')
                 ->group(base_path('routes/admin.php'));
         },
@@ -27,11 +31,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'clinic.auth' => \App\Http\Middleware\ClinicAuthMiddleware::class,
             'super_admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'role' => \App\Http\Middleware\CheckRole::class,
+            'clinic.tenant' => \App\Http\Middleware\EnsureApiClinicTenant::class,
+            'clinic.module' => \App\Http\Middleware\EnsureClinicProductModule::class,
         ]);
 
         // Redirect guests to login
         $middleware->redirectGuestsTo('/login');
         $middleware->redirectUsersTo('/dashboard');
+
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/razorpay',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

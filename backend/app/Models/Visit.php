@@ -36,6 +36,8 @@ class Visit extends Model
         'abdm_pushed_at',
         'started_at',
         'finalised_at',
+        'prescription_sent_whatsapp',
+        'prescription_sent_at',
     ];
 
     protected $casts = [
@@ -46,6 +48,8 @@ class Visit extends Model
         'abdm_pushed_at' => 'datetime',
         'started_at' => 'datetime',
         'finalised_at' => 'datetime',
+        'prescription_sent_whatsapp' => 'boolean',
+        'prescription_sent_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -151,6 +155,11 @@ class Visit extends Model
         return $this->hasOne(OphthalRefraction::class);
     }
 
+    public function prescriptionItems(): HasMany
+    {
+        return $this->hasMany(PrescriptionItem::class)->orderBy('sort_order');
+    }
+
     // ─── Scopes ──────────────────────────────────────────────────────────────
 
     public function scopeForClinic($query, int $clinicId)
@@ -234,5 +243,23 @@ class Visit extends Model
         $data = $this->structured_data ?? [];
         data_set($data, $key, $value);
         $this->structured_data = $data;
+    }
+
+    /**
+     * Alias for prescription dashboard: matches legacy Prescription model attribute name.
+     */
+    public function getWhatsappSentAtAttribute(): ?\Illuminate\Support\Carbon
+    {
+        return $this->prescription_sent_at;
+    }
+
+    /**
+     * Prescription list UI: visit-based Rx treated as valid for N days after visit date.
+     */
+    public function isValid(int $validDays = 30): bool
+    {
+        $base = $this->created_at ?? now();
+
+        return $base->copy()->addDays($validDays)->isFuture();
     }
 }

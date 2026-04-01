@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Visit;
 use App\Models\Patient;
 use App\Models\EmrTemplate;
-use App\Services\FHIR\FhirBuilder;
-use App\Services\ABDM\AbdmService;
+use App\Services\FhirBuilder;
+use App\Services\AbdmService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 

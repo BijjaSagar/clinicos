@@ -396,151 +396,204 @@
           </div>
         </div>
 
-        {{-- BODY MAP --}}
-        <div class="form-section">
-          <div class="form-section-header">
-            <h3>Lesion Map &amp; Skin Findings</h3>
-            <span class="toggle">−</span>
-          </div>
-          <div class="form-body">
-            <div class="body-map-container">
-              <div>
-                <div class="body-diagram" title="Tap to add lesion">
-                  <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">Tap to annotate</div>
-                  <svg viewBox="0 0 80 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <ellipse cx="40" cy="16" rx="14" ry="15" fill="#d1d5db"/>
-                    <rect x="22" y="32" width="36" height="48" rx="8" fill="#d1d5db"/>
-                    <rect x="7" y="33" width="14" height="38" rx="7" fill="#d1d5db"/>
-                    <rect x="59" y="33" width="14" height="38" rx="7" fill="#d1d5db"/>
-                    <rect x="23" y="82" width="15" height="50" rx="7" fill="#d1d5db"/>
-                    <rect x="42" y="82" width="15" height="50" rx="7" fill="#d1d5db"/>
-                    {{-- Lesion dots --}}
-                    <circle cx="36" cy="18" r="5" fill="#ef4444" opacity=".8"/>
-                    <circle cx="46" cy="14" r="4" fill="#ef4444" opacity=".6"/>
-                    <circle cx="33" cy="28" r="3.5" fill="#f59e0b" opacity=".8"/>
-                    <circle cx="50" cy="42" r="4" fill="#6366f1" opacity=".6"/>
-                    <circle cx="12" cy="45" r="4.5" fill="#6366f1" opacity=".7"/>
-                  </svg>
-                  <div style="font-size:10px;color:var(--text3);margin-top:8px">Front View</div>
+        {{-- ═══════════════════════════════════════════════════════════════════════
+             SPECIALTY-SPECIFIC EMR TEMPLATES
+             ═══════════════════════════════════════════════════════════════════════ --}}
+        @php
+            $specialty = strtolower($visit->specialty ?? auth()->user()->specialty ?? 'general');
+            $specialtyTemplates = [
+                'dermatology' => 'emr.specialty.dermatology',
+                'dental' => 'emr.specialty.dental',
+                'physiotherapy' => 'emr.specialty.physiotherapy',
+                'orthopaedic' => 'emr.specialty.orthopaedics',
+                'orthopedics' => 'emr.specialty.orthopaedics',
+                'ophthalmology' => 'emr.specialty.ophthalmology',
+                'eye' => 'emr.specialty.ophthalmology',
+                'ent' => 'emr.specialty.ent',
+                'gynaecology' => 'emr.specialty.gynaecology',
+                'gynecology' => 'emr.specialty.gynaecology',
+                'obstetrics' => 'emr.specialty.gynaecology',
+            ];
+            $templateToUse = $specialtyTemplates[$specialty] ?? null;
+            
+            // Debug log
+            \Log::info('EMR specialty template selection', [
+                'visit_specialty' => $visit->specialty,
+                'user_specialty' => auth()->user()->specialty,
+                'resolved_specialty' => $specialty,
+                'template' => $templateToUse
+            ]);
+        @endphp
+
+        {{-- Include specialty template if available --}}
+        @if($templateToUse && view()->exists($templateToUse))
+            <div style="margin-bottom:12px;padding:10px 14px;background:linear-gradient(135deg, rgba(20,71,230,0.08), rgba(8,145,178,0.08));border-radius:10px;border:1px solid rgba(20,71,230,0.15)">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:16px">
+                        @switch($specialty)
+                            @case('dermatology') 🩺 @break
+                            @case('dental') 🦷 @break
+                            @case('physiotherapy')
+                            @case('orthopaedic')
+                            @case('orthopedics') 💪 @break
+                            @default 📋
+                        @endswitch
+                    </span>
+                    <span style="font-size:13px;font-weight:600;color:var(--dark)">{{ ucfirst($specialty) }} EMR Template</span>
+                    <span style="margin-left:auto;font-size:11px;color:var(--text3)">Specialty-specific fields below</span>
                 </div>
+            </div>
+            
+            @include($templateToUse)
+        @else
+            {{-- Fallback: Generic Body Map & Scales --}}
+            
+            {{-- BODY MAP (Generic) --}}
+            <div class="form-section">
+              <div class="form-section-header">
+                <h3>Lesion Map &amp; Skin Findings</h3>
+                <span class="toggle">−</span>
               </div>
-              <div class="lesion-annotations">
-                <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Recorded Lesions</div>
-                
-                @forelse($visit->lesions ?? [] as $lesion)
-                <div class="lesion-row" data-lesion-id="{{ $lesion->id }}">
-                  <div class="lesion-color" style="background:{{ $lesion->colour ?? '#ef4444' }}"></div>
-                  <div class="lesion-desc">
-                    <strong style="color:var(--dark)">{{ $lesion->body_region }}</strong> · {{ $lesion->lesion_type }}
-                    @if($lesion->size_cm) · {{ $lesion->size_cm }} cm @endif
-                    @if($lesion->notes)
-                    <div style="font-size:11px;color:var(--text3)">{{ $lesion->notes }}</div>
-                    @endif
-                    @if($lesion->distribution || $lesion->surface)
-                    <div style="font-size:11px;color:var(--text3)">
-                      @if($lesion->distribution)Distribution: {{ $lesion->distribution }}@endif
-                      @if($lesion->distribution && $lesion->surface) · @endif
-                      @if($lesion->surface)Surface: {{ $lesion->surface }}@endif
+              <div class="form-body">
+                <div class="body-map-container">
+                  <div>
+                    <div class="body-diagram" title="Tap to add lesion">
+                      <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">Tap to annotate</div>
+                      <svg viewBox="0 0 80 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="40" cy="16" rx="14" ry="15" fill="#d1d5db"/>
+                        <rect x="22" y="32" width="36" height="48" rx="8" fill="#d1d5db"/>
+                        <rect x="7" y="33" width="14" height="38" rx="7" fill="#d1d5db"/>
+                        <rect x="59" y="33" width="14" height="38" rx="7" fill="#d1d5db"/>
+                        <rect x="23" y="82" width="15" height="50" rx="7" fill="#d1d5db"/>
+                        <rect x="42" y="82" width="15" height="50" rx="7" fill="#d1d5db"/>
+                        {{-- Lesion dots --}}
+                        <circle cx="36" cy="18" r="5" fill="#ef4444" opacity=".8"/>
+                        <circle cx="46" cy="14" r="4" fill="#ef4444" opacity=".6"/>
+                        <circle cx="33" cy="28" r="3.5" fill="#f59e0b" opacity=".8"/>
+                        <circle cx="50" cy="42" r="4" fill="#6366f1" opacity=".6"/>
+                        <circle cx="12" cy="45" r="4.5" fill="#6366f1" opacity=".7"/>
+                      </svg>
+                      <div style="font-size:10px;color:var(--text3);margin-top:8px">Front View</div>
                     </div>
-                    @endif
                   </div>
-                  <button type="button" class="lesion-remove" onclick="removeLesion({{ $lesion->id }})" title="Remove">✕</button>
+                  <div class="lesion-annotations">
+                    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Recorded Lesions</div>
+                    
+                    @forelse($visit->lesions ?? [] as $lesion)
+                    <div class="lesion-row" data-lesion-id="{{ $lesion->id }}">
+                      <div class="lesion-color" style="background:{{ $lesion->colour ?? '#ef4444' }}"></div>
+                      <div class="lesion-desc">
+                        <strong style="color:var(--dark)">{{ $lesion->body_region }}</strong> · {{ $lesion->lesion_type }}
+                        @if($lesion->size_cm) · {{ $lesion->size_cm }} cm @endif
+                        @if($lesion->notes)
+                        <div style="font-size:11px;color:var(--text3)">{{ $lesion->notes }}</div>
+                        @endif
+                        @if($lesion->distribution || $lesion->surface)
+                        <div style="font-size:11px;color:var(--text3)">
+                          @if($lesion->distribution)Distribution: {{ $lesion->distribution }}@endif
+                          @if($lesion->distribution && $lesion->surface) · @endif
+                          @if($lesion->surface)Surface: {{ $lesion->surface }}@endif
+                        </div>
+                        @endif
+                      </div>
+                      <button type="button" class="lesion-remove" onclick="removeLesion({{ $lesion->id }})" title="Remove">✕</button>
+                    </div>
+                    @empty
+                    <div style="padding:16px;text-align:center;color:var(--text3);font-size:12px;background:var(--bg);border-radius:8px">
+                      No lesions recorded yet. Click the body diagram to add annotations.
+                    </div>
+                    @endforelse
+                    
+                    <button type="button" 
+                            onclick="openAddLesionModal()"
+                            style="display:flex;align-items:center;gap:6px;background:none;border:1.5px dashed var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text3);cursor:pointer;margin-top:8px;font-family:'Inter',sans-serif;width:100%;justify-content:center">
+                      ＋ Add lesion annotation
+                    </button>
+                  </div>
                 </div>
-                @empty
-                <div style="padding:16px;text-align:center;color:var(--text3);font-size:12px;background:var(--bg);border-radius:8px">
-                  No lesions recorded yet. Click the body diagram to add annotations.
-                </div>
-                @endforelse
-                
-                <button type="button" 
-                        onclick="openAddLesionModal()"
-                        style="display:flex;align-items:center;gap:6px;background:none;border:1.5px dashed var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text3);cursor:pointer;margin-top:8px;font-family:'Inter',sans-serif;width:100%;justify-content:center">
-                  ＋ Add lesion annotation
-                </button>
               </div>
             </div>
-          </div>
-        </div>
 
-        {{-- GRADING SCALES (Specialty-specific) --}}
-        <div class="form-section">
-          <div class="form-section-header">
-            <h3>Clinical Grading Scales</h3>
-            <span class="toggle">−</span>
-          </div>
-          <div class="form-body">
-            @php
-              $scales = $visit->scales ?? collect();
-              $pasiScale = $scales->firstWhere('scale_name', 'PASI');
-              $igaScale = $scales->firstWhere('scale_name', 'IGA');
-              $dlqiScale = $scales->firstWhere('scale_name', 'DLQI');
-            @endphp
-            
-            <div class="scale-group">
-              <div class="scale-label">PASI Score</div>
-              <input name="scales[pasi]" class="scale-input" value="{{ $pasiScale?->score ?? '' }}" type="number" step="0.1" min="0" max="72" placeholder="0-72" @input="window.triggerAutoSave()"/>
-              <div class="scale-range">(0–72)</div>
-              @if($pasiScale)
+            {{-- GRADING SCALES (Generic) --}}
+            <div class="form-section">
+              <div class="form-section-header">
+                <h3>Clinical Grading Scales</h3>
+                <span class="toggle">−</span>
+              </div>
+              <div class="form-body">
                 @php
-                  $pasiSeverity = $pasiScale->score <= 5 ? 'mild' : ($pasiScale->score <= 12 ? 'mod' : 'sev');
-                  $pasiLabel = $pasiScale->score <= 5 ? 'Mild' : ($pasiScale->score <= 12 ? 'Moderate' : 'Severe');
+                  $scales = $visit->scales ?? collect();
+                  $pasiScale = $scales->firstWhere('scale_name', 'PASI');
+                  $igaScale = $scales->firstWhere('scale_name', 'IGA');
+                  $dlqiScale = $scales->firstWhere('scale_name', 'DLQI');
                 @endphp
-                <div class="scale-result sr-{{ $pasiSeverity }}">{{ $pasiLabel }}</div>
-              @endif
-              @if(isset($scaleChanges['PASI']))
-                <div style="font-size:11px;color:var(--text3);margin-left:8px">
-                  {{ $scaleChanges['PASI']['change'] > 0 ? '↑' : '↓' }}{{ abs($scaleChanges['PASI']['change']) }} vs last
+                
+                <div class="scale-group">
+                  <div class="scale-label">PASI Score</div>
+                  <input name="scales[pasi]" class="scale-input" value="{{ $pasiScale?->score ?? '' }}" type="number" step="0.1" min="0" max="72" placeholder="0-72" @input="window.triggerAutoSave()"/>
+                  <div class="scale-range">(0–72)</div>
+                  @if($pasiScale)
+                    @php
+                      $pasiSeverity = $pasiScale->score <= 5 ? 'mild' : ($pasiScale->score <= 12 ? 'mod' : 'sev');
+                      $pasiLabel = $pasiScale->score <= 5 ? 'Mild' : ($pasiScale->score <= 12 ? 'Moderate' : 'Severe');
+                    @endphp
+                    <div class="scale-result sr-{{ $pasiSeverity }}">{{ $pasiLabel }}</div>
+                  @endif
+                  @if(isset($scaleChanges['PASI']))
+                    <div style="font-size:11px;color:var(--text3);margin-left:8px">
+                      {{ $scaleChanges['PASI']['change'] > 0 ? '↑' : '↓' }}{{ abs($scaleChanges['PASI']['change']) }} vs last
+                    </div>
+                  @endif
                 </div>
-              @endif
-            </div>
-            
-            <div class="scale-group">
-              <div class="scale-label">IGA Grade</div>
-              <input name="scales[iga]" class="scale-input" value="{{ $igaScale?->score ?? '' }}" type="number" step="1" min="0" max="4" placeholder="0-4" @input="window.triggerAutoSave()"/>
-              <div class="scale-range">(0–4)</div>
-              @if($igaScale)
-                @php
-                  $igaSeverity = $igaScale->score <= 1 ? 'mild' : ($igaScale->score <= 2 ? 'mod' : 'sev');
-                  $igaLabel = match((int)$igaScale->score) { 0 => 'Clear', 1 => 'Almost Clear', 2 => 'Mild', 3 => 'Moderate', 4 => 'Severe', default => 'Unknown' };
-                @endphp
-                <div class="scale-result sr-{{ $igaSeverity }}">{{ $igaLabel }}</div>
-              @endif
-              @if(isset($scaleChanges['IGA']))
-                <div style="font-size:11px;color:var(--text3);margin-left:8px">
-                  @if($scaleChanges['IGA']['change'] === 0) Unchanged @else {{ $scaleChanges['IGA']['change'] > 0 ? '↑' : '↓' }}{{ abs($scaleChanges['IGA']['change']) }} @endif
+                
+                <div class="scale-group">
+                  <div class="scale-label">IGA Grade</div>
+                  <input name="scales[iga]" class="scale-input" value="{{ $igaScale?->score ?? '' }}" type="number" step="1" min="0" max="4" placeholder="0-4" @input="window.triggerAutoSave()"/>
+                  <div class="scale-range">(0–4)</div>
+                  @if($igaScale)
+                    @php
+                      $igaSeverity = $igaScale->score <= 1 ? 'mild' : ($igaScale->score <= 2 ? 'mod' : 'sev');
+                      $igaLabel = match((int)$igaScale->score) { 0 => 'Clear', 1 => 'Almost Clear', 2 => 'Mild', 3 => 'Moderate', 4 => 'Severe', default => 'Unknown' };
+                    @endphp
+                    <div class="scale-result sr-{{ $igaSeverity }}">{{ $igaLabel }}</div>
+                  @endif
+                  @if(isset($scaleChanges['IGA']))
+                    <div style="font-size:11px;color:var(--text3);margin-left:8px">
+                      @if($scaleChanges['IGA']['change'] === 0) Unchanged @else {{ $scaleChanges['IGA']['change'] > 0 ? '↑' : '↓' }}{{ abs($scaleChanges['IGA']['change']) }} @endif
+                    </div>
+                  @endif
                 </div>
-              @endif
-            </div>
-            
-            <div class="scale-group">
-              <div class="scale-label">DLQI Score</div>
-              <input name="scales[dlqi]" class="scale-input" value="{{ $dlqiScale?->score ?? '' }}" type="number" step="1" min="0" max="30" placeholder="0-30" @input="window.triggerAutoSave()"/>
-              <div class="scale-range">(0–30)</div>
-              @if($dlqiScale)
-                @php
-                  $dlqiSeverity = $dlqiScale->score <= 5 ? 'mild' : ($dlqiScale->score <= 10 ? 'mod' : 'sev');
-                  $dlqiLabel = $dlqiScale->score <= 1 ? 'No effect' : ($dlqiScale->score <= 5 ? 'Small effect' : ($dlqiScale->score <= 10 ? 'Moderate effect' : 'Large effect on QoL'));
-                @endphp
-                <div class="scale-result sr-{{ $dlqiSeverity }}">{{ $dlqiLabel }}</div>
-              @endif
-              @if(isset($scaleChanges['DLQI']))
-                <div style="font-size:11px;color:var(--text3);margin-left:8px">
-                  {{ $scaleChanges['DLQI']['change'] > 0 ? '↑' : '↓' }}{{ abs($scaleChanges['DLQI']['change']) }} vs last
+                
+                <div class="scale-group">
+                  <div class="scale-label">DLQI Score</div>
+                  <input name="scales[dlqi]" class="scale-input" value="{{ $dlqiScale?->score ?? '' }}" type="number" step="1" min="0" max="30" placeholder="0-30" @input="window.triggerAutoSave()"/>
+                  <div class="scale-range">(0–30)</div>
+                  @if($dlqiScale)
+                    @php
+                      $dlqiSeverity = $dlqiScale->score <= 5 ? 'mild' : ($dlqiScale->score <= 10 ? 'mod' : 'sev');
+                      $dlqiLabel = $dlqiScale->score <= 1 ? 'No effect' : ($dlqiScale->score <= 5 ? 'Small effect' : ($dlqiScale->score <= 10 ? 'Moderate effect' : 'Large effect on QoL'));
+                    @endphp
+                    <div class="scale-result sr-{{ $dlqiSeverity }}">{{ $dlqiLabel }}</div>
+                  @endif
+                  @if(isset($scaleChanges['DLQI']))
+                    <div style="font-size:11px;color:var(--text3);margin-left:8px">
+                      {{ $scaleChanges['DLQI']['change'] > 0 ? '↑' : '↓' }}{{ abs($scaleChanges['DLQI']['change']) }} vs last
+                    </div>
+                  @endif
                 </div>
-              @endif
-            </div>
 
-            @if($previousVisit && $previousVisit->scales->isNotEmpty())
-            <div style="margin-top:12px;padding:12px;background:var(--blue-light);border-radius:8px;font-size:12px;color:var(--blue)">
-              <strong>vs Last Visit ({{ $previousVisit->created_at->format('d M') }}):</strong>
-              @foreach($scaleChanges as $name => $change)
-                {{ $name }} {{ $change['previous'] }} → {{ $change['current'] }} 
-                ({{ $change['change'] > 0 ? '↑' : ($change['change'] < 0 ? '↓' : '=') }}{{ abs($change['change']) }}){{ !$loop->last ? ' · ' : '' }}
-              @endforeach
+                @if($previousVisit && $previousVisit->scales->isNotEmpty())
+                <div style="margin-top:12px;padding:12px;background:var(--blue-light);border-radius:8px;font-size:12px;color:var(--blue)">
+                  <strong>vs Last Visit ({{ $previousVisit->created_at->format('d M') }}):</strong>
+                  @foreach($scaleChanges as $name => $change)
+                    {{ $name }} {{ $change['previous'] }} → {{ $change['current'] }} 
+                    ({{ $change['change'] > 0 ? '↑' : ($change['change'] < 0 ? '↓' : '=') }}{{ abs($change['change']) }}){{ !$loop->last ? ' · ' : '' }}
+                  @endforeach
+                </div>
+                @endif
+              </div>
             </div>
-            @endif
-          </div>
-        </div>
+        @endif
 
         {{-- PROCEDURE PERFORMED --}}
         <div class="form-section">
@@ -639,6 +692,23 @@
           </div>
         </div>
 
+        {{-- Specialty Template Inclusion --}}
+        @if(($visit->specialty ?? $specialty ?? 'general') === 'dermatology')
+            @include('emr.specialty.dermatology', ['visit' => $visit ?? null, 'lastScales' => $lastScales ?? null])
+        @elseif(($visit->specialty ?? $specialty ?? 'general') === 'dental')
+            @include('emr.specialty.dental', ['visit' => $visit ?? null])
+        @elseif(($visit->specialty ?? $specialty ?? 'general') === 'physiotherapy')
+            @include('emr.specialty.physiotherapy', ['visit' => $visit ?? null])
+        @elseif(($visit->specialty ?? $specialty ?? 'general') === 'ophthalmology')
+            @include('emr.specialty.ophthalmology', ['visit' => $visit ?? null])
+        @elseif(in_array(($visit->specialty ?? $specialty ?? 'general'), ['orthopaedics', 'orthopedics', 'ortho']))
+            @include('emr.specialty.orthopaedics', ['visit' => $visit ?? null])
+        @elseif(($visit->specialty ?? $specialty ?? 'general') === 'ent')
+            @include('emr.specialty.ent', ['visit' => $visit ?? null])
+        @elseif(in_array(($visit->specialty ?? $specialty ?? 'general'), ['gynaecology', 'gynecology', 'gynae', 'obstetrics']))
+            @include('emr.specialty.gynaecology', ['visit' => $visit ?? null])
+        @endif
+
       </div>{{-- /visit note tab --}}
 
       {{-- ══════ PRESCRIPTION TAB ══════ --}}
@@ -656,6 +726,46 @@
              drugSearch: '',
              showSuggestions: false,
              suggestions: [],
+             patientAllergies: @json($patient->known_allergies ?? []),
+             allergyWarnings: [],
+             init() {
+               console.log('Prescription tab initialized', {
+                 existingDrugCount: this.drugs.length,
+                 allergyCount: this.patientAllergies.length
+               });
+               this.recalculateSafetyWarnings();
+             },
+             recalculateSafetyWarnings() {
+               this.allergyWarnings = [];
+               if (!Array.isArray(this.patientAllergies) || this.patientAllergies.length === 0) {
+                 console.log('No known allergies available for current patient');
+                 return;
+               }
+
+               const warnings = [];
+               for (const drug of this.drugs) {
+                 const drugName = String(drug?.name || '').toLowerCase();
+                 const genericName = String(drug?.generic || '').toLowerCase();
+                 for (const allergyRaw of this.patientAllergies) {
+                   const allergy = String(allergyRaw || '').trim();
+                   if (!allergy) continue;
+                   const allergyLower = allergy.toLowerCase();
+                   if ((drugName && drugName.includes(allergyLower)) || (genericName && genericName.includes(allergyLower))) {
+                     warnings.push({
+                       allergy,
+                       drugName: drug?.name || 'Unknown drug',
+                       message: `Potential allergy conflict: ${drug?.name || 'Drug'} may match patient allergy "${allergy}".`
+                     });
+                   }
+                 }
+               }
+
+               this.allergyWarnings = warnings;
+               console.log('Prescription safety warnings recalculated', {
+                 warningCount: warnings.length,
+                 warnings
+               });
+             },
              async searchDrugs() {
                if (this.drugSearch.length < 2) {
                  this.suggestions = [];
@@ -680,12 +790,17 @@
                  duration: '',
                  instructions: ''
                });
+               console.log('Drug added', { brand_name: drug.brand_name, generic_name: drug.generic_name });
                this.drugSearch = '';
                this.showSuggestions = false;
+               this.recalculateSafetyWarnings();
                this.triggerAutoSave();
              },
              removeDrug(index) {
+               const removedDrug = this.drugs[index];
                this.drugs.splice(index, 1);
+               console.log('Drug removed', { removedDrug, remainingCount: this.drugs.length });
+               this.recalculateSafetyWarnings();
                this.triggerAutoSave();
              },
              triggerAutoSave() {
@@ -756,6 +871,15 @@
                 </tr>
               </tbody>
             </table>
+
+            <template x-if="allergyWarnings.length > 0">
+              <div style="margin-top:12px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#b91c1c">
+                <div style="font-weight:700;margin-bottom:6px">⚠️ Allergy Alerts</div>
+                <template x-for="(warning, idx) in allergyWarnings" :key="idx">
+                  <div style="margin-bottom:4px" x-text="warning.message"></div>
+                </template>
+              </div>
+            </template>
             
             <button type="button" class="add-drug-btn" @click="$refs.drugSearchInput?.focus()">
               ＋ Add drug from database
@@ -1127,11 +1251,49 @@
     let saveTimer;
     const form = document.getElementById('emr-form');
     const saveUrl = '{{ route('emr.update', [$patient, $visit]) }}';
+    const prescriptionSaveUrl = '{{ route('emr.save-prescription', [$patient, $visit]) }}';
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+
+    function extractPrescriptionDrugs(formData) {
+      const rows = {};
+      let hasIncompleteRows = false;
+
+      for (const [key, value] of formData.entries()) {
+        const match = key.match(/^drugs\[(\d+)\]\[(name|generic|dose|frequency|duration|instructions)\]$/);
+        if (!match) continue;
+
+        const rowIndex = match[1];
+        const field = match[2];
+        if (!rows[rowIndex]) rows[rowIndex] = {};
+        rows[rowIndex][field] = String(value || '').trim();
+      }
+
+      const drugs = Object.keys(rows)
+        .sort((a, b) => Number(a) - Number(b))
+        .map((rowIndex) => rows[rowIndex])
+        .filter((row) => {
+          const hasAnyValue = ['name', 'generic', 'dose', 'frequency', 'duration', 'instructions']
+            .some((field) => !!row[field]);
+
+          if (!hasAnyValue) return false;
+
+          const isComplete = !!row.name && !!row.dose && !!row.frequency && !!row.duration;
+          if (!isComplete) hasIncompleteRows = true;
+          return isComplete;
+        });
+
+      console.log('Prescription payload extracted for autosave', {
+        drugCount: drugs.length,
+        hasIncompleteRows
+      });
+
+      return { drugs, hasIncompleteRows };
+    }
     
     function performAutoSave() {
       const formData = new FormData(form);
       const data = {};
+      const prescriptionPayload = extractPrescriptionDrugs(formData);
       
       // Extract relevant fields
       ['chief_complaint', 'history', 'diagnosis_text', 'diagnosis_code', 'plan', 'followup_in_days', 'followup_date'].forEach(field => {
@@ -1162,6 +1324,39 @@
       .then(result => {
         if (result.saved) {
           console.log('Auto-saved at', result.at);
+
+          if (prescriptionPayload.hasIncompleteRows) {
+            console.log('Skipping prescription autosave due to incomplete drug rows');
+            return;
+          }
+
+          if (!prescriptionPayload.drugs.length) {
+            console.log('No complete prescription drugs found for autosave');
+            return;
+          }
+
+          console.log('Triggering prescription autosave', { drugCount: prescriptionPayload.drugs.length });
+          fetch(prescriptionSaveUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': csrfToken,
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ drugs: prescriptionPayload.drugs })
+          })
+          .then(res => res.json())
+          .then(rxResult => {
+            if (rxResult?.success) {
+              console.log('Prescription autosaved successfully', {
+                prescriptionId: rxResult.prescription_id,
+                warnings: rxResult.warnings || {}
+              });
+            } else {
+              console.warn('Prescription autosave failed', rxResult);
+            }
+          })
+          .catch(err => console.error('Prescription autosave request failed:', err));
         }
       })
       .catch(err => console.error('Auto-save failed:', err));

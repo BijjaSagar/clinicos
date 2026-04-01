@@ -15,6 +15,7 @@ use App\Http\Controllers\Photo\PhotoVaultController;
 use App\Http\Controllers\Vendor\LabOrderController;
 use App\Http\Controllers\Analytics\AnalyticsController;
 use App\Http\Controllers\AI\AiAssistantController;
+use App\Http\Controllers\Api\PatientAppController;
 use Illuminate\Support\Facades\Log;
 
 /*
@@ -67,6 +68,36 @@ Route::prefix('v1')->group(function () {
         Route::get('slots',             [AppointmentController::class, 'publicSlots']);
         Route::post('book',             [AppointmentController::class, 'publicBook']);
         Route::post('confirm',          [AppointmentController::class, 'publicConfirm']);
+    });
+
+    // ── Patient Mobile App API ───────────────────────────────────────────────
+    Route::prefix('patient-app')->group(function () {
+        // Auth (no token required)
+        Route::post('request-otp',      [PatientAppController::class, 'requestOtp']);
+        Route::post('verify-otp',       [PatientAppController::class, 'verifyOtp']);
+
+        // Protected routes (patient token required)
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::get('profile',       [PatientAppController::class, 'profile']);
+            Route::put('profile',       [PatientAppController::class, 'updateProfile']);
+            
+            // Appointments
+            Route::get('appointments',  [PatientAppController::class, 'appointments']);
+            Route::get('appointments/history', [PatientAppController::class, 'appointmentHistory']);
+            Route::post('appointments', [PatientAppController::class, 'bookAppointment']);
+            Route::post('appointments/{appointment}/cancel', [PatientAppController::class, 'cancelAppointment']);
+            
+            // Medical Records
+            Route::get('records',       [PatientAppController::class, 'medicalRecords']);
+            Route::get('records/{visit}', [PatientAppController::class, 'visitDetails']);
+            
+            // Invoices
+            Route::get('invoices',      [PatientAppController::class, 'invoices']);
+            Route::get('invoices/{invoice}', [PatientAppController::class, 'invoiceDetails']);
+            
+            // ABHA
+            Route::post('link-abha',    [PatientAppController::class, 'linkAbha']);
+        });
     });
 
     // ── Authenticated routes ───────────────────────────────────────────────

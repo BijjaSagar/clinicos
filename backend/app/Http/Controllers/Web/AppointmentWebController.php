@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentService;
+use App\Models\ClinicLocation;
 use App\Models\Patient;
 use App\Models\User;
 use App\Services\WhatsAppService;
@@ -12,6 +13,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AppointmentWebController extends Controller
@@ -38,9 +41,74 @@ class AppointmentWebController extends Controller
             ->orderBy('scheduled_at')
             ->get();
 
-        Log::info('Appointments loaded', ['count' => $appointments->count(), 'date' => $date->toDateString()]);
+        $clinic = auth()->user()->clinic;
+        $settings = $clinic->settings ?? [];
+        $slotMins = (int) ($settings['slot_duration_mins'] ?? 15);
+        $timeSlots = $this->buildScheduleTimeSlotsForDate($date, $settings);
 
-        return view('appointments.index', compact('appointments'));
+        $waitEstimates = [];
+        foreach ($appointments as $apt) {
+            if (in_array($apt->status, ['cancelled', 'no_show'], true)) {
+                $waitEstimates[$apt->id] = ['ahead' => 0, 'minutes' => 0];
+                continue;
+            }
+            $ahead = $appointments->filter(function ($a) use ($apt) {
+                if ((int) $a->doctor_id !== (int) $apt->doctor_id) {
+                    return false;
+                }
+                if (in_array($a->status, ['cancelled', 'no_show'], true)) {
+                    return false;
+                }
+
+                return Carbon::parse($a->scheduled_at)->lt(Carbon::parse($apt->scheduled_at));
+            })->count();
+            $waitEstimates[$apt->id] = [
+                'ahead' => $ahead,
+                'minutes' => $ahead * $slotMins,
+            ];
+        }
+
+        Log::info('Appointments loaded', [
+            'count' => $appointments->count(),
+            'date' => $date->toDateString(),
+            'wait_estimates' => count($waitEstimates),
+            'slot_mins' => $slotMins,
+            'time_slots' => count($timeSlots),
+        ]);
+
+        return view('appointments.index', compact('appointments', 'waitEstimates', 'timeSlots'));
+    }
+
+    /**
+     * Match public booking slot steps so web bookings appear in the schedule grid.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return list<string> H:i strings
+     */
+    private function buildScheduleTimeSlotsForDate(Carbon $date, array $settings): array
+    {
+        $slotMins = max(5, min(120, (int) ($settings['slot_duration_mins'] ?? 15)));
+        // Defaults must match PublicBookingController (patient /book times)
+        $start = $settings['clinic_start_time'] ?? '09:00';
+        $end = $settings['clinic_end_time'] ?? '20:00';
+        $day = $date->toDateString();
+
+        $current = Carbon::parse($day.' '.$start);
+        $endAt = Carbon::parse($day.' '.$end);
+        $slots = [];
+
+        while ($current->lt($endAt)) {
+            $slots[] = $current->format('H:i');
+            $current->addMinutes($slotMins);
+        }
+
+        Log::debug('AppointmentWebController: buildScheduleTimeSlotsForDate', [
+            'day' => $day,
+            'slot_mins' => $slotMins,
+            'count' => count($slots),
+        ]);
+
+        return $slots;
     }
 
     public function create(): View
@@ -62,13 +130,22 @@ class AppointmentWebController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'duration_mins', 'advance_amount']);
 
-        return view('appointments.create', compact('patients', 'doctors', 'services'));
+        $locations = ClinicLocation::where('clinic_id', $clinicId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_primary']);
+
+        Log::info('AppointmentWebController@create', ['locations_count' => $locations->count()]);
+
+        return view('appointments.create', compact('patients', 'doctors', 'services', 'locations'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         Log::info('AppointmentWebController@store', ['data' => $request->all()]);
         
+        $clinicId = auth()->user()->clinic_id;
+
         $validated = $request->validate([
             'patient_id'       => ['required', 'integer', 'exists:patients,id'],
             'doctor_id'        => ['required', 'integer', 'exists:users,id'],
@@ -77,10 +154,11 @@ class AppointmentWebController extends Controller
             'duration_mins'    => ['nullable', 'integer', 'min:5', 'max:480'],
             'appointment_type' => ['nullable', 'string', 'in:new,followup,procedure,teleconsultation'],
             'notes'            => ['nullable', 'string', 'max:1000'],
+            'location_id'      => ['nullable', 'integer', Rule::exists('clinic_locations', 'id')->where('clinic_id', $clinicId)],
+            'teleconsult_meeting_url' => ['nullable', 'url', 'max:1000'],
         ]);
 
         try {
-            $clinicId = auth()->user()->clinic_id;
             
             // Combine date and time
             $scheduledAt = Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
@@ -92,6 +170,8 @@ class AppointmentWebController extends Controller
             $clinic = auth()->user()->clinic;
             $specialty = $doctor->specialty ?? ($clinic->specialties[0] ?? 'general');
 
+            $preVisitToken = Str::random(48);
+
             $appointment = Appointment::create([
                 'clinic_id' => $clinicId,
                 'patient_id' => $validated['patient_id'],
@@ -101,36 +181,48 @@ class AppointmentWebController extends Controller
                 'appointment_type' => $validated['appointment_type'] ?? 'new',
                 'specialty' => $specialty,
                 'notes' => $validated['notes'] ?? null,
+                'location_id' => $validated['location_id'] ?? null,
+                'teleconsult_meeting_url' => $validated['teleconsult_meeting_url'] ?? null,
                 'status' => 'confirmed',
                 'booking_source' => 'clinic_staff', // Valid: clinic_staff, online_booking, whatsapp, phone, walk_in
+                'pre_visit_token' => $preVisitToken,
             ]);
 
-            // Send WhatsApp confirmation (only if service is configured)
+            Log::info('Appointment created with location/teleconsult', [
+                'appointment_id' => $appointment->id,
+                'location_id' => $appointment->location_id,
+                'has_teleconsult_url' => (bool) $appointment->teleconsult_meeting_url,
+                'has_pre_visit_token' => true,
+            ]);
+
             if ($this->whatsAppService) {
-                $patient = $appointment->patient()->first();
-                $clinic  = auth()->user()->clinic()->first();
+                $patient = Patient::find($validated['patient_id']);
+                $clinic = auth()->user()->clinic;
+                $appointment->load('doctor');
 
                 if ($patient && $clinic) {
                     try {
-                        $this->whatsAppService->sendTemplate(
-                            $clinic,
-                            $patient,
-                            'appointment_confirmation',
-                            [
-                                [
-                                    'type'       => 'body',
-                                    'parameters' => [
-                                        ['type' => 'text', 'text' => $patient->name],
-                                        ['type' => 'text', 'text' => $scheduledAt->format('d M Y, h:i A')],
-                                        ['type' => 'text', 'text' => $clinic->name],
-                                    ],
-                                ],
-                            ],
-                            'appointment_confirmation',
-                            $appointment->id
-                        );
+                        $this->whatsAppService->sendAppointmentConfirmation($patient, $appointment);
+                        Log::info('WhatsApp appointment_confirmation sent', ['appointment_id' => $appointment->id]);
                     } catch (\Throwable $e) {
-                        Log::warning('WhatsApp confirmation failed', ['appointment_id' => $appointment->id, 'error' => $e->getMessage()]);
+                        Log::warning('WhatsApp confirmation failed', [
+                            'appointment_id' => $appointment->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+
+                    try {
+                        $preVisitUrl = url('/book/' . $clinic->slug . '/pre-visit/' . $preVisitToken);
+                        $this->whatsAppService->sendPreVisitQuestionnaireLink($patient, $appointment, $preVisitUrl);
+                        Log::info('WhatsApp pre-visit link sent', [
+                            'appointment_id' => $appointment->id,
+                            'url_len' => strlen($preVisitUrl),
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('WhatsApp pre-visit link failed', [
+                            'appointment_id' => $appointment->id,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
                 }
             }
@@ -153,7 +245,12 @@ class AppointmentWebController extends Controller
     {
         abort_unless(auth()->user()->clinic_id === $appointment->clinic_id, 403);
 
-        $appointment->load(['patient', 'doctor', 'service', 'visit']);
+        $appointment->load(['patient', 'doctor', 'service', 'visit', 'clinic']);
+
+        Log::info('AppointmentWebController@show loaded', [
+            'appointment_id' => $appointment->id,
+            'has_pre_visit_token' => !empty($appointment->pre_visit_token),
+        ]);
 
         return view('appointments.show', compact('appointment'));
     }

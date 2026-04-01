@@ -8,10 +8,12 @@ use App\Models\User;
 use App\Models\Patient;
 use App\Models\Appointment;
 use App\Models\Invoice;
+use App\Support\ClinicProductModules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AdminClinicController extends Controller
 {
@@ -68,12 +70,20 @@ class AdminClinicController extends Controller
     public function create()
     {
         Log::info('AdminClinicController@create');
-        return view('admin.clinics.create');
+
+        $enabledProductModuleKeys = old('product_modules', ClinicProductModules::validModuleKeys());
+        if (! is_array($enabledProductModuleKeys)) {
+            $enabledProductModuleKeys = ClinicProductModules::validModuleKeys();
+        }
+
+        return view('admin.clinics.create', compact('enabledProductModuleKeys'));
     }
 
     public function store(Request $request)
     {
         Log::info('AdminClinicController@store', $request->all());
+
+        $moduleRule = Rule::in(ClinicProductModules::validModuleKeys());
 
         $validated = $request->validate([
             'clinic_name' => 'required|string|max:200',
@@ -86,9 +96,16 @@ class AdminClinicController extends Controller
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'trial_days' => 'nullable|integer|min:0|max:365',
+            'product_modules' => ['required', 'array', 'min:1'],
+            'product_modules.*' => ['string', $moduleRule],
         ]);
 
         try {
+            $settings = ClinicProductModules::mergeEnabledIntoSettings(null, $validated['product_modules']);
+            Log::info('AdminClinicController@store product modules', [
+                'enabled_count' => count($settings['enabled_product_modules'] ?? []),
+            ]);
+
             // Create clinic
             $clinic = Clinic::create([
                 'name' => $validated['clinic_name'],
@@ -98,8 +115,9 @@ class AdminClinicController extends Controller
                 'city' => $validated['city'] ?? 'Unknown',
                 'state' => $validated['state'] ?? 'Unknown',
                 'is_active' => true,
-                'trial_ends_at' => $validated['plan'] === 'trial' 
-                    ? now()->addDays($validated['trial_days'] ?? 30) 
+                'settings' => $settings,
+                'trial_ends_at' => $validated['plan'] === 'trial'
+                    ? now()->addDays($validated['trial_days'] ?? 30)
                     : null,
             ]);
 
@@ -169,12 +187,20 @@ class AdminClinicController extends Controller
     {
         Log::info('AdminClinicController@edit', ['clinic_id' => $clinic->id]);
         $clinic->load('owner');
-        return view('admin.clinics.edit', compact('clinic'));
+
+        $enabledProductModuleKeys = old('product_modules', ClinicProductModules::enabledModuleKeys($clinic));
+        if (! is_array($enabledProductModuleKeys)) {
+            $enabledProductModuleKeys = ClinicProductModules::enabledModuleKeys($clinic);
+        }
+
+        return view('admin.clinics.edit', compact('clinic', 'enabledProductModuleKeys'));
     }
 
     public function update(Request $request, Clinic $clinic)
     {
         Log::info('AdminClinicController@update', ['clinic_id' => $clinic->id, 'data' => $request->all()]);
+
+        $moduleRule = Rule::in(ClinicProductModules::validModuleKeys());
 
         $validated = $request->validate([
             'name' => 'required|string|max:200',
@@ -187,9 +213,17 @@ class AdminClinicController extends Controller
             'gstin' => 'nullable|string|max:20',
             'is_active' => 'boolean',
             'trial_ends_at' => 'nullable|date',
+            'product_modules' => ['required', 'array', 'min:1'],
+            'product_modules.*' => ['string', $moduleRule],
         ]);
 
         try {
+            $settings = ClinicProductModules::mergeEnabledIntoSettings($clinic->settings, $validated['product_modules']);
+            Log::info('AdminClinicController@update product modules', [
+                'clinic_id' => $clinic->id,
+                'enabled_count' => count($settings['enabled_product_modules'] ?? []),
+            ]);
+
             $clinic->update([
                 'name' => $validated['name'],
                 'plan' => $validated['plan'],
@@ -201,6 +235,7 @@ class AdminClinicController extends Controller
                 'gstin' => $validated['gstin'],
                 'is_active' => $validated['is_active'] ?? true,
                 'trial_ends_at' => $validated['trial_ends_at'] ?? $clinic->trial_ends_at,
+                'settings' => $settings,
             ]);
 
             Log::info('Clinic updated by admin', ['clinic_id' => $clinic->id]);

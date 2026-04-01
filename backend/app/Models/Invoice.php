@@ -40,6 +40,7 @@ class Invoice extends Model
         'whatsapp_link_sent_at',
         'email_sent_at',
         'notes',
+        'payment_link',
     ];
 
     protected $casts = [

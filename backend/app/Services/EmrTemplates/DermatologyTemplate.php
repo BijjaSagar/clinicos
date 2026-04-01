@@ -7,7 +7,89 @@ use Illuminate\Support\Facades\Log;
 class DermatologyTemplate
 {
     /**
-     * Get dermatology EMR template fields
+     * Get the complete field schema for the Dermatology specialty EMR template.
+     */
+    public static function schema(): array
+    {
+        return [
+            'sections' => [
+                'chief_complaint' => [
+                    'label' => 'Chief Complaint & History',
+                    'fields' => [
+                        'chief_complaint' => ['type' => 'textarea', 'label' => 'Chief Complaint', 'required' => true],
+                        'history_present_illness' => ['type' => 'textarea', 'label' => 'History of Present Illness'],
+                        'duration' => ['type' => 'text', 'label' => 'Duration'],
+                        'onset' => ['type' => 'select', 'label' => 'Onset', 'options' => ['Sudden', 'Gradual', 'Recurrent']],
+                        'progression' => ['type' => 'select', 'label' => 'Progression', 'options' => ['Stable', 'Improving', 'Worsening', 'Fluctuating']],
+                        'previous_treatment' => ['type' => 'textarea', 'label' => 'Previous Treatment'],
+                        'family_history_skin' => ['type' => 'textarea', 'label' => 'Family History (Skin Diseases)'],
+                        'drug_history' => ['type' => 'textarea', 'label' => 'Drug History'],
+                        'allergy_history' => ['type' => 'textarea', 'label' => 'Allergy History'],
+                    ],
+                ],
+                'examination' => [
+                    'label' => 'Dermatological Examination',
+                    'fields' => [
+                        'lesion_morphology' => ['type' => 'multiselect', 'label' => 'Lesion Morphology', 'options' => ['Macule', 'Papule', 'Plaque', 'Nodule', 'Vesicle', 'Bulla', 'Pustule', 'Erosion', 'Ulcer', 'Patch', 'Wheal', 'Comedone', 'Cyst', 'Atrophy', 'Sclerosis']],
+                        'distribution' => ['type' => 'multiselect', 'label' => 'Distribution', 'options' => ['Localized', 'Generalized', 'Symmetrical', 'Asymmetrical', 'Dermatomal', 'Photodistributed', 'Flexural', 'Extensor', 'Truncal', 'Acral']],
+                        'configuration' => ['type' => 'select', 'label' => 'Configuration', 'options' => ['Discrete', 'Grouped', 'Linear', 'Annular', 'Reticular', 'Serpiginous', 'Koebnerized']],
+                        'surface' => ['type' => 'multiselect', 'label' => 'Surface', 'options' => ['Smooth', 'Scaly', 'Crusted', 'Verrucous', 'Eroded', 'Excoriated', 'Lichenified', 'Atrophic']],
+                        'color' => ['type' => 'multiselect', 'label' => 'Color', 'options' => ['Erythematous', 'Hyperpigmented', 'Hypopigmented', 'Violaceous', 'Yellowish', 'Skin-colored', 'White', 'Black']],
+                        'border' => ['type' => 'select', 'label' => 'Border', 'options' => ['Well-defined', 'Ill-defined', 'Irregular', 'Raised', 'Undermined']],
+                        'hair_nails' => ['type' => 'textarea', 'label' => 'Hair & Nail Examination'],
+                        'mucous_membrane' => ['type' => 'textarea', 'label' => 'Mucous Membrane Examination'],
+                    ],
+                ],
+                'diagnosis' => [
+                    'label' => 'Diagnosis',
+                    'fields' => [
+                        'provisional_diagnosis' => ['type' => 'text', 'label' => 'Provisional Diagnosis', 'required' => true],
+                        'differential_diagnosis' => ['type' => 'tags', 'label' => 'Differential Diagnosis'],
+                        'icd10_code' => ['type' => 'text', 'label' => 'ICD-10 Code'],
+                    ],
+                ],
+                'plan' => [
+                    'label' => 'Plan & Follow-up',
+                    'fields' => [
+                        'treatment_plan' => ['type' => 'textarea', 'label' => 'Treatment Plan'],
+                        'investigations' => ['type' => 'multiselect', 'label' => 'Investigations', 'options' => ['Skin Biopsy', 'KOH Mount', 'Tzanck Smear', 'Wood\'s Lamp', 'Dermoscopy', 'Patch Test', 'Prick Test', 'Blood - CBC', 'Blood - ESR', 'Blood - ANA', 'Blood - Thyroid']],
+                        'follow_up_date' => ['type' => 'date', 'label' => 'Follow-up Date'],
+                        'follow_up_notes' => ['type' => 'textarea', 'label' => 'Follow-up Instructions'],
+                        'patient_education' => ['type' => 'textarea', 'label' => 'Patient Education Notes'],
+                    ],
+                ],
+            ],
+            'scales' => ['PASI', 'IGA', 'DLQI', 'SCORAD', 'BSA'],
+            'procedures' => [
+                'chemical_peel' => ['label' => 'Chemical Peel', 'sac_code' => '999312', 'params' => ['peel_type', 'concentration', 'layers', 'neutralization_time']],
+                'botox' => ['label' => 'Botox', 'sac_code' => '999312', 'params' => ['units', 'dilution', 'injection_sites', 'brand']],
+                'microneedling' => ['label' => 'Microneedling', 'sac_code' => '999312', 'params' => ['needle_depth', 'passes', 'serum', 'device']],
+                'laser' => ['label' => 'LASER', 'sac_code' => '999312', 'params' => ['laser_type', 'wavelength', 'fluence', 'pulse_width', 'spot_size', 'passes', 'cooling']],
+                'prp' => ['label' => 'PRP', 'sac_code' => '999312', 'params' => ['volume_drawn', 'centrifuge_rpm', 'centrifuge_time', 'volume_injected', 'injection_sites']],
+                'electrocautery' => ['label' => 'Electrocautery', 'sac_code' => '999312', 'params' => ['lesion_type', 'lesion_count', 'power_setting', 'mode']],
+                'cryotherapy' => ['label' => 'Cryotherapy', 'sac_code' => '999312', 'params' => ['agent', 'duration_seconds', 'freeze_thaw_cycles', 'lesion_count']],
+            ],
+        ];
+    }
+
+    /**
+     * Default data structure for a new dermatology visit.
+     */
+    public static function defaultData(): array
+    {
+        return [
+            'chief_complaint' => '',
+            'history_present_illness' => '',
+            'lesions' => [],
+            'scales' => ['pasi' => null, 'iga' => null, 'dlqi' => null],
+            'procedures' => [],
+            'diagnosis' => ['provisional' => '', 'differential' => [], 'icd10' => ''],
+            'plan' => ['treatment' => '', 'follow_up_date' => '', 'follow_up_notes' => ''],
+        ];
+    }
+
+    /**
+     * Get dermatology EMR template fields (legacy method — kept for backward compatibility).
      */
     public static function getFields(): array
     {
@@ -15,6 +97,7 @@ class DermatologyTemplate
 
         return [
             'specialty' => 'dermatology',
+            'schema' => static::schema(),
             'sections' => [
                 // Chief Complaint
                 [
@@ -407,7 +490,7 @@ class DermatologyTemplate
     }
 
     /**
-     * Calculate PASI score
+     * Calculate PASI score from component data.
      */
     public static function calculatePasi(array $components): array
     {
@@ -416,7 +499,9 @@ class DermatologyTemplate
         $areaWeights = [
             'head' => 0.1,
             'trunk' => 0.3,
+            'upper' => 0.2,
             'upper_extremities' => 0.2,
+            'lower' => 0.4,
             'lower_extremities' => 0.4,
         ];
 
@@ -424,22 +509,22 @@ class DermatologyTemplate
         $regionScores = [];
 
         foreach ($components as $region => $data) {
-            $area = $data['area'] ?? 0;
-            $erythema = $data['erythema'] ?? 0;
-            $induration = $data['induration'] ?? 0;
-            $desquamation = $data['desquamation'] ?? 0;
+            $area = $data['a'] ?? $data['area'] ?? 0;
+            $erythema = $data['e'] ?? $data['erythema'] ?? 0;
+            $induration = $data['i'] ?? $data['induration'] ?? 0;
+            $desquamation = $data['d'] ?? $data['desquamation'] ?? 0;
 
-            $regionScore = ($erythema + $induration + $desquamation) * $area * $areaWeights[$region];
+            $weight = $areaWeights[$region] ?? 0;
+            $regionScore = ($erythema + $induration + $desquamation) * $area * $weight;
             $regionScores[$region] = round($regionScore, 2);
             $totalScore += $regionScore;
         }
 
         $totalScore = round($totalScore, 1);
 
-        // Interpretation
         $interpretation = match (true) {
             $totalScore == 0 => 'Clear',
-            $totalScore <= 3 => 'Mild',
+            $totalScore <= 5 => 'Mild',
             $totalScore <= 10 => 'Moderate',
             $totalScore <= 20 => 'Severe',
             default => 'Very Severe',
@@ -458,7 +543,7 @@ class DermatologyTemplate
     }
 
     /**
-     * Get IGA interpretation
+     * Get IGA interpretation.
      */
     public static function getIgaInterpretation(int $score): string
     {
@@ -473,7 +558,7 @@ class DermatologyTemplate
     }
 
     /**
-     * Get DLQI interpretation
+     * Get DLQI interpretation.
      */
     public static function getDlqiInterpretation(int $score): string
     {
@@ -487,7 +572,7 @@ class DermatologyTemplate
     }
 
     /**
-     * Get common diagnoses for autocomplete
+     * Get common dermatology diagnoses for autocomplete.
      */
     public static function getCommonDiagnoses(): array
     {

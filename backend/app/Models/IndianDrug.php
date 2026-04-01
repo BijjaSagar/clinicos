@@ -3,14 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Log;
 
 class IndianDrug extends Model
 {
     protected $table = 'indian_drugs';
-
-    public $timestamps = false;
-
+    
     protected $fillable = [
         'generic_name',
         'brand_names',
@@ -19,74 +18,111 @@ class IndianDrug extends Model
         'strength',
         'manufacturer',
         'schedule',
-        'interactions',
-        'contraindications',
         'common_dosages',
+        'contraindications',
+        'interactions',
+        'side_effects',
         'is_controlled',
+        'is_active',
     ];
 
     protected $casts = [
         'brand_names' => 'array',
-        'interactions' => 'array',
-        'contraindications' => 'array',
         'common_dosages' => 'array',
+        'contraindications' => 'array',
+        'interactions' => 'array',
+        'side_effects' => 'array',
         'is_controlled' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
-    public function scopeSearchByName($query, string $search)
+    /**
+     * Get all interactions where this drug is drug_a
+     */
+    public function interactionsAsA(): BelongsToMany
     {
-        Log::debug('Searching drugs', ['search' => $search]);
+        return $this->belongsToMany(
+            IndianDrug::class,
+            'drug_interactions',
+            'drug_a_id',
+            'drug_b_id'
+        )->withPivot(['severity', 'description', 'management']);
+    }
+
+    /**
+     * Get all interactions where this drug is drug_b
+     */
+    public function interactionsAsB(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            IndianDrug::class,
+            'drug_interactions',
+            'drug_b_id',
+            'drug_a_id'
+        )->withPivot(['severity', 'description', 'management']);
+    }
+
+    /**
+     * Get all drug interactions
+     */
+    public function getAllInteractions(): \Illuminate\Support\Collection
+    {
+        Log::info('IndianDrug: Getting all interactions for drug ID: ' . $this->id);
+        return $this->interactionsAsA->merge($this->interactionsAsB);
+    }
+
+    /**
+     * Check interactions with a list of drug IDs
+     */
+    public function checkInteractions(array $drugIds): \Illuminate\Support\Collection
+    {
+        Log::info('IndianDrug: Checking interactions for drug ID: ' . $this->id . ' with drugs: ' . implode(',', $drugIds));
         
-        return $query->where(function ($q) use ($search) {
-            $q->where('generic_name', 'like', "%{$search}%")
-              ->orWhereJsonContains('brand_names', $search);
-        });
+        $interactions = \Illuminate\Support\Facades\DB::table('drug_interactions')
+            ->where(function ($query) use ($drugIds) {
+                $query->where('drug_a_id', $this->id)
+                    ->whereIn('drug_b_id', $drugIds);
+            })
+            ->orWhere(function ($query) use ($drugIds) {
+                $query->where('drug_b_id', $this->id)
+                    ->whereIn('drug_a_id', $drugIds);
+            })
+            ->get();
+        
+        Log::info('IndianDrug: Found ' . $interactions->count() . ' interactions');
+        return $interactions;
     }
 
-    public function scopeByDrugClass($query, string $class)
+    /**
+     * Search drugs by name (generic or brand)
+     */
+    public static function searchByName(string $query): \Illuminate\Database\Eloquent\Collection
     {
-        return $query->where('drug_class', $class);
+        Log::info('IndianDrug: Searching for drug: ' . $query);
+        
+        return self::where('is_active', true)
+            ->where(function ($q) use ($query) {
+                $q->where('generic_name', 'LIKE', "%{$query}%")
+                    ->orWhereRaw("JSON_SEARCH(brand_names, 'one', ?) IS NOT NULL", ["%{$query}%"]);
+            })
+            ->orderBy('generic_name')
+            ->limit(20)
+            ->get();
     }
 
-    public function scopeByForm($query, string $form)
+    /**
+     * Get display name with strength
+     */
+    public function getDisplayNameAttribute(): string
     {
-        return $query->where('form', $form);
+        return "{$this->generic_name} ({$this->strength}) - {$this->form}";
     }
 
-    public function scopeControlled($query)
+    /**
+     * Get first brand name
+     */
+    public function getFirstBrandAttribute(): ?string
     {
-        return $query->where('is_controlled', true);
-    }
-
-    public function getBrandNamesString(): string
-    {
-        return implode(', ', $this->brand_names ?? []);
-    }
-
-    public function hasInteractionWith(string $drugName): bool
-    {
-        return in_array(strtolower($drugName), array_map('strtolower', $this->interactions ?? []));
-    }
-
-    public function isScheduleH(): bool
-    {
-        return $this->schedule === 'H';
-    }
-
-    public function isScheduleH1(): bool
-    {
-        return $this->schedule === 'H1';
-    }
-
-    public function getScheduleDescription(): string
-    {
-        $descriptions = [
-            'H' => 'Schedule H - Prescription only',
-            'H1' => 'Schedule H1 - Prescription with record',
-            'G' => 'Schedule G - Caution required',
-            'OTC' => 'Over the counter',
-        ];
-
-        return $descriptions[$this->schedule] ?? 'Unknown schedule';
+        return $this->brand_names[0] ?? null;
     }
 }

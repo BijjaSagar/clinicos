@@ -8,6 +8,7 @@ use App\Models\Patient;
 use App\Models\PatientPhoto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -225,12 +226,36 @@ class PatientWebController extends Controller
         // Verify photo belongs to this patient
         abort_unless($photo->patient_id === $patient->id, 404);
 
-        Log::info('Viewing patient photo', ['photo_id' => $photo->id, 'patient_id' => $patient->id, 's3_key' => $photo->s3_key]);
+        Log::info('Viewing patient photo', [
+            'photo_id' => $photo->id,
+            'patient_id' => $patient->id,
+            's3_key' => $photo->s3_key,
+            'file_path' => $photo->file_path ?? null,
+            'is_encrypted' => $photo->is_encrypted,
+            'storage_disk' => $photo->storage_disk ?? null,
+        ]);
 
-        // The file is stored in storage/app/public/{s3_key}
-        // Try the direct storage path first (works without symlink)
-        $storagePath = storage_path('app/public/' . $photo->s3_key);
-        
+        $rel = $photo->file_path ?: $photo->s3_key;
+
+        if ($photo->is_encrypted && ($photo->storage_disk ?? '') === 'local' && $rel) {
+            Log::info('PatientWebController: decrypting photo from local disk', ['rel' => $rel]);
+            try {
+                $cipher = Storage::disk('local')->get($rel);
+                $raw = Crypt::decryptString($cipher);
+
+                return response($raw, 200, [
+                    'Content-Type' => $photo->mime_type ?? 'image/jpeg',
+                    'Cache-Control' => 'private, max-age=3600',
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('PatientWebController: decrypt failed', ['photo_id' => $photo->id, 'error' => $e->getMessage()]);
+                abort(404, 'Photo not available');
+            }
+        }
+
+        // The file is stored in storage/app/public/{path}
+        $storagePath = storage_path('app/public/' . $rel);
+
         Log::info('Looking for photo', ['storage_path' => $storagePath, 'exists' => file_exists($storagePath)]);
 
         if (file_exists($storagePath)) {
@@ -239,23 +264,23 @@ class PatientWebController extends Controller
                 'Cache-Control' => 'private, max-age=3600',
             ]);
         }
-        
-        // Fallback: try other possible paths
+
         $altPaths = [
-            base_path('storage/app/public/' . $photo->s3_key),
-            Storage::disk('public')->path($photo->s3_key),
+            base_path('storage/app/public/' . $rel),
+            $rel ? Storage::disk('public')->path($rel) : null,
         ];
-        
-        foreach ($altPaths as $path) {
+
+        foreach (array_filter($altPaths) as $path) {
             if (file_exists($path)) {
                 Log::info('Found photo at alternate path', ['path' => $path]);
+
                 return response()->file($path, [
                     'Content-Type' => $photo->mime_type ?? 'image/jpeg',
                     'Cache-Control' => 'private, max-age=3600',
                 ]);
             }
         }
-        
+
         Log::error('Photo file not found', ['photo_id' => $photo->id, 'primary_path' => $storagePath]);
         abort(404, 'Photo not found');
     }
@@ -270,15 +295,21 @@ class PatientWebController extends Controller
         Log::info('Deleting patient photo', ['photo_id' => $photo->id, 'patient_id' => $patient->id]);
 
         try {
-            // Delete the file from storage
-            $storagePath = storage_path('app/public/' . $photo->s3_key);
-            
-            if (file_exists($storagePath)) {
-                unlink($storagePath);
-                Log::info('Photo file deleted', ['path' => $storagePath]);
+            $rel = $photo->file_path ?: $photo->s3_key;
+            if ($photo->is_encrypted && ($photo->storage_disk ?? '') === 'local' && $rel) {
+                Storage::disk('local')->delete($rel);
+                Log::info('Encrypted photo file deleted from local disk', ['path' => $rel]);
+            } else {
+                $storagePath = storage_path('app/public/' . $rel);
+                if (file_exists($storagePath)) {
+                    unlink($storagePath);
+                    Log::info('Photo file deleted', ['path' => $storagePath]);
+                } elseif ($rel && Storage::disk('public')->exists($rel)) {
+                    Storage::disk('public')->delete($rel);
+                    Log::info('Photo file deleted via Storage public', ['path' => $rel]);
+                }
             }
 
-            // Delete the database record
             $photo->delete();
 
             return back()->with('success', 'Photo deleted successfully.');

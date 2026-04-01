@@ -102,7 +102,7 @@
     
     @stack('styles')
 </head>
-<body class="bg-gray-50 antialiased">
+<body class="bg-gray-50 antialiased" x-data="{ adminMobileNav: false }" x-init="window.addEventListener('resize', () => { if (window.matchMedia('(min-width: 1024px)').matches) adminMobileNav = false })" :class="adminMobileNav ? 'overflow-hidden lg:overflow-auto' : ''">
     {{-- Flash Messages --}}
     @if(session('success'))
     <div
@@ -110,7 +110,7 @@
         x-show="show"
         x-init="setTimeout(() => show = false, 4500)"
         x-transition
-        class="fixed top-4 right-4 z-[9999] flex items-center gap-3 bg-white border border-green-200 shadow-lg rounded-xl px-5 py-3.5 min-w-[300px]"
+        class="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-[9999] flex items-center gap-3 bg-white border border-green-200 shadow-lg rounded-xl px-4 sm:px-5 py-3.5 max-w-[min(100%,24rem)] sm:min-w-[280px] sm:max-w-none mx-auto sm:mx-0"
     >
         <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
             <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -132,7 +132,7 @@
         x-show="show"
         x-init="setTimeout(() => show = false, 5000)"
         x-transition
-        class="fixed top-4 right-4 z-[9999] flex items-center gap-3 bg-white border border-red-200 shadow-lg rounded-xl px-5 py-3.5 min-w-[300px]"
+        class="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-[9999] flex items-center gap-3 bg-white border border-red-200 shadow-lg rounded-xl px-4 sm:px-5 py-3.5 max-w-[min(100%,24rem)] sm:min-w-[280px] sm:max-w-none mx-auto sm:mx-0"
     >
         <div class="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
             <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -152,7 +152,7 @@
     <div
         x-data="{ show: true }"
         x-show="show"
-        class="fixed top-4 right-4 z-[9999] flex items-center gap-3 bg-indigo-600 text-white shadow-lg rounded-xl px-5 py-3.5 min-w-[300px]"
+        class="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-[9999] flex flex-col sm:flex-row sm:items-center gap-3 bg-indigo-600 text-white shadow-lg rounded-xl px-4 sm:px-5 py-3.5 max-w-[min(100%,24rem)] sm:min-w-[280px] sm:max-w-none mx-auto sm:mx-0"
     >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -164,9 +164,23 @@
     </div>
     @endif
 
-    <div class="flex min-h-screen">
+    <div class="flex min-h-screen w-full min-w-0 relative">
+        <div
+            x-show="adminMobileNav"
+            x-transition.opacity.duration.200ms
+            @click="adminMobileNav = false"
+            class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            x-cloak
+        ></div>
+
         <!-- Sidebar -->
-        <aside class="w-72 bg-sidebar text-white flex flex-col fixed h-full">
+        <aside
+            class="w-72 max-w-[min(18rem,88vw)] bg-sidebar text-white flex flex-col fixed h-full z-50 transition-transform duration-300 ease-out
+                   max-lg:shadow-2xl
+                   lg:translate-x-0"
+            :class="adminMobileNav ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+            @click.capture="(function (el) { if (!el) return; var h = el.getAttribute('href'); if (h && h.indexOf('#') !== 0) adminMobileNav = false; })($event.target.closest('a[href]'))"
+        >
             <!-- Logo -->
             <div class="px-6 py-6">
                 <div class="flex items-center gap-3">
@@ -250,24 +264,34 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 ml-72 bg-slate-50 min-h-screen">
+        <main class="flex-1 w-full min-w-0 bg-slate-50 min-h-screen lg:ml-72">
             <!-- Header -->
             <header class="bg-white/80 backdrop-blur-lg border-b border-slate-200/80 sticky top-0 z-30">
-                <div class="px-8 py-5 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-display font-bold text-slate-900">@yield('title', 'Dashboard')</h2>
+                <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-3 min-w-0 flex-1">
+                        <button
+                            type="button"
+                            @click="adminMobileNav = true"
+                            class="lg:hidden flex-shrink-0 mt-0.5 p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                            aria-label="Open menu"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                        <div class="min-w-0">
+                        <h2 class="text-lg sm:text-2xl font-display font-bold text-slate-900 truncate">@yield('title', 'Dashboard')</h2>
                         @hasSection('subtitle')
-                            <p class="text-sm text-slate-500 mt-1">@yield('subtitle')</p>
+                            <p class="text-xs sm:text-sm text-slate-500 mt-1 line-clamp-2 sm:line-clamp-none">@yield('subtitle')</p>
                         @endif
+                        </div>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                         @yield('header_actions')
                     </div>
                 </div>
             </header>
 
             <!-- Content -->
-            <div class="p-8">
+            <div class="p-4 sm:p-6 lg:p-8 max-w-full overflow-x-auto">
                 @yield('content')
             </div>
         </main>

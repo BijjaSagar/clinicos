@@ -28,7 +28,7 @@
                     @endphp
                     <select name="specialty" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         <option value="">Select Specialty</option>
-                        @foreach(['general', 'dermatology', 'dental', 'ophthalmology', 'pediatrics', 'orthopedics', 'cardiology', 'gynecology', 'physiotherapy', 'ayurveda', 'homeopathy', 'multi_specialty'] as $spec)
+                        @foreach(['general', 'dermatology', 'dental', 'ophthalmology', 'pediatrics', 'orthopedics', 'cardiology', 'gynecology', 'physiotherapy', 'ent', 'psychiatry', 'ayurveda', 'homeopathy', 'multi_specialty'] as $spec)
                         <option value="{{ $spec }}" {{ $currentSpecialty === $spec ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $spec)) }}</option>
                         @endforeach
                     </select>
@@ -92,6 +92,8 @@
                 </div>
             </div>
         </div>
+
+        @include('admin.clinics.partials.product-modules', ['enabledProductModuleKeys' => $enabledProductModuleKeys])
 
         {{-- Owner Information (Read-only) --}}
         @if($clinic->owner)

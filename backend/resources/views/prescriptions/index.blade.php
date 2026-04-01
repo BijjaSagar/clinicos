@@ -5,6 +5,17 @@
 
 @section('content')
 <div class="p-6 space-y-6">
+    @if((isset($prescriptionItemsTableReady) && !$prescriptionItemsTableReady) || (isset($visitPrescriptionColumnsReady) && !$visitPrescriptionColumnsReady))
+    <div class="rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm space-y-1">
+        @if(isset($prescriptionItemsTableReady) && !$prescriptionItemsTableReady)
+        <p>Prescription items storage is not installed. Run <code class="bg-amber-100 px-1 rounded">php artisan migrate</code> to enable the prescription dashboard and EMR drug lines.</p>
+        @endif
+        @if(isset($visitPrescriptionColumnsReady) && !$visitPrescriptionColumnsReady)
+        <p>Visit WhatsApp tracking columns are missing. Run <code class="bg-amber-100 px-1 rounded">php artisan migrate</code> so “Sent via WhatsApp” stats and filters work.</p>
+        @endif
+    </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>
@@ -110,15 +121,38 @@
         </form>
     </div>
 
-    {{-- Prescriptions List --}}
+    {{-- Prescription Templates --}}
+    @if(isset($templates) && $templates->count() > 0)
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-gray-900">Saved Templates</h3>
+            <span class="text-xs text-gray-500">Click to use in EMR</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            @foreach($templates as $template)
+            <div class="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors group">
+                <span class="text-sm font-medium text-purple-700">{{ $template->name }}</span>
+                <span class="text-xs text-purple-500">({{ $template->medication_count }} drugs)</span>
+                <button onclick="deleteTemplate({{ $template->id }})" class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- Recent Prescriptions List --}}
     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-200">
-            <h3 class="font-semibold text-gray-900">Prescriptions</h3>
+            <h3 class="font-semibold text-gray-900">Recent Prescriptions</h3>
         </div>
         
-        @if(isset($prescriptions) && (is_object($prescriptions) ? $prescriptions->count() : count($prescriptions)) > 0)
+        @if(isset($recentPrescriptions) && $recentPrescriptions->count() > 0)
         <div class="divide-y divide-gray-100">
-            @foreach($prescriptions as $prescription)
+            @foreach($recentPrescriptions as $prescription)
             <div class="p-5 hover:bg-gray-50 transition-colors">
                 <div class="flex items-start gap-4">
                     {{-- Patient Avatar --}}
@@ -162,49 +196,47 @@
                             </div>
                         </div>
                         
-                        {{-- Drugs List --}}
-                        @if($prescription->drugs && $prescription->drugs->count() > 0)
+                        {{-- Drugs List (from prescription_items relation) --}}
+                        @if($prescription->prescriptionItems && $prescription->prescriptionItems->count() > 0)
                         <div class="mt-3 flex flex-wrap gap-2">
-                            @foreach($prescription->drugs->take(5) as $drug)
+                            @foreach($prescription->prescriptionItems->take(5) as $item)
                             <div class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-lg text-xs">
-                                <span class="font-medium text-gray-700">{{ $drug->drug_name }}</span>
-                                @if($drug->strength)
-                                <span class="text-gray-500">{{ $drug->strength }}</span>
-                                @endif
+                                <span class="font-medium text-gray-700">{{ $item->drug_name }}</span>
+                                <span class="text-gray-500">{{ $item->dosage }}</span>
                             </div>
                             @endforeach
-                            @if($prescription->drugs->count() > 5)
-                            <span class="text-xs text-gray-400">+{{ $prescription->drugs->count() - 5 }} more</span>
+                            @if($prescription->prescriptionItems->count() > 5)
+                            <span class="text-xs text-gray-400">+{{ $prescription->prescriptionItems->count() - 5 }} more</span>
                             @endif
                         </div>
                         @endif
                         
                         {{-- Actions --}}
                         <div class="mt-3 flex items-center gap-3">
-                            @if($prescription->pdf_url)
-                            <a href="{{ $prescription->pdf_url }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                            <a href="{{ route('prescriptions.pdf', $prescription) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
                                 Download PDF
                             </a>
-                            @endif
-                            @if($prescription->visit_id)
-                            <a href="{{ route('emr.show', ['patient' => $prescription->patient_id, 'visit' => $prescription->visit_id]) }}" class="text-xs text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1">
+                            <a href="{{ route('emr.show', ['patient' => $prescription->patient_id, 'visit' => $prescription->id]) }}" class="text-xs text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
                                 View Visit
                             </a>
-                            @endif
-                            @if($prescription->patient_id)
                             <a href="{{ route('patients.show', $prescription->patient_id) }}" class="text-xs text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                 </svg>
                                 Patient Profile
                             </a>
-                            @endif
+                            <button onclick="sendWhatsApp({{ $prescription->id }})" class="text-xs text-green-600 hover:text-green-800 font-medium flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                                </svg>
+                                WhatsApp
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -212,12 +244,6 @@
             @endforeach
         </div>
         
-        {{-- Pagination --}}
-        @if(method_exists($prescriptions, 'links'))
-        <div class="px-5 py-4 border-t border-gray-200">
-            {{ $prescriptions->withQueryString()->links() }}
-        </div>
-        @endif
         @else
         <div class="p-12 text-center">
             <div class="w-16 h-16 mx-auto bg-teal-100 rounded-full flex items-center justify-center mb-4">
@@ -238,3 +264,57 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+console.log('Prescriptions page loaded');
+
+async function sendWhatsApp(visitId) {
+    console.log('Sending WhatsApp for visit:', visitId);
+    try {
+        const response = await fetch(`/prescriptions/visit/${visitId}/whatsapp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+        const data = await response.json();
+        console.log('WhatsApp response:', data);
+        if (data.success && data.whatsapp_url) {
+            window.open(data.whatsapp_url, '_blank');
+        } else {
+            alert(data.error || 'Failed to send WhatsApp');
+        }
+    } catch (error) {
+        console.error('WhatsApp error:', error);
+        alert('Error sending WhatsApp');
+    }
+}
+
+async function deleteTemplate(templateId) {
+    console.log('Deleting template:', templateId);
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    
+    try {
+        const response = await fetch(`/prescriptions/templates/${templateId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+        const data = await response.json();
+        console.log('Delete template response:', data);
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to delete template');
+        }
+    } catch (error) {
+        console.error('Delete template error:', error);
+        alert('Error deleting template');
+    }
+}
+</script>
+@endpush

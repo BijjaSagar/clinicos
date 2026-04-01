@@ -25,6 +25,8 @@ class Payment extends Model
         'transaction_ref',
         'notes',
         'recorded_by',
+        'razorpay_refund_id',
+        'refund_amount',
     ];
 
     protected $casts = [

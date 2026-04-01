@@ -36,7 +36,10 @@ class Appointment extends Model
         'reminder_24h_sent_at',
         'reminder_2h_sent_at',
         'pre_visit_answers',
+        'pre_visit_data',
+        'pre_visit_token',
         'notes',
+        'teleconsult_meeting_url',
         'rescheduled_from_id',
         'cancelled_reason',
     ];
@@ -50,6 +53,7 @@ class Appointment extends Model
         'reminder_24h_sent_at' => 'datetime',
         'reminder_2h_sent_at' => 'datetime',
         'pre_visit_answers' => 'array',
+        'pre_visit_data' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

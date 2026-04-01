@@ -34,6 +34,8 @@
                         <option value="cardiology">Cardiology</option>
                         <option value="gynecology">Gynecology</option>
                         <option value="physiotherapy">Physiotherapy</option>
+                        <option value="ent">ENT</option>
+                        <option value="psychiatry">Psychiatry</option>
                         <option value="ayurveda">Ayurveda</option>
                         <option value="homeopathy">Homeopathy</option>
                         <option value="multi_specialty">Multi-Specialty</option>
@@ -72,6 +74,8 @@
                 </div>
             </div>
         </div>
+
+        @include('admin.clinics.partials.product-modules', ['enabledProductModuleKeys' => $enabledProductModuleKeys])
 
         {{-- Owner Information --}}
         <div class="bg-white rounded-xl p-6 border border-gray-100">

@@ -14,6 +14,7 @@ use App\Models\Visit;
 use App\Models\VisitLesion;
 use App\Models\VisitProcedure;
 use App\Models\VisitScale;
+use App\Services\DrugInteractionService;
 use App\Services\WhatsAppService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -95,10 +96,18 @@ class EmrWebController extends Controller
             'photos',
             'doctor',
             'invoice.items',
+            'physioHep',
         ]);
 
-        // Load patient with their history
+        // Load patient with their history and dental data
         $patient->load(['photos']);
+        
+        // Load dental teeth if dental specialty
+        if (in_array(strtolower($visit->specialty ?? ''), ['dental', 'dentistry'])) {
+            $patient->dentalTeeth = DB::table('dental_teeth')
+                ->where('patient_id', $patient->id)
+                ->get();
+        }
 
         // Get patient's visit history
         $visitHistory = Visit::with(['doctor', 'prescriptions'])
@@ -173,10 +182,14 @@ class EmrWebController extends Controller
             'photos_count' => $patientPhotos->flatten()->count(),
         ]);
 
+        // Pass scaleChanges as lastScales for specialty templates
+        $lastScales = $scaleChanges;
+
         return view('emr.show', compact(
-            'patient', 'visit', 'visitHistory', 'prescription', 
+            'patient', 'visit', 'visitHistory', 'prescription',
             'patientPhotos', 'labOrders', 'previousPrescriptions',
-            'scaleChanges', 'previousVisit', 'availableProcedures', 'commonComplaints'
+            'scaleChanges', 'previousVisit', 'availableProcedures', 'commonComplaints',
+            'lastScales'
         ));
     }
 
@@ -188,10 +201,14 @@ class EmrWebController extends Controller
         $complaints = [
             'dermatology' => ['Acne', 'Rash', 'Pigmentation', 'Hair Loss', 'Psoriasis', 'Eczema', 'Itch', 'Warts', 'Fungal Infection'],
             'dental' => ['Tooth Pain', 'Cavity', 'Gum Problem', 'Cleaning', 'Root Canal', 'Extraction', 'Orthodontic'],
-            'ophthalmology' => ['Vision Problem', 'Eye Pain', 'Redness', 'Watering', 'Cataract', 'Glaucoma Check'],
+            'ophthalmology' => ['Vision Problem', 'Eye Pain', 'Redness', 'Watering', 'Cataract', 'Glaucoma Check', 'Refractive Error', 'Dry Eyes'],
             'general' => ['Fever', 'Cold', 'Cough', 'Body Pain', 'Headache', 'Stomach Pain', 'General Checkup'],
             'orthopedics' => ['Joint Pain', 'Back Pain', 'Fracture', 'Sprain', 'Arthritis', 'Sports Injury'],
+            'orthopaedics' => ['Joint Pain', 'Back Pain', 'Knee Pain', 'Shoulder Pain', 'Fracture', 'Sprain', 'Arthritis', 'Sports Injury', 'Neck Pain', 'Hip Pain'],
+            'ent' => ['Ear Pain', 'Hearing Loss', 'Tinnitus', 'Nasal Block', 'Sore Throat', 'Snoring', 'Sinusitis', 'Vertigo', 'Tonsillitis', 'Voice Change'],
+            'gynaecology' => ['Routine Checkup', 'Menstrual Irregularity', 'PCOS', 'Pregnancy Confirmation', 'Infertility', 'White Discharge', 'Pelvic Pain', 'Antenatal Visit'],
             'gynecology' => ['Routine Checkup', 'Menstrual Problem', 'PCOS', 'Pregnancy', 'Infertility'],
+            'physiotherapy' => ['Back Pain', 'Neck Pain', 'Knee Pain', 'Shoulder Pain', 'Post-Surgery Rehab', 'Sports Injury', 'Frozen Shoulder', 'Sciatica'],
         ];
 
         return $complaints[$specialty] ?? $complaints['general'];
@@ -263,6 +280,12 @@ class EmrWebController extends Controller
         abort_unless($patient->clinic_id === $clinicId && $visit->clinic_id === $clinicId, 403);
         abort_unless($visit->patient_id === $patient->id, 404);
 
+        Log::info('EmrWebController@update', [
+            'visit_id' => $visit->id,
+            'specialty' => $visit->specialty,
+            'fields' => array_keys($request->all())
+        ]);
+
         $validated = $request->validate([
             'structured_data'  => ['nullable', 'array'],
             'chief_complaint'  => ['nullable', 'string', 'max:1000'],
@@ -275,6 +298,41 @@ class EmrWebController extends Controller
         ]);
 
         try {
+            // Handle specialty-specific data
+            $structuredData = $visit->structured_data ?? [];
+            
+            // Merge any specialty fields into structured_data
+            $specialtyFields = $this->extractSpecialtyFields($request, $visit->specialty);
+            if (!empty($specialtyFields)) {
+                $structuredData = array_merge($structuredData, $specialtyFields);
+                $validated['structured_data'] = $structuredData;
+            }
+
+            // Handle lesions JSON (dermatology)
+            if ($request->has('lesions_json')) {
+                $this->saveLesionsFromJson($request->input('lesions_json'), $visit);
+            }
+
+            // Handle scales (dermatology)
+            if ($request->has('pasi_score') || $request->has('iga_score') || $request->has('dlqi_score')) {
+                $this->saveScalesFromRequest($request, $visit);
+            }
+
+            // Handle procedures JSON
+            if ($request->has('procedures_json')) {
+                $this->saveProceduresFromJson($request->input('procedures_json'), $visit, $clinicId);
+            }
+
+            // Handle dental teeth data
+            if ($request->has('dental_teeth_data')) {
+                $this->saveDentalTeethData($request->input('dental_teeth_data'), $patient, $clinicId);
+            }
+
+            // Handle physio HEP data
+            if ($request->has('physio_hep_data')) {
+                $this->savePhysioHepData($request->input('physio_hep_data'), $visit, $patient);
+            }
+
             $visit->update($validated);
 
             return response()->json([
@@ -282,9 +340,372 @@ class EmrWebController extends Controller
                 'at'    => now()->toIso8601String(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('EMR auto-save error', ['visit_id' => $visit->id, 'error' => $e->getMessage()]);
+            Log::error('EMR auto-save error', [
+                'visit_id' => $visit->id, 
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json(['saved' => false, 'error' => 'Save failed.'], 500);
+        }
+    }
+
+    /**
+     * Extract specialty-specific fields from request
+     */
+    private function extractSpecialtyFields(Request $request, ?string $specialty): array
+    {
+        $fields = [];
+        $specialty = strtolower($specialty ?? 'general');
+
+        // Physiotherapy fields
+        $physioFields = ['physio_mechanism', 'physio_body_part', 'physio_duration', 'physio_referring_doctor', 
+                         'physio_previous_treatment', 'physio_vas_score', 'physio_pain_character', 
+                         'physio_pain_pattern', 'physio_aggravating', 'physio_rom_data', 'physio_mmt_data',
+                         'physio_treatment_data', 'physio_stg', 'physio_ltg', 'physio_session_current',
+                         'physio_sessions_total', 'physio_compliance', 'physio_progress'];
+        
+        foreach ($physioFields as $field) {
+            if ($request->has($field)) {
+                $key = str_replace('physio_', 'physio.', $field);
+                $value = $request->input($field);
+                // Decode JSON fields
+                if (in_array($field, ['physio_rom_data', 'physio_mmt_data', 'physio_treatment_data']) && is_string($value)) {
+                    $value = json_decode($value, true);
+                }
+                data_set($fields, $key, $value);
+            }
+        }
+
+        // Dental fields
+        $dentalFields = ['dental_proc_teeth', 'dental_proc_done', 'dental_anesthesia', 'dental_material',
+                         'dental_shade', 'dental_proc_notes', 'dental_xray_type', 'dental_xray_region',
+                         'dental_xray_findings', 'dental_treatment_plan', 'dental_lab_orders'];
+        
+        foreach ($dentalFields as $field) {
+            if ($request->has($field)) {
+                $key = str_replace('dental_', 'dental.', $field);
+                $value = $request->input($field);
+                if (in_array($field, ['dental_treatment_plan', 'dental_lab_orders']) && is_string($value)) {
+                    $value = json_decode($value, true);
+                }
+                data_set($fields, $key, $value);
+            }
+        }
+
+        // Ophthalmology fields
+        $ophthalFields = [
+            'ophthal_va_data', 'ophthal_iop_data', 'ophthal_refraction_data',
+            'ophthal_slit_lamp_data', 'ophthal_fundus_data', 'ophthal_diagnosis_codes',
+            'ophthal_spectacle_rx', 'ophthal_contact_lens_rx', 'ophthal_procedures',
+        ];
+        foreach ($ophthalFields as $field) {
+            if ($request->has($field)) {
+                $key = str_replace('ophthal_', 'ophthal.', $field);
+                $value = $request->input($field);
+                if (is_string($value) && (str_starts_with($value, '{') || str_starts_with($value, '['))) {
+                    $value = json_decode($value, true) ?? $value;
+                }
+                data_set($fields, $key, $value);
+                Log::info('EMR ophthal field extracted', ['field' => $field]);
+            }
+        }
+
+        // Orthopaedics fields
+        $orthoFields = [
+            'ortho_joints', 'ortho_side', 'ortho_duration', 'ortho_rom_data',
+            'ortho_mmt_data', 'ortho_special_tests', 'ortho_fracture_data',
+            'ortho_implant_data', 'ortho_xray_findings', 'ortho_diagnosis_codes',
+            'ortho_exam_data',
+        ];
+        foreach ($orthoFields as $field) {
+            if ($request->has($field)) {
+                $key = str_replace('ortho_', 'ortho.', $field);
+                $value = $request->input($field);
+                if (is_string($value) && (str_starts_with($value, '{') || str_starts_with($value, '['))) {
+                    $value = json_decode($value, true) ?? $value;
+                }
+                data_set($fields, $key, $value);
+                Log::info('EMR ortho field extracted', ['field' => $field]);
+            }
+        }
+
+        // ENT fields
+        $entFields = [
+            'ent_ear_data', 'ent_nose_data', 'ent_throat_data',
+            'ent_audiogram_data', 'ent_tympanogram_data', 'ent_endoscopy_data',
+            'ent_vertigo_data', 'ent_diagnosis_codes',
+        ];
+        foreach ($entFields as $field) {
+            if ($request->has($field)) {
+                $key = str_replace('ent_', 'ent.', $field);
+                $value = $request->input($field);
+                if (is_string($value) && (str_starts_with($value, '{') || str_starts_with($value, '['))) {
+                    $value = json_decode($value, true) ?? $value;
+                }
+                data_set($fields, $key, $value);
+                Log::info('EMR ENT field extracted', ['field' => $field]);
+            }
+        }
+
+        // Gynaecology / Obstetrics fields
+        $gynaeFields = [
+            'gynae_mode', 'gynae_menstrual_data', 'gynae_obstetric_data',
+            'gynae_examination_data', 'gynae_antenatal_data', 'gynae_usg_data',
+            'gynae_pap_smear', 'gynae_colposcopy_data', 'gynae_diagnosis_codes',
+            'gynae_lmp', 'gynae_edd', 'gynae_gravida', 'gynae_para',
+        ];
+        foreach ($gynaeFields as $field) {
+            if ($request->has($field)) {
+                $key = str_replace('gynae_', 'gynae.', $field);
+                $value = $request->input($field);
+                if (is_string($value) && (str_starts_with($value, '{') || str_starts_with($value, '['))) {
+                    $value = json_decode($value, true) ?? $value;
+                }
+                data_set($fields, $key, $value);
+                Log::info('EMR gynae field extracted', ['field' => $field]);
+            }
+        }
+
+        if (in_array($specialty, ['ophthalmology', 'eye'], true)) {
+            $this->mergeOphthalmologyTemplateFields($request, $fields);
+        }
+
+        if (!empty($fields)) {
+            Log::info('EMR specialty fields extracted', [
+                'specialty' => $specialty,
+                'field_count' => count($fields),
+                'top_keys' => array_keys($fields),
+            ]);
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Map short hidden field names from ophthalmology.blade.php into structured_data (ophthal.*).
+     */
+    private function mergeOphthalmologyTemplateFields(Request $request, array &$fields): void
+    {
+        $map = [
+            'va_data' => 'ophthal.va',
+            'iop_data' => 'ophthal.iop',
+            'refraction_data' => 'ophthal.refraction',
+            'slit_lamp_data' => 'ophthal.slitLamp',
+            'fundus_data' => 'ophthal.fundus',
+        ];
+
+        foreach ($map as $reqKey => $dotKey) {
+            if (!$request->has($reqKey)) {
+                continue;
+            }
+            $v = $request->input($reqKey);
+            $trim = is_string($v) ? trim($v) : '';
+            $decoded = $v;
+            if (is_string($v) && ($trim !== '' && ($trim[0] === '{' || $trim[0] === '['))) {
+                $decoded = json_decode($v, true) ?? $v;
+            }
+            data_set($fields, $dotKey, $decoded);
+            Log::info('EMR mergeOphthalmologyTemplateFields', ['from' => $reqKey, 'to' => $dotKey]);
+        }
+
+        if ($request->has('ophthal_diagnoses')) {
+            $v = $request->input('ophthal_diagnoses');
+            $decoded = is_string($v) ? json_decode($v, true) : $v;
+            $list = $decoded ?? [];
+            data_set($fields, 'ophthal.diagnosis_codes', $list);
+            data_set($fields, 'ophthal.diagnoses', $list);
+            Log::info('EMR mergeOphthalmologyTemplateFields', ['from' => 'ophthal_diagnoses', 'to' => 'ophthal.diagnosis_codes+diagnoses']);
+        }
+    }
+
+    /**
+     * Save lesions from JSON data (dermatology)
+     */
+    private function saveLesionsFromJson(string $json, Visit $visit): void
+    {
+        $lesions = json_decode($json, true);
+        if (!is_array($lesions)) return;
+
+        Log::info('Saving lesions from JSON', ['visit_id' => $visit->id, 'count' => count($lesions)]);
+
+        // Delete existing lesions and insert new ones
+        VisitLesion::where('visit_id', $visit->id)->delete();
+
+        foreach ($lesions as $lesion) {
+            VisitLesion::create([
+                'visit_id' => $visit->id,
+                'body_region' => $lesion['region'] ?? 'Unknown',
+                'view' => $lesion['view'] ?? 'front',
+                'x_pct' => $lesion['x'] ?? 50,
+                'y_pct' => $lesion['y'] ?? 50,
+                'lesion_type' => $lesion['type'] ?? 'Unspecified',
+                'size_cm' => !empty($lesion['size']) ? $lesion['size'] : null,
+                'colour' => $lesion['colour'] ?? null,
+                'border' => $lesion['border'] ?? null,
+                'surface' => $lesion['surface'] ?? null,
+                'distribution' => $lesion['distribution'] ?? null,
+                'notes' => $lesion['notes'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Save scales from request (dermatology)
+     */
+    private function saveScalesFromRequest(Request $request, Visit $visit): void
+    {
+        Log::info('Saving scales from request', ['visit_id' => $visit->id]);
+
+        if ($request->has('pasi_score') && $request->input('pasi_score') !== null) {
+            VisitScale::updateOrCreate(
+                ['visit_id' => $visit->id, 'scale_name' => 'PASI'],
+                [
+                    'score' => $request->input('pasi_score'),
+                    'components' => $request->has('pasi_data') ? json_decode($request->input('pasi_data'), true) : null,
+                    'interpretation' => $this->getPasiInterpretation($request->input('pasi_score')),
+                ]
+            );
+        }
+
+        if ($request->has('iga_score') && $request->input('iga_score') !== null) {
+            $igaLabels = ['Clear', 'Almost Clear', 'Mild', 'Moderate', 'Severe'];
+            VisitScale::updateOrCreate(
+                ['visit_id' => $visit->id, 'scale_name' => 'IGA'],
+                [
+                    'score' => $request->input('iga_score'),
+                    'interpretation' => $igaLabels[(int)$request->input('iga_score')] ?? 'Unknown',
+                ]
+            );
+        }
+
+        if ($request->has('dlqi_score') && $request->input('dlqi_score') !== null) {
+            VisitScale::updateOrCreate(
+                ['visit_id' => $visit->id, 'scale_name' => 'DLQI'],
+                [
+                    'score' => $request->input('dlqi_score'),
+                    'components' => $request->has('dlqi_data') ? json_decode($request->input('dlqi_data'), true) : null,
+                    'interpretation' => $this->getDlqiInterpretation($request->input('dlqi_score')),
+                ]
+            );
+        }
+    }
+
+    private function getPasiInterpretation($score): string
+    {
+        if ($score < 5) return 'Mild';
+        if ($score < 10) return 'Moderate';
+        return 'Severe';
+    }
+
+    private function getDlqiInterpretation($score): string
+    {
+        if ($score <= 1) return 'No effect on quality of life';
+        if ($score <= 5) return 'Small effect on quality of life';
+        if ($score <= 10) return 'Moderate effect on quality of life';
+        if ($score <= 20) return 'Large effect on quality of life';
+        return 'Extremely large effect on quality of life';
+    }
+
+    /**
+     * Save procedures from JSON data
+     */
+    private function saveProceduresFromJson(string $json, Visit $visit, int $clinicId): void
+    {
+        $procedures = json_decode($json, true);
+        if (!is_array($procedures)) return;
+
+        Log::info('Saving procedures from JSON', ['visit_id' => $visit->id, 'count' => count($procedures)]);
+
+        // Delete existing procedures and insert new ones
+        VisitProcedure::where('visit_id', $visit->id)->delete();
+
+        foreach ($procedures as $proc) {
+            VisitProcedure::create([
+                'visit_id' => $visit->id,
+                'clinic_id' => $clinicId,
+                'procedure_code' => $proc['code'] ?? null,
+                'procedure_name' => $proc['name'] ?? 'Unknown Procedure',
+                'specialty' => $visit->specialty ?? 'general',
+                'body_region' => $proc['region'] ?? null,
+                'notes' => $proc['notes'] ?? null,
+                'parameters' => array_filter([
+                    'laserType' => $proc['laserType'] ?? null,
+                    'settings' => $proc['settings'] ?? null,
+                    'agent' => $proc['agent'] ?? null,
+                    'concentration' => $proc['concentration'] ?? null,
+                    'session' => $proc['session'] ?? null,
+                    'units' => $proc['units'] ?? null,
+                    'sites' => $proc['sites'] ?? null,
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * Save dental teeth data
+     */
+    private function saveDentalTeethData(string $json, Patient $patient, int $clinicId): void
+    {
+        $teeth = json_decode($json, true);
+        if (!is_array($teeth)) return;
+
+        Log::info('Saving dental teeth data', ['patient_id' => $patient->id, 'teeth_count' => count($teeth)]);
+
+        foreach ($teeth as $toothCode => $toothData) {
+            // Only save teeth that have been modified from defaults
+            if ($toothData['status'] === 'present' && 
+                $toothData['caries'] === 'none' && 
+                $toothData['restoration'] === 'none' &&
+                empty($toothData['notes'])) {
+                continue;
+            }
+
+            DB::table('dental_teeth')->updateOrInsert(
+                ['patient_id' => $patient->id, 'tooth_code' => (string)$toothCode],
+                [
+                    'clinic_id' => $clinicId,
+                    'status' => $toothData['status'] ?? 'present',
+                    'caries' => $toothData['caries'] ?? 'none',
+                    'restoration' => $toothData['restoration'] ?? 'none',
+                    'mobility_grade' => !empty($toothData['mobility']) ? (int)$toothData['mobility'] : null,
+                    'recession_mm' => !empty($toothData['recession']) ? (float)$toothData['recession'] : null,
+                    'bop' => !empty($toothData['bop']) ? (bool)$toothData['bop'] : null,
+                    'notes' => $toothData['notes'] ?? null,
+                    'last_updated_by' => auth()->id(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
+    }
+
+    /**
+     * Save physio HEP data
+     */
+    private function savePhysioHepData(string $json, Visit $visit, Patient $patient): void
+    {
+        $exercises = json_decode($json, true);
+        if (!is_array($exercises)) return;
+
+        Log::info('Saving physio HEP data', ['visit_id' => $visit->id, 'exercises_count' => count($exercises)]);
+
+        // Delete existing HEP and insert new ones
+        DB::table('physio_hep')->where('visit_id', $visit->id)->delete();
+
+        foreach ($exercises as $exercise) {
+            if (empty($exercise['name'])) continue;
+            
+            DB::table('physio_hep')->insert([
+                'visit_id' => $visit->id,
+                'patient_id' => $patient->id,
+                'exercise_name' => $exercise['name'],
+                'sets' => !empty($exercise['sets']) ? (int)$exercise['sets'] : null,
+                'reps' => !empty($exercise['reps']) ? (int)$exercise['reps'] : null,
+                'hold_seconds' => !empty($exercise['hold']) ? (int)$exercise['hold'] : null,
+                'frequency_per_day' => !empty($exercise['frequency']) ? (int)$exercise['frequency'] : null,
+                'instructions' => $exercise['instructions'] ?? null,
+                'created_at' => now(),
+            ]);
         }
     }
 
@@ -547,7 +968,12 @@ class EmrWebController extends Controller
         $clinicId = auth()->user()->clinic_id;
         abort_unless($patient->clinic_id === $clinicId && $visit->clinic_id === $clinicId, 403);
 
-        Log::info('EmrWebController@savePrescription', ['visit_id' => $visit->id]);
+        Log::info('EmrWebController@savePrescription started', [
+            'visit_id' => $visit->id,
+            'patient_id' => $patient->id,
+            'clinic_id' => $clinicId,
+            'has_known_allergies' => !empty($patient->known_allergies),
+        ]);
 
         $validated = $request->validate([
             'drugs' => ['required', 'array', 'min:1'],
@@ -560,6 +986,49 @@ class EmrWebController extends Controller
         ]);
 
         try {
+            Log::info('EmrWebController@savePrescription payload validated', [
+                'visit_id' => $visit->id,
+                'drugs_count' => count($validated['drugs']),
+            ]);
+
+            $drugNamesForInteractionCheck = collect($validated['drugs'])
+                ->map(function (array $drug): string {
+                    return trim((string) ($drug['generic'] ?: $drug['name']));
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            Log::info('EmrWebController@savePrescription prepared drug names for safety checks', [
+                'visit_id' => $visit->id,
+                'drug_names' => $drugNamesForInteractionCheck,
+            ]);
+
+            $allergyWarnings = $this->detectPrescriptionAllergyWarnings($patient, $validated['drugs']);
+            $interactionWarnings = DrugInteractionService::check($drugNamesForInteractionCheck);
+
+            Log::info('EmrWebController@savePrescription safety check complete', [
+                'visit_id' => $visit->id,
+                'allergy_warning_count' => count($allergyWarnings),
+                'interaction_warning_count' => count($interactionWarnings),
+            ]);
+
+            if (!empty($allergyWarnings)) {
+                Log::warning('EmrWebController@savePrescription allergy warnings detected', [
+                    'visit_id' => $visit->id,
+                    'patient_id' => $patient->id,
+                    'allergy_warnings' => $allergyWarnings,
+                ]);
+            }
+
+            if (!empty($interactionWarnings)) {
+                Log::warning('EmrWebController@savePrescription interaction warnings detected', [
+                    'visit_id' => $visit->id,
+                    'patient_id' => $patient->id,
+                    'interaction_warnings' => $interactionWarnings,
+                ]);
+            }
+
             DB::beginTransaction();
 
             // Create or update prescription
@@ -572,9 +1041,16 @@ class EmrWebController extends Controller
                     'status' => 'draft',
                 ]
             );
+            Log::info('EmrWebController@savePrescription upserted prescription', [
+                'visit_id' => $visit->id,
+                'prescription_id' => $prescription->id,
+            ]);
 
             // Delete existing drugs and add new ones
             PrescriptionDrug::where('prescription_id', $prescription->id)->delete();
+            Log::info('EmrWebController@savePrescription cleared old prescription drugs', [
+                'prescription_id' => $prescription->id,
+            ]);
 
             foreach ($validated['drugs'] as $index => $drugData) {
                 PrescriptionDrug::create([
@@ -588,20 +1064,95 @@ class EmrWebController extends Controller
                     'sort_order' => $index + 1,
                 ]);
             }
+            Log::info('EmrWebController@savePrescription inserted prescription drugs', [
+                'prescription_id' => $prescription->id,
+                'inserted_count' => count($validated['drugs']),
+            ]);
 
             DB::commit();
 
-            Log::info('Prescription saved', ['prescription_id' => $prescription->id, 'drugs_count' => count($validated['drugs'])]);
+            Log::info('Prescription saved with safety checks', [
+                'prescription_id' => $prescription->id,
+                'drugs_count' => count($validated['drugs']),
+                'allergy_warning_count' => count($allergyWarnings),
+                'interaction_warning_count' => count($interactionWarnings),
+            ]);
 
             return response()->json([
                 'success' => true,
                 'prescription_id' => $prescription->id,
+                'warnings' => [
+                    'allergies' => $allergyWarnings,
+                    'interactions' => $interactionWarnings,
+                ],
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error('Save prescription error', ['error' => $e->getMessage()]);
+            Log::error('Save prescription error', [
+                'visit_id' => $visit->id,
+                'patient_id' => $patient->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Detect allergy warnings for a prescription against patient known allergies.
+     *
+     * @param array<int, array{name:string,generic?:string|null}> $drugs
+     * @return array<int, array{allergy:string,drug_name:string,generic_name:string|null,message:string}>
+     */
+    private function detectPrescriptionAllergyWarnings(Patient $patient, array $drugs): array
+    {
+        $knownAllergies = collect($patient->known_allergies ?? [])
+            ->map(fn ($item) => strtolower(trim((string) $item)))
+            ->filter()
+            ->values()
+            ->all();
+
+        Log::info('EmrWebController@detectPrescriptionAllergyWarnings started', [
+            'patient_id' => $patient->id,
+            'known_allergies_count' => count($knownAllergies),
+            'drug_count' => count($drugs),
+        ]);
+
+        if (empty($knownAllergies) || empty($drugs)) {
+            Log::info('EmrWebController@detectPrescriptionAllergyWarnings skipped', [
+                'patient_id' => $patient->id,
+                'reason' => empty($knownAllergies) ? 'no_known_allergies' : 'no_drugs',
+            ]);
+            return [];
+        }
+
+        $warnings = [];
+
+        foreach ($drugs as $drug) {
+            $drugName = strtolower(trim((string) ($drug['name'] ?? '')));
+            $genericName = strtolower(trim((string) ($drug['generic'] ?? '')));
+
+            foreach ($knownAllergies as $allergy) {
+                $matchesDrugName = $drugName !== '' && str_contains($drugName, $allergy);
+                $matchesGenericName = $genericName !== '' && str_contains($genericName, $allergy);
+
+                if ($matchesDrugName || $matchesGenericName) {
+                    $warnings[] = [
+                        'allergy' => $allergy,
+                        'drug_name' => (string) ($drug['name'] ?? ''),
+                        'generic_name' => !empty($drug['generic']) ? (string) $drug['generic'] : null,
+                        'message' => 'Potential allergy conflict: patient allergy "' . $allergy . '" matched with prescribed drug "' . ($drug['name'] ?? '') . '".',
+                    ];
+                }
+            }
+        }
+
+        Log::info('EmrWebController@detectPrescriptionAllergyWarnings completed', [
+            'patient_id' => $patient->id,
+            'warning_count' => count($warnings),
+        ]);
+
+        return $warnings;
     }
 
     /**

@@ -70,6 +70,29 @@
     }
     .logo-text { font-weight: 700; font-size: 17px; font-family: 'Sora', sans-serif; }
     .logo-hi { font-size: 11px; color: var(--text3); font-weight: 400; margin-top: -2px; }
+    .nav-burger {
+      display: none; align-items: center; justify-content: center;
+      width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--white); cursor: pointer; flex-shrink: 0;
+    }
+    .nav-burger svg { width: 22px; height: 22px; color: var(--text); }
+    .nav-drawer {
+      display: none; position: fixed; inset: 0; top: 64px; z-index: 99;
+      background: rgba(255,255,255,.98); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      padding: 16px 20px 32px; overflow-y: auto;
+      transform: translateY(-8px); opacity: 0; pointer-events: none;
+      transition: opacity .2s, transform .2s;
+    }
+    body.nav-drawer-open .nav-drawer {
+      display: block; transform: translateY(0); opacity: 1; pointer-events: auto;
+    }
+    .nav-drawer a {
+      display: block; padding: 14px 4px; font-size: 15px; font-weight: 600;
+      color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);
+    }
+    .nav-drawer a:hover { color: var(--blue); }
+    .nav-drawer-cta { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
     .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
     .nav-links a { text-decoration: none; color: var(--text2); font-size: 14px; font-weight: 500; transition: color .2s; }
     .nav-links a:hover { color: var(--text); }
@@ -416,8 +439,15 @@
       .steps-grid { grid-template-columns: 1fr; }
       .steps-grid::before { display: none; }
       .spec-content.active, .abdm-grid, .ai-grid { grid-template-columns: 1fr; }
-      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .footer-grid { grid-template-columns: 1fr; gap: 28px; }
+      .nav-inner { padding: 0 16px; height: 56px; }
       .nav-links { display: none; }
+      .nav-burger { display: flex; }
+      .nav-cta { gap: 8px; }
+      .nav-cta .btn-ghost { display: none; }
+      .nav-cta .btn-primary { padding: 10px 14px; font-size: 13px; }
+      .hero-stats { flex-wrap: wrap; gap: 20px 28px; }
+      .fields-row { grid-template-columns: 1fr; }
       h2 { font-size: 28px; }
     }
   </style>
@@ -435,6 +465,7 @@
       </div>
     </a>
     <ul class="nav-links">
+      <li><a href="{{ route('public.booking.directory') }}">Book a visit</a></li>
       <li><a href="#specialties">Specialties</a></li>
       <li><a href="#features">Features</a></li>
       <li><a href="#abdm">ABDM</a></li>
@@ -442,11 +473,54 @@
       <li><a href="#about">About</a></li>
     </ul>
     <div class="nav-cta">
+      <a href="{{ route('public.booking.directory') }}" class="btn btn-ghost" title="For patients — find a clinic and book">Patients</a>
       <a href="{{ route('login') }}" class="btn btn-ghost">Sign in</a>
       <a href="{{ route('register') }}" class="btn btn-primary">Start free trial</a>
     </div>
+    <button type="button" class="nav-burger" aria-label="Open menu" aria-expanded="false" id="navBurger">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+  <div class="nav-drawer" id="navDrawer" aria-hidden="true">
+    <a href="{{ route('public.booking.directory') }}">Book a visit</a>
+    <a href="#specialties">Specialties</a>
+    <a href="#features">Features</a>
+    <a href="#abdm">ABDM</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#about">About</a>
+    <div class="nav-drawer-cta">
+      <a href="{{ route('public.booking.directory') }}" class="btn btn-outline" style="width:100%;justify-content:center;">Patients — book</a>
+      <a href="{{ route('login') }}" class="btn btn-ghost" style="width:100%;justify-content:center;border:1px solid var(--border);">Sign in</a>
+      <a href="{{ route('register') }}" class="btn btn-primary" style="width:100%;justify-content:center;">Start free trial</a>
+    </div>
   </div>
 </nav>
+<script>
+(function () {
+  var b = document.getElementById('navBurger');
+  var d = document.getElementById('navDrawer');
+  if (!b || !d) return;
+  function close() {
+    document.body.classList.remove('nav-drawer-open');
+    b.setAttribute('aria-expanded', 'false');
+    d.setAttribute('aria-hidden', 'true');
+  }
+  function open() {
+    document.body.classList.add('nav-drawer-open');
+    b.setAttribute('aria-expanded', 'true');
+    d.setAttribute('aria-hidden', 'false');
+  }
+  b.addEventListener('click', function () {
+    if (document.body.classList.contains('nav-drawer-open')) close(); else open();
+  });
+  d.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', close);
+  });
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 768) close();
+  });
+})();
+</script>
 
 <!-- HERO -->
 <section style="overflow: hidden;">
@@ -460,6 +534,7 @@
       <p class="hero-sub">Specialty-first EMR, intelligent scheduling, GST billing, ABDM compliance, and WhatsApp communication — in one platform designed for Indian specialty clinics.</p>
       <div class="hero-actions">
         <a href="{{ route('register') }}" class="btn btn-primary btn-lg">Start 30-day free trial</a>
+        <a href="{{ route('public.booking.directory') }}" class="btn btn-outline btn-lg">Book a visit (patients)</a>
         <a href="#features" class="btn btn-outline btn-lg">View demo</a>
       </div>
       <div class="hero-stats">

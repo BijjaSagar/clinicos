@@ -31,6 +31,16 @@ Schedule::command('queue:work --stop-when-empty')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Send automated WhatsApp reminders:
+// - 24h / 2h appointment reminders
+// - follow-up due reminders
+// - pending payment reminders
+// - birthday greetings
+Schedule::command('whatsapp:send-reminders')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Archive old audit logs monthly
 Schedule::command('activitylog:clean --days=365')
     ->monthly();

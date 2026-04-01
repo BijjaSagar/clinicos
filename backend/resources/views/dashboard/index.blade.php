@@ -38,64 +38,66 @@ $demoWhatsapp = [
 ];
 @endphp
 
-<div class="p-7 space-y-5">
+<div class="p-4 sm:p-5 lg:p-7 space-y-4 sm:space-y-5">
 
     {{-- ── ABDM Compliance Banner ── --}}
-    <div class="flex items-center gap-4 rounded-xl px-5 py-4"
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 rounded-xl px-4 py-3.5 sm:px-5 sm:py-4"
          style="background:linear-gradient(135deg,#0d1117 0%,#0d1f3c 100%);">
-        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+        <div class="flex items-start gap-3 sm:items-center min-w-0 flex-1">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0"
              style="background:rgba(20,71,230,.2);border:1px solid rgba(20,71,230,.3);">
             <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
             </svg>
         </div>
-        <div>
+        <div class="min-w-0">
             <h4 class="text-white font-semibold text-sm">ABDM Compliance Active</h4>
-            <p class="text-xs mt-0.5" style="color:#64748b;">
+            <p class="text-xs mt-0.5 leading-relaxed" style="color:#64748b;">
                 ABHA creation live · HFR registered · FHIR R4 records syncing ·
                 {{ $stats['abdm_records'] ?? 38 }} records shared this month
             </p>
         </div>
-        <div class="ml-auto flex items-center gap-2 flex-shrink-0">
-            <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background:rgba(5,150,105,.15);color:#6ee7b7;">M1 ✓ Live</span>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background:rgba(5,150,105,.15);color:#6ee7b7;">HFR ✓</span>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background:#1e2535;color:#94a3b8;">M2 In Progress</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 sm:ml-auto sm:flex-shrink-0 sm:justify-end">
+            <span class="px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold" style="background:rgba(5,150,105,.15);color:#6ee7b7;">M1 ✓ Live</span>
+            <span class="px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold" style="background:rgba(5,150,105,.15);color:#6ee7b7;">HFR ✓</span>
+            <span class="px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold" style="background:#1e2535;color:#94a3b8;">M2 In Progress</span>
         </div>
     </div>
 
     {{-- ── KPI STAT CARDS ── --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {{-- Today's Patients --}}
-        <div class="bg-white border border-gray-200 rounded-xl p-5">
-            <p class="text-xs font-medium text-gray-400 mb-2">Today's Patients</p>
-            <p class="font-display font-extrabold text-3xl text-gray-900 leading-none">{{ $stats['today_patients'] ?? 24 }}</p>
+        <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-5 min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5 sm:mb-2 truncate">Today's Patients</p>
+            <p class="font-display font-extrabold text-2xl sm:text-3xl text-gray-900 leading-none tabular-nums">{{ $stats['today_patients'] ?? 24 }}</p>
             <div class="flex items-center gap-2 mt-2">
                 <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:#ecfdf5;color:#059669;">+3</span>
                 <span class="text-xs text-gray-400">vs yesterday</span>
             </div>
         </div>
         {{-- Revenue --}}
-        <div class="bg-white border border-gray-200 rounded-xl p-5">
-            <p class="text-xs font-medium text-gray-400 mb-2">Today's Revenue</p>
-            <p class="font-display font-extrabold text-3xl text-gray-900 leading-none">₹{{ $stats['revenue'] ?? '18,450' }}</p>
+        <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-5 min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5 sm:mb-2 truncate">Today's Revenue</p>
+            <p class="font-display font-extrabold text-xl sm:text-3xl text-gray-900 leading-none tabular-nums break-all">₹{{ $stats['revenue'] ?? '18,450' }}</p>
             <div class="flex items-center gap-2 mt-2">
                 <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:#ecfdf5;color:#059669;">+12%</span>
                 <span class="text-xs text-gray-400">vs last week</span>
             </div>
         </div>
         {{-- Pending Dues --}}
-        <div class="bg-white border border-gray-200 rounded-xl p-5">
-            <p class="text-xs font-medium text-gray-400 mb-2">Pending Collections</p>
-            <p class="font-display font-extrabold text-3xl text-gray-900 leading-none">₹{{ $stats['pending_dues'] ?? '6,200' }}</p>
+        <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-5 min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5 sm:mb-2 truncate">Pending Collections</p>
+            <p class="font-display font-extrabold text-xl sm:text-3xl text-gray-900 leading-none tabular-nums break-all">₹{{ $stats['pending_dues'] ?? '6,200' }}</p>
             <div class="flex items-center gap-2 mt-2">
                 <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">3 invoices</span>
                 <span class="text-xs text-gray-400">outstanding</span>
             </div>
         </div>
         {{-- Queue --}}
-        <div class="bg-white border border-gray-200 rounded-xl p-5">
-            <p class="text-xs font-medium text-gray-400 mb-2">Queue Now</p>
-            <p class="font-display font-extrabold text-3xl text-gray-900 leading-none">{{ $stats['queue_count'] ?? 7 }}</p>
+        <div class="bg-white border border-gray-200 rounded-xl p-3 sm:p-5 min-w-0">
+            <p class="text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5 sm:mb-2 truncate">Queue Now</p>
+            <p class="font-display font-extrabold text-2xl sm:text-3xl text-gray-900 leading-none tabular-nums">{{ $stats['queue_count'] ?? 7 }}</p>
             <div class="flex items-center gap-2 mt-2">
                 <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:#fff7ed;color:#d97706;">4 waiting</span>
                 <span class="text-xs text-gray-400">in clinic</span>
@@ -108,10 +110,10 @@ $demoWhatsapp = [
 
         {{-- Today's Schedule --}}
         <div class="lg:col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden" x-data="{ filter: 'all' }">
-            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
-                <h3 class="text-sm font-bold text-gray-900">Today's Schedule</h3>
-                <div class="flex items-center gap-3 ml-auto">
-                    <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <div class="px-3 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 class="text-sm font-bold text-gray-900 shrink-0">Today's Schedule</h3>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto min-w-0">
+                    <div class="flex gap-1 bg-gray-100 rounded-lg p-1 overflow-x-auto">
                         <button @click="filter='all'"
                                 :class="filter==='all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'"
                                 class="px-2.5 py-1 rounded-md text-xs font-semibold transition-all">All</button>
@@ -139,9 +141,9 @@ $demoWhatsapp = [
                     $s = $statusMap[$apt['status']] ?? $statusMap['booked'];
                     $opacity = in_array($apt['status'], ['done','no-show']) ? 'opacity-60' : '';
                 @endphp
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors cursor-pointer {{ $opacity }}
+                <a href="{{ $apt['url'] ?? '#' }}" class="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 px-3 sm:px-5 py-3 hover:bg-gray-50 transition-colors cursor-pointer min-w-0 {{ $opacity }}
                             {{ $apt['status']==='in-consultation' ? 'bg-green-50/50' : '' }}">
-                    <span class="text-xs font-semibold text-gray-400 w-12 flex-shrink-0 text-right">{{ $apt['time'] }}</span>
+                    <span class="text-xs font-semibold text-gray-400 w-10 sm:w-12 flex-shrink-0 text-right">{{ $apt['time'] }}</span>
                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
                          style="background:linear-gradient(135deg,{{ $apt['gradient'] ?? '#1447e6,#0891b2' }})">
                         {{ $apt['initials'] }}
@@ -150,9 +152,9 @@ $demoWhatsapp = [
                         <p class="text-sm font-semibold text-gray-900 truncate">{{ $apt['name'] }}</p>
                         <p class="text-xs text-gray-400 truncate mt-0.5">{{ $apt['type'] }}</p>
                     </div>
-                    <span class="flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full"
+                    <span class="flex-shrink-0 text-[10px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full max-w-full truncate sm:max-w-[14rem] sm:whitespace-normal"
                           style="background:{{ $s['bg'] }};color:{{ $s['color'] }};">{{ $s['label'] }}</span>
-                </div>
+                </a>
                 @endforeach
             </div>
         </div>

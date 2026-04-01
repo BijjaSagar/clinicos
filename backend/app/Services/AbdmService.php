@@ -10,43 +10,40 @@ use App\Models\Visit;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class AbdmService
 {
-    protected string $baseUrl;
-    protected string $clientId;
-    protected string $clientSecret;
-    protected string $authUrl;
+    private string $clientId;
+    private string $clientSecret;
+    private string $baseUrl;
+    private ?string $accessToken = null;
 
     public function __construct()
     {
         $this->baseUrl = config('services.abdm.base_url', 'https://dev.abdm.gov.in');
         $this->clientId = config('services.abdm.client_id', '');
         $this->clientSecret = config('services.abdm.client_secret', '');
-        $this->authUrl = config('services.abdm.auth_url', 'https://dev.abdm.gov.in/gateway/v0.5/sessions');
 
-        Log::info('AbdmService initialized', [
-            'base_url' => $this->baseUrl,
-        ]);
+        Log::info('AbdmService initialized', ['base_url' => $this->baseUrl]);
     }
 
-    /**
-     * Get access token from ABDM Gateway
-     */
-    public function getAccessToken(): ?string
-    {
-        Log::info('AbdmService.getAccessToken: Fetching token');
+    // ─── Auth ─────────────────────────────────────────────────────────────────
 
+    /**
+     * Get access token from ABDM Gateway (cached)
+     */
+    public function getAccessToken(): string
+    {
         $cacheKey = 'abdm_access_token';
-        
+
         if (Cache::has($cacheKey)) {
-            Log::info('AbdmService.getAccessToken: Using cached token');
             return Cache::get($cacheKey);
         }
 
         try {
-            $response = Http::post($this->authUrl, [
+            $response = Http::post("{$this->baseUrl}/gateway/v0.5/sessions", [
                 'clientId' => $this->clientId,
                 'clientSecret' => $this->clientSecret,
             ]);
@@ -54,344 +51,433 @@ class AbdmService
             if ($response->successful()) {
                 $token = $response->json('accessToken');
                 $expiresIn = $response->json('expiresIn', 1800);
-                
                 Cache::put($cacheKey, $token, $expiresIn - 60);
-                
-                Log::info('AbdmService.getAccessToken: Token fetched successfully');
+                $this->accessToken = $token;
+
+                Log::info('AbdmService.getAccessToken: Token obtained');
                 return $token;
             }
 
-            Log::error('AbdmService.getAccessToken: Failed to get token', [
+            Log::error('AbdmService.getAccessToken: Failed', [
                 'status' => $response->status(),
-                'response' => $response->json(),
+                'body' => $response->json(),
             ]);
-            return null;
+            throw new \RuntimeException('Failed to obtain ABDM access token');
         } catch (\Exception $e) {
-            Log::error('AbdmService.getAccessToken: Exception', [
-                'error' => $e->getMessage(),
-            ]);
-            return null;
+            Log::error('AbdmService.getAccessToken: Exception', ['error' => $e->getMessage()]);
+            throw $e;
         }
     }
 
-    /**
-     * Verify ABHA ID (Health ID)
-     */
-    public function verifyAbhaId(string $abhaId): array
-    {
-        Log::info('AbdmService.verifyAbhaId: Verifying ABHA ID', ['abha_id' => $abhaId]);
+    // ─── M1: ABHA Creation (Aadhaar Flow) ─────────────────────────────────────
 
-        $token = $this->getAccessToken();
-        if (!$token) {
-            return ['success' => false, 'error' => 'Failed to authenticate with ABDM'];
-        }
+    /**
+     * Generate Aadhaar OTP for ABHA creation
+     * POST /v1/registration/aadhaar/generateOtp
+     */
+    public function generateAadhaarOtp(string $aadhaar): array
+    {
+        Log::info('AbdmService.generateAadhaarOtp: Initiating', [
+            'aadhaar_last4' => substr($aadhaar, -4),
+        ]);
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer $token",
-                'X-CM-ID' => 'sbx',
-            ])->post("{$this->baseUrl}/v1/phr/profile/link/profileDetails", [
-                'healthId' => $abhaId,
+            $encryptedAadhaar = $this->encryptWithPublicKey($aadhaar);
+
+            $response = $this->callAbdmApi('POST', '/v1/registration/aadhaar/generateOtp', [
+                'aadhaar' => $encryptedAadhaar,
             ]);
 
-            if ($response->successful()) {
-                $data = $response->json();
-                Log::info('AbdmService.verifyAbhaId: Verification successful');
-                
-                return [
-                    'success' => true,
-                    'data' => [
-                        'abha_id' => $data['healthId'] ?? $abhaId,
-                        'abha_address' => $data['healthIdNumber'] ?? null,
-                        'name' => $data['name'] ?? null,
-                        'gender' => $data['gender'] ?? null,
-                        'dob' => $data['dateOfBirth'] ?? null,
-                        'mobile' => $data['mobile'] ?? null,
-                        'address' => $data['address'] ?? null,
-                        'state' => $data['state'] ?? null,
-                        'district' => $data['district'] ?? null,
-                    ],
-                ];
-            }
-
-            Log::warning('AbdmService.verifyAbhaId: Verification failed', [
-                'status' => $response->status(),
-                'response' => $response->json(),
+            Log::info('AbdmService.generateAadhaarOtp: OTP generated', [
+                'txnId' => $response['txnId'] ?? null,
             ]);
 
             return [
-                'success' => false,
-                'error' => $response->json('error.message') ?? 'Verification failed',
+                'success' => true,
+                'txnId' => $response['txnId'] ?? null,
+                'message' => $response['message'] ?? 'OTP sent successfully',
             ];
         } catch (\Exception $e) {
-            Log::error('AbdmService.verifyAbhaId: Exception', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('AbdmService.generateAadhaarOtp: Failed', ['error' => $e->getMessage()]);
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
     /**
-     * Link ABHA ID to patient
+     * Verify Aadhaar OTP
+     * POST /v1/registration/aadhaar/verifyOtp
+     */
+    public function verifyAadhaarOtp(string $txnId, string $otp): array
+    {
+        Log::info('AbdmService.verifyAadhaarOtp: Verifying', ['txnId' => $txnId]);
+
+        try {
+            $encryptedOtp = $this->encryptWithPublicKey($otp);
+
+            $response = $this->callAbdmApi('POST', '/v1/registration/aadhaar/verifyOtp', [
+                'txnId' => $txnId,
+                'otp' => $encryptedOtp,
+            ]);
+
+            Log::info('AbdmService.verifyAadhaarOtp: Verified', ['txnId' => $txnId]);
+
+            return [
+                'success' => true,
+                'txnId' => $response['txnId'] ?? $txnId,
+                'data' => $response,
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.verifyAadhaarOtp: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // ─── M1: ABHA Creation (Mobile Flow) ──────────────────────────────────────
+
+    /**
+     * Generate Mobile OTP for ABHA creation
+     */
+    public function generateMobileOtp(string $mobile): array
+    {
+        Log::info('AbdmService.generateMobileOtp: Initiating', [
+            'mobile_last4' => substr($mobile, -4),
+        ]);
+
+        try {
+            $response = $this->callAbdmApi('POST', '/v1/registration/mobile/generateOtp', [
+                'mobile' => $mobile,
+            ]);
+
+            Log::info('AbdmService.generateMobileOtp: OTP generated', [
+                'txnId' => $response['txnId'] ?? null,
+            ]);
+
+            return [
+                'success' => true,
+                'txnId' => $response['txnId'] ?? null,
+                'message' => $response['message'] ?? 'OTP sent successfully',
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.generateMobileOtp: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Verify Mobile OTP
+     */
+    public function verifyMobileOtp(string $txnId, string $otp): array
+    {
+        Log::info('AbdmService.verifyMobileOtp: Verifying', ['txnId' => $txnId]);
+
+        try {
+            $response = $this->callAbdmApi('POST', '/v1/registration/mobile/verifyOtp', [
+                'txnId' => $txnId,
+                'otp' => $otp,
+            ]);
+
+            return [
+                'success' => true,
+                'txnId' => $response['txnId'] ?? $txnId,
+                'data' => $response,
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.verifyMobileOtp: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // ─── M1: ABHA ID Management ───────────────────────────────────────────────
+
+    /**
+     * Create ABHA (Health ID) after OTP verification
+     */
+    public function createHealthId(string $txnId, array $profileData): array
+    {
+        Log::info('AbdmService.createHealthId: Creating', ['txnId' => $txnId]);
+
+        try {
+            $payload = array_merge([
+                'txnId' => $txnId,
+            ], $profileData);
+
+            $response = $this->callAbdmApi('POST', '/v1/registration/aadhaar/createHealthIdWithPreVerified', $payload);
+
+            Log::info('AbdmService.createHealthId: ABHA created', [
+                'healthIdNumber' => $response['healthIdNumber'] ?? null,
+                'healthId' => $response['healthId'] ?? null,
+            ]);
+
+            return [
+                'success' => true,
+                'healthIdNumber' => $response['healthIdNumber'] ?? null,
+                'healthId' => $response['healthId'] ?? null,
+                'name' => $response['name'] ?? null,
+                'token' => $response['token'] ?? null,
+                'data' => $response,
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.createHealthId: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Search existing ABHA by Health ID
+     */
+    public function searchByHealthId(string $healthId): array
+    {
+        Log::info('AbdmService.searchByHealthId', ['healthId' => $healthId]);
+
+        try {
+            $response = $this->callAbdmApi('POST', '/v1/search/searchByHealthId', [
+                'healthId' => $healthId,
+            ]);
+
+            return [
+                'success' => true,
+                'data' => $response,
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.searchByHealthId: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get ABHA card (PDF/PNG)
+     */
+    public function getAbhaCard(string $token): string
+    {
+        Log::info('AbdmService.getAbhaCard: Fetching card');
+
+        try {
+            $accessToken = $this->getAccessToken();
+
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$accessToken}",
+                'X-Token' => "Bearer {$token}",
+                'Accept' => 'image/png',
+            ])->get("{$this->baseUrl}/v1/account/getCard");
+
+            if ($response->successful()) {
+                return base64_encode($response->body());
+            }
+
+            throw new \RuntimeException('Failed to fetch ABHA card');
+        } catch (\Exception $e) {
+            Log::error('AbdmService.getAbhaCard: Failed', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Verify existing ABHA ID
+     */
+    public function verifyAbha(string $healthId): array
+    {
+        Log::info('AbdmService.verifyAbha', ['healthId' => $healthId]);
+
+        try {
+            $response = $this->callAbdmApi('POST', '/v1/phr/profile/link/profileDetails', [
+                'healthId' => $healthId,
+            ], ['X-CM-ID' => 'sbx']);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'abha_id' => $response['healthId'] ?? $healthId,
+                    'abha_address' => $response['healthIdNumber'] ?? null,
+                    'name' => $response['name'] ?? null,
+                    'gender' => $response['gender'] ?? null,
+                    'dob' => $response['dateOfBirth'] ?? null,
+                    'mobile' => $response['mobile'] ?? null,
+                    'address' => $response['address'] ?? null,
+                    'state' => $response['state'] ?? null,
+                    'district' => $response['district'] ?? null,
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.verifyAbha: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Link ABHA ID to a patient record
      */
     public function linkAbhaToPatient(int $patientId, string $abhaId, string $abhaAddress): bool
     {
-        Log::info('AbdmService.linkAbhaToPatient: Linking ABHA to patient', [
+        Log::info('AbdmService.linkAbhaToPatient', [
             'patient_id' => $patientId,
             'abha_id' => $abhaId,
         ]);
 
         try {
             $patient = Patient::findOrFail($patientId);
-            
             $patient->update([
                 'abha_id' => $abhaId,
                 'abha_address' => $abhaAddress,
+                'abha_verified' => true,
                 'abdm_consent_active' => true,
             ]);
 
-            Log::info('AbdmService.linkAbhaToPatient: ABHA linked successfully');
+            Log::info('AbdmService.linkAbhaToPatient: Linked successfully');
             return true;
         } catch (\Exception $e) {
-            Log::error('AbdmService.linkAbhaToPatient: Exception', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('AbdmService.linkAbhaToPatient: Failed', ['error' => $e->getMessage()]);
             return false;
         }
     }
 
+    // ─── M1: Facility QR / Scan & Share ────────────────────────────────────────
+
     /**
-     * Request consent for health records access
+     * Generate facility QR code data URL for Scan & Share
      */
-    public function requestConsent(int $clinicId, int $patientId, array $purposes): ?string
+    public function generateFacilityQr(string $hfrId): string
     {
-        Log::info('AbdmService.requestConsent: Requesting consent', [
-            'clinic_id' => $clinicId,
-            'patient_id' => $patientId,
-            'purposes' => $purposes,
+        Log::info('AbdmService.generateFacilityQr', ['hfrId' => $hfrId]);
+
+        $qrPayload = json_encode([
+            'hfrId' => $hfrId,
+            'type' => 'HIP',
+            'scanType' => 'SCAN_AND_SHARE',
+            'version' => '1.0',
+            'timestamp' => now()->toIso8601String(),
         ]);
 
-        $token = $this->getAccessToken();
-        if (!$token) {
-            return null;
-        }
+        // Generate QR code as base64 data URL using simple SVG approach
+        // In production, use a QR library like SimpleSoftwareIO/QrCode
+        return $qrPayload;
+    }
 
-        $patient = Patient::findOrFail($patientId);
-        $clinic = Clinic::findOrFail($clinicId);
-
-        if (!$patient->abha_id) {
-            Log::warning('AbdmService.requestConsent: Patient has no ABHA ID');
-            return null;
-        }
-
-        $requestId = $this->generateRequestId();
-        $timestamp = Carbon::now()->toIso8601String();
+    /**
+     * Process scanned QR data from patient's PHR app
+     */
+    public function processScanAndShare(string $qrData): array
+    {
+        Log::info('AbdmService.processScanAndShare: Processing QR');
 
         try {
-            $consentPayload = [
+            $decoded = json_decode($qrData, true);
+            if (!$decoded) {
+                return ['success' => false, 'error' => 'Invalid QR data'];
+            }
+
+            $healthId = $decoded['healthId'] ?? $decoded['abhaAddress'] ?? null;
+            if (!$healthId) {
+                return ['success' => false, 'error' => 'No ABHA ID found in QR data'];
+            }
+
+            // Verify the ABHA and get profile
+            $verification = $this->verifyAbha($healthId);
+            if (!$verification['success']) {
+                return $verification;
+            }
+
+            return [
+                'success' => true,
+                'data' => $verification['data'],
+                'qr_data' => $decoded,
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.processScanAndShare: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // ─── M2: Health Information Provider (HIP) ────────────────────────────────
+
+    /**
+     * Register a care context for a patient visit
+     */
+    public function registerCareContext(Patient $patient, Visit $visit): array
+    {
+        Log::info('AbdmService.registerCareContext', [
+            'patient_id' => $patient->id,
+            'visit_id' => $visit->id,
+        ]);
+
+        if (!$patient->abha_id) {
+            return ['success' => false, 'error' => 'Patient has no ABHA ID'];
+        }
+
+        try {
+            $referenceNumber = 'CC-' . $visit->clinic_id . '-' . $visit->id . '-' . time();
+            $display = "Visit on " . $visit->created_at->format('d M Y') . " - " . ($visit->diagnosis_text ?? 'Consultation');
+
+            $requestId = Str::uuid()->toString();
+            $timestamp = now()->toIso8601String();
+
+            $payload = [
                 'requestId' => $requestId,
                 'timestamp' => $timestamp,
-                'consent' => [
-                    'purpose' => [
-                        'text' => 'Care Management',
-                        'code' => 'CAREMGT',
-                        'refUri' => 'https://abdm.gov.in/consent/purposes/1',
-                    ],
+                'link' => [
+                    'accessToken' => $this->getAccessToken(),
                     'patient' => [
-                        'id' => $patient->abha_address,
-                    ],
-                    'hiu' => [
-                        'id' => $clinic->hfr_id,
-                    ],
-                    'requester' => [
-                        'name' => $clinic->name,
-                        'identifier' => [
-                            'type' => 'HFR',
-                            'value' => $clinic->hfr_id,
-                            'system' => 'https://hfr.abdm.gov.in/',
-                        ],
-                    ],
-                    'hiTypes' => $purposes,
-                    'permission' => [
-                        'accessMode' => 'VIEW',
-                        'dateRange' => [
-                            'from' => Carbon::now()->subYears(5)->toIso8601String(),
-                            'to' => Carbon::now()->toIso8601String(),
-                        ],
-                        'dataEraseAt' => Carbon::now()->addDays(30)->toIso8601String(),
-                        'frequency' => [
-                            'unit' => 'HOUR',
-                            'value' => 1,
-                            'repeats' => 0,
+                        'referenceNumber' => $patient->abha_id,
+                        'display' => $patient->name,
+                        'careContexts' => [
+                            [
+                                'referenceNumber' => $referenceNumber,
+                                'display' => $display,
+                            ],
                         ],
                     ],
                 ],
             ];
 
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer $token",
+            $response = $this->callAbdmApi('POST', '/v0.5/links/link/add-contexts', $payload, [
                 'X-CM-ID' => 'sbx',
-            ])->post("{$this->baseUrl}/v0.5/consent-requests/init", $consentPayload);
-
-            if ($response->successful()) {
-                // Store consent request
-                AbdmConsent::create([
-                    'clinic_id' => $clinicId,
-                    'patient_id' => $patientId,
-                    'request_id' => $requestId,
-                    'consent_id' => null,
-                    'purpose' => json_encode($purposes),
-                    'hi_types' => json_encode($purposes),
-                    'status' => 'REQUESTED',
-                    'valid_from' => Carbon::now()->subYears(5),
-                    'valid_to' => Carbon::now(),
-                    'expire_at' => Carbon::now()->addDays(30),
-                ]);
-
-                Log::info('AbdmService.requestConsent: Consent request sent', [
-                    'request_id' => $requestId,
-                ]);
-
-                return $requestId;
-            }
-
-            Log::error('AbdmService.requestConsent: Failed to send consent request', [
-                'status' => $response->status(),
-                'response' => $response->json(),
             ]);
-            return null;
-        } catch (\Exception $e) {
-            Log::error('AbdmService.requestConsent: Exception', [
-                'error' => $e->getMessage(),
-            ]);
-            return null;
-        }
-    }
 
-    /**
-     * Handle consent callback from ABDM
-     */
-    public function handleConsentCallback(array $payload): bool
-    {
-        Log::info('AbdmService.handleConsentCallback: Processing callback', [
-            'payload_keys' => array_keys($payload),
-        ]);
-
-        try {
-            $requestId = $payload['requestId'] ?? null;
-            $consentStatus = $payload['notification']['status'] ?? null;
-            $consentArtefactId = $payload['notification']['consentArtefacts'][0]['id'] ?? null;
-
-            $consent = AbdmConsent::where('request_id', $requestId)->first();
-            if (!$consent) {
-                Log::warning('AbdmService.handleConsentCallback: Consent not found', [
-                    'request_id' => $requestId,
-                ]);
-                return false;
-            }
-
-            if ($consentStatus === 'GRANTED') {
-                $consent->update([
-                    'consent_id' => $consentArtefactId,
-                    'status' => 'GRANTED',
-                ]);
-
-                // Update patient's ABDM consent status
-                $consent->patient()->update(['abdm_consent_active' => true]);
-
-                Log::info('AbdmService.handleConsentCallback: Consent granted', [
-                    'consent_id' => $consentArtefactId,
-                ]);
-            } else {
-                $consent->update(['status' => $consentStatus]);
-                Log::info('AbdmService.handleConsentCallback: Consent status updated', [
-                    'status' => $consentStatus,
-                ]);
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('AbdmService.handleConsentCallback: Exception', [
-                'error' => $e->getMessage(),
-            ]);
-            return false;
-        }
-    }
-
-    /**
-     * Create care context for a visit
-     */
-    public function createCareContext(int $visitId): ?AbdmCareContext
-    {
-        Log::info('AbdmService.createCareContext: Creating care context', [
-            'visit_id' => $visitId,
-        ]);
-
-        try {
-            $visit = Visit::with(['patient', 'clinic', 'doctor'])->findOrFail($visitId);
-            
-            if (!$visit->patient->abha_id) {
-                Log::warning('AbdmService.createCareContext: Patient has no ABHA ID');
-                return null;
-            }
-
-            $referenceNumber = 'CC-' . $visit->clinic_id . '-' . $visit->id . '-' . time();
-            
             $careContext = AbdmCareContext::create([
                 'clinic_id' => $visit->clinic_id,
-                'patient_id' => $visit->patient_id,
-                'visit_id' => $visitId,
+                'patient_id' => $patient->id,
+                'visit_id' => $visit->id,
                 'reference_number' => $referenceNumber,
-                'display' => "Visit on " . $visit->created_at->format('d M Y') . " - " . $visit->diagnosis,
+                'display' => $display,
                 'hi_type' => 'OPConsultation',
+                'linked_at' => now(),
             ]);
 
-            Log::info('AbdmService.createCareContext: Care context created', [
+            Log::info('AbdmService.registerCareContext: Created', [
                 'reference_number' => $referenceNumber,
             ]);
 
-            return $careContext;
+            return [
+                'success' => true,
+                'care_context' => $careContext,
+            ];
         } catch (\Exception $e) {
-            Log::error('AbdmService.createCareContext: Exception', [
-                'error' => $e->getMessage(),
-            ]);
-            return null;
+            Log::error('AbdmService.registerCareContext: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
     /**
-     * Push health record to ABDM (FHIR format)
+     * Build a FHIR R4 Bundle from visit data
      */
-    public function pushHealthRecord(int $visitId): bool
+    public function buildFhirBundle(Visit $visit): array
     {
-        Log::info('AbdmService.pushHealthRecord: Pushing health record', [
-            'visit_id' => $visitId,
-        ]);
+        $fhirBuilder = new FhirBuilder();
+        return $fhirBuilder->buildBundle($visit);
+    }
 
-        $token = $this->getAccessToken();
-        if (!$token) {
-            return false;
-        }
+    /**
+     * Push a health record to ABDM
+     */
+    public function pushHealthRecord(string $careContextId, array $fhirBundle): array
+    {
+        Log::info('AbdmService.pushHealthRecord', ['careContextId' => $careContextId]);
 
         try {
-            $visit = Visit::with(['patient', 'clinic', 'doctor', 'prescriptions'])->findOrFail($visitId);
-            
-            if (!$visit->patient->abha_id) {
-                Log::warning('AbdmService.pushHealthRecord: Patient has no ABHA ID');
-                return false;
-            }
+            $careContext = AbdmCareContext::where('reference_number', $careContextId)->firstOrFail();
+            $visit = Visit::with(['patient', 'clinic'])->findOrFail($careContext->visit_id);
 
-            // Create care context if not exists
-            $careContext = AbdmCareContext::where('visit_id', $visitId)->first();
-            if (!$careContext) {
-                $careContext = $this->createCareContext($visitId);
-            }
-
-            // Build FHIR Bundle
-            $fhirBundle = $this->buildFhirBundle($visit);
-
-            $requestId = $this->generateRequestId();
-            $timestamp = Carbon::now()->toIso8601String();
+            $requestId = Str::uuid()->toString();
+            $timestamp = now()->toIso8601String();
 
             $payload = [
                 'requestId' => $requestId,
@@ -414,307 +500,342 @@ class AbdmService
                 ],
             ];
 
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer $token",
+            $response = $this->callAbdmApi('POST', '/v0.5/links/link/add-contexts', $payload, [
                 'X-CM-ID' => 'sbx',
-            ])->post("{$this->baseUrl}/v0.5/links/link/add-contexts", $payload);
-
-            if ($response->successful()) {
-                $careContext->update(['linked_at' => Carbon::now()]);
-                
-                Log::info('AbdmService.pushHealthRecord: Record pushed successfully');
-                return true;
-            }
-
-            Log::error('AbdmService.pushHealthRecord: Failed to push record', [
-                'status' => $response->status(),
-                'response' => $response->json(),
             ]);
-            return false;
+
+            $careContext->update(['linked_at' => now()]);
+
+            // Store FHIR bundle on the visit
+            $visit->update([
+                'fhir_bundle' => json_encode($fhirBundle),
+                'abdm_pushed_at' => now(),
+            ]);
+
+            Log::info('AbdmService.pushHealthRecord: Pushed successfully');
+
+            return ['success' => true, 'data' => $response];
         } catch (\Exception $e) {
-            Log::error('AbdmService.pushHealthRecord: Exception', [
-                'error' => $e->getMessage(),
-            ]);
-            return false;
+            Log::error('AbdmService.pushHealthRecord: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
-    /**
-     * Build FHIR R4 Bundle for a visit
-     */
-    protected function buildFhirBundle(Visit $visit): array
-    {
-        Log::info('AbdmService.buildFhirBundle: Building FHIR bundle', [
-            'visit_id' => $visit->id,
-        ]);
-
-        $patient = $visit->patient;
-        $doctor = $visit->doctor;
-        $clinic = $visit->clinic;
-
-        $bundle = [
-            'resourceType' => 'Bundle',
-            'id' => "bundle-visit-{$visit->id}",
-            'type' => 'document',
-            'timestamp' => Carbon::now()->toIso8601String(),
-            'entry' => [],
-        ];
-
-        // Composition (document header)
-        $bundle['entry'][] = [
-            'resource' => [
-                'resourceType' => 'Composition',
-                'id' => "composition-{$visit->id}",
-                'status' => 'final',
-                'type' => [
-                    'coding' => [
-                        [
-                            'system' => 'http://loinc.org',
-                            'code' => '34133-9',
-                            'display' => 'Outpatient Note',
-                        ],
-                    ],
-                ],
-                'subject' => [
-                    'reference' => "Patient/{$patient->abha_id}",
-                ],
-                'date' => $visit->created_at->toIso8601String(),
-                'author' => [
-                    [
-                        'reference' => "Practitioner/{$doctor->hpr_id}",
-                        'display' => $doctor->name,
-                    ],
-                ],
-                'title' => 'OPD Consultation Note',
-                'custodian' => [
-                    'reference' => "Organization/{$clinic->hfr_id}",
-                ],
-                'section' => [
-                    [
-                        'title' => 'Chief Complaint',
-                        'text' => [
-                            'status' => 'generated',
-                            'div' => "<div>{$visit->chief_complaint}</div>",
-                        ],
-                    ],
-                    [
-                        'title' => 'Diagnosis',
-                        'text' => [
-                            'status' => 'generated',
-                            'div' => "<div>{$visit->diagnosis} ({$visit->icd_code})</div>",
-                        ],
-                    ],
-                    [
-                        'title' => 'Plan',
-                        'text' => [
-                            'status' => 'generated',
-                            'div' => "<div>{$visit->plan}</div>",
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        // Patient resource
-        $bundle['entry'][] = [
-            'resource' => [
-                'resourceType' => 'Patient',
-                'id' => $patient->abha_id,
-                'identifier' => [
-                    [
-                        'system' => 'https://healthid.ndhm.gov.in',
-                        'value' => $patient->abha_id,
-                    ],
-                ],
-                'name' => [
-                    [
-                        'text' => $patient->name,
-                    ],
-                ],
-                'gender' => strtolower($patient->sex) === 'f' ? 'female' : 'male',
-                'birthDate' => $patient->dob?->format('Y-m-d'),
-            ],
-        ];
-
-        // Practitioner resource
-        $bundle['entry'][] = [
-            'resource' => [
-                'resourceType' => 'Practitioner',
-                'id' => $doctor->hpr_id ?? "practitioner-{$doctor->id}",
-                'identifier' => [
-                    [
-                        'system' => 'https://hpr.abdm.gov.in',
-                        'value' => $doctor->hpr_id,
-                    ],
-                ],
-                'name' => [
-                    [
-                        'text' => $doctor->name,
-                    ],
-                ],
-                'qualification' => [
-                    [
-                        'code' => [
-                            'text' => $doctor->qualification,
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        // Organization resource
-        $bundle['entry'][] = [
-            'resource' => [
-                'resourceType' => 'Organization',
-                'id' => $clinic->hfr_id ?? "org-{$clinic->id}",
-                'identifier' => [
-                    [
-                        'system' => 'https://hfr.abdm.gov.in',
-                        'value' => $clinic->hfr_id,
-                    ],
-                ],
-                'name' => $clinic->name,
-                'address' => [
-                    [
-                        'city' => $clinic->city,
-                        'state' => $clinic->state,
-                    ],
-                ],
-            ],
-        ];
-
-        // Encounter (visit) resource
-        $bundle['entry'][] = [
-            'resource' => [
-                'resourceType' => 'Encounter',
-                'id' => "encounter-{$visit->id}",
-                'status' => 'finished',
-                'class' => [
-                    'system' => 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
-                    'code' => 'AMB',
-                    'display' => 'ambulatory',
-                ],
-                'subject' => [
-                    'reference' => "Patient/{$patient->abha_id}",
-                ],
-                'participant' => [
-                    [
-                        'individual' => [
-                            'reference' => "Practitioner/{$doctor->hpr_id}",
-                        ],
-                    ],
-                ],
-                'period' => [
-                    'start' => $visit->created_at->toIso8601String(),
-                    'end' => $visit->updated_at->toIso8601String(),
-                ],
-            ],
-        ];
-
-        // Condition (diagnosis) resource
-        if ($visit->diagnosis) {
-            $bundle['entry'][] = [
-                'resource' => [
-                    'resourceType' => 'Condition',
-                    'id' => "condition-{$visit->id}",
-                    'clinicalStatus' => [
-                        'coding' => [
-                            [
-                                'system' => 'http://terminology.hl7.org/CodeSystem/condition-clinical',
-                                'code' => 'active',
-                            ],
-                        ],
-                    ],
-                    'code' => [
-                        'coding' => [
-                            [
-                                'system' => 'http://hl7.org/fhir/sid/icd-10',
-                                'code' => $visit->icd_code,
-                                'display' => $visit->diagnosis,
-                            ],
-                        ],
-                        'text' => $visit->diagnosis,
-                    ],
-                    'subject' => [
-                        'reference' => "Patient/{$patient->abha_id}",
-                    ],
-                    'encounter' => [
-                        'reference' => "Encounter/encounter-{$visit->id}",
-                    ],
-                    'recordedDate' => $visit->created_at->toIso8601String(),
-                ],
-            ];
-        }
-
-        Log::info('AbdmService.buildFhirBundle: Bundle built successfully', [
-            'entries_count' => count($bundle['entry']),
-        ]);
-
-        return $bundle;
-    }
+    // ─── M2: Consent Management ───────────────────────────────────────────────
 
     /**
-     * Handle data request from PHR app
+     * Handle incoming consent request webhook from ABDM
      */
-    public function handleDataRequest(array $payload): array
+    public function onConsentRequest(array $consentData): void
     {
-        Log::info('AbdmService.handleDataRequest: Processing data request', [
-            'payload_keys' => array_keys($payload),
+        Log::info('AbdmService.onConsentRequest: Received', [
+            'keys' => array_keys($consentData),
         ]);
 
         try {
-            $consentId = $payload['hiRequest']['consent']['id'] ?? null;
-            $careContexts = $payload['hiRequest']['keyMaterial']['cryptoAlg'] ?? [];
+            $requestId = $consentData['requestId'] ?? null;
+            $consentStatus = $consentData['notification']['status'] ?? null;
+            $consentArtefactId = $consentData['notification']['consentArtefacts'][0]['id'] ?? null;
 
-            // Verify consent
-            $consent = AbdmConsent::where('consent_id', $consentId)
-                ->where('status', 'GRANTED')
-                ->first();
-
+            $consent = AbdmConsent::where('request_id', $requestId)->first();
             if (!$consent) {
-                Log::warning('AbdmService.handleDataRequest: Invalid or expired consent');
-                return ['success' => false, 'error' => 'Invalid consent'];
+                Log::warning('AbdmService.onConsentRequest: Consent record not found', [
+                    'request_id' => $requestId,
+                ]);
+                return;
             }
 
-            // Fetch and return requested health records
-            $records = [];
-            foreach ($careContexts as $context) {
-                $careContext = AbdmCareContext::where('reference_number', $context['careContextReference'])->first();
-                if ($careContext && $careContext->visit) {
-                    $records[] = $this->buildFhirBundle($careContext->visit);
-                }
+            if ($consentStatus === 'GRANTED') {
+                $consent->update([
+                    'consent_id' => $consentArtefactId,
+                    'status' => 'GRANTED',
+                ]);
+                $consent->patient()->update(['abdm_consent_active' => true]);
+            } else {
+                $consent->update(['status' => $consentStatus]);
             }
 
-            Log::info('AbdmService.handleDataRequest: Data request processed', [
-                'records_count' => count($records),
-            ]);
-
-            return ['success' => true, 'data' => $records];
+            Log::info('AbdmService.onConsentRequest: Processed', ['status' => $consentStatus]);
         } catch (\Exception $e) {
-            Log::error('AbdmService.handleDataRequest: Exception', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('AbdmService.onConsentRequest: Failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Fetch a consent artefact from ABDM
+     */
+    public function fetchConsentArtefact(string $consentId): array
+    {
+        Log::info('AbdmService.fetchConsentArtefact', ['consentId' => $consentId]);
+
+        try {
+            $requestId = Str::uuid()->toString();
+
+            $response = $this->callAbdmApi('POST', '/v0.5/consents/fetch', [
+                'requestId' => $requestId,
+                'timestamp' => now()->toIso8601String(),
+                'consentId' => $consentId,
+            ], ['X-CM-ID' => 'sbx']);
+
+            return ['success' => true, 'data' => $response];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.fetchConsentArtefact: Failed', ['error' => $e->getMessage()]);
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
     /**
-     * Generate unique request ID
+     * Share health information based on an approved consent
      */
-    protected function generateRequestId(): string
+    public function shareHealthInfo(string $consentId, array $dateRange): array
     {
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-        );
+        Log::info('AbdmService.shareHealthInfo', ['consentId' => $consentId]);
+
+        try {
+            $consent = AbdmConsent::where('consent_id', $consentId)
+                ->where('status', 'GRANTED')
+                ->firstOrFail();
+
+            // Get all care contexts for this patient within the date range
+            $careContexts = AbdmCareContext::where('patient_id', $consent->patient_id)
+                ->where('clinic_id', $consent->clinic_id)
+                ->whereHas('visit', function ($q) use ($dateRange) {
+                    $q->whereBetween('created_at', [
+                        $dateRange['from'] ?? now()->subYears(5),
+                        $dateRange['to'] ?? now(),
+                    ]);
+                })
+                ->with('visit')
+                ->get();
+
+            $records = [];
+            foreach ($careContexts as $context) {
+                if ($context->visit) {
+                    $records[] = $this->buildFhirBundle($context->visit);
+                }
+            }
+
+            Log::info('AbdmService.shareHealthInfo: Shared', ['records_count' => count($records)]);
+
+            return [
+                'success' => true,
+                'records_count' => count($records),
+                'data' => $records,
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.shareHealthInfo: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // ─── M3: Health Information User (HIU) — Pull Records ─────────────────────
+
+    /**
+     * Request consent from a patient (HIU flow)
+     */
+    public function requestConsent(Patient $patient, string $purpose, array $hiTypes): array
+    {
+        Log::info('AbdmService.requestConsent', [
+            'patient_id' => $patient->id,
+            'purpose' => $purpose,
+        ]);
+
+        if (!$patient->abha_address) {
+            return ['success' => false, 'error' => 'Patient has no ABHA address'];
+        }
+
+        try {
+            $clinic = Clinic::findOrFail($patient->clinic_id);
+            $requestId = Str::uuid()->toString();
+            $timestamp = now()->toIso8601String();
+
+            $purposeMap = [
+                'CAREMGT' => ['text' => 'Care Management', 'code' => 'CAREMGT'],
+                'BTG' => ['text' => 'Break the Glass', 'code' => 'BTG'],
+                'PUBHLTH' => ['text' => 'Public Health', 'code' => 'PUBHLTH'],
+                'HPAYMT' => ['text' => 'Healthcare Payment', 'code' => 'HPAYMT'],
+                'DSRCH' => ['text' => 'Disease Specific Research', 'code' => 'DSRCH'],
+            ];
+
+            $purposeData = $purposeMap[$purpose] ?? $purposeMap['CAREMGT'];
+
+            $payload = [
+                'requestId' => $requestId,
+                'timestamp' => $timestamp,
+                'consent' => [
+                    'purpose' => [
+                        'text' => $purposeData['text'],
+                        'code' => $purposeData['code'],
+                        'refUri' => "https://abdm.gov.in/consent/purposes/{$purposeData['code']}",
+                    ],
+                    'patient' => [
+                        'id' => $patient->abha_address,
+                    ],
+                    'hiu' => [
+                        'id' => $clinic->hfr_id,
+                    ],
+                    'requester' => [
+                        'name' => $clinic->name,
+                        'identifier' => [
+                            'type' => 'HFR',
+                            'value' => $clinic->hfr_id,
+                            'system' => 'https://hfr.abdm.gov.in/',
+                        ],
+                    ],
+                    'hiTypes' => $hiTypes,
+                    'permission' => [
+                        'accessMode' => 'VIEW',
+                        'dateRange' => [
+                            'from' => now()->subYears(5)->toIso8601String(),
+                            'to' => now()->toIso8601String(),
+                        ],
+                        'dataEraseAt' => now()->addDays(30)->toIso8601String(),
+                        'frequency' => [
+                            'unit' => 'HOUR',
+                            'value' => 1,
+                            'repeats' => 0,
+                        ],
+                    ],
+                ],
+            ];
+
+            $response = $this->callAbdmApi('POST', '/v0.5/consent-requests/init', $payload, [
+                'X-CM-ID' => 'sbx',
+            ]);
+
+            AbdmConsent::create([
+                'clinic_id' => $clinic->id,
+                'patient_id' => $patient->id,
+                'request_id' => $requestId,
+                'consent_id' => null,
+                'purpose' => $purpose,
+                'hi_types' => json_encode($hiTypes),
+                'status' => 'REQUESTED',
+                'valid_from' => now()->subYears(5),
+                'valid_to' => now(),
+                'expire_at' => now()->addDays(30),
+            ]);
+
+            Log::info('AbdmService.requestConsent: Sent', ['request_id' => $requestId]);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'status' => 'REQUESTED',
+            ];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.requestConsent: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 
     /**
-     * Get HI Types (Health Information Types)
+     * Fetch health records after consent is granted (HIU pull)
+     */
+    public function fetchHealthRecords(string $consentId): array
+    {
+        Log::info('AbdmService.fetchHealthRecords', ['consentId' => $consentId]);
+
+        try {
+            $consent = AbdmConsent::where('consent_id', $consentId)
+                ->where('status', 'GRANTED')
+                ->firstOrFail();
+
+            $requestId = Str::uuid()->toString();
+
+            $response = $this->callAbdmApi('POST', '/v0.5/health-information/cm/request', [
+                'requestId' => $requestId,
+                'timestamp' => now()->toIso8601String(),
+                'hiRequest' => [
+                    'consent' => [
+                        'id' => $consentId,
+                    ],
+                    'dateRange' => [
+                        'from' => $consent->valid_from->toIso8601String(),
+                        'to' => $consent->valid_to->toIso8601String(),
+                    ],
+                    'dataPushUrl' => config('app.url') . '/api/v1/abdm/callback/health-info',
+                ],
+            ], ['X-CM-ID' => 'sbx']);
+
+            return ['success' => true, 'request_id' => $requestId, 'data' => $response];
+        } catch (\Exception $e) {
+            Log::error('AbdmService.fetchHealthRecords: Failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Make an authenticated API call to ABDM
+     */
+    private function callAbdmApi(string $method, string $endpoint, array $data = [], array $headers = []): array
+    {
+        $token = $this->accessToken ?? $this->getAccessToken();
+
+        $defaultHeaders = [
+            'Authorization' => "Bearer {$token}",
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+
+        $mergedHeaders = array_merge($defaultHeaders, $headers);
+
+        $url = $this->baseUrl . $endpoint;
+
+        Log::debug('AbdmService.callAbdmApi', [
+            'method' => $method,
+            'url' => $url,
+        ]);
+
+        $response = match (strtoupper($method)) {
+            'POST' => Http::withHeaders($mergedHeaders)->post($url, $data),
+            'GET' => Http::withHeaders($mergedHeaders)->get($url, $data),
+            'PUT' => Http::withHeaders($mergedHeaders)->put($url, $data),
+            default => throw new \InvalidArgumentException("Unsupported HTTP method: {$method}"),
+        };
+
+        if ($response->successful()) {
+            return $response->json() ?? [];
+        }
+
+        $errorBody = $response->json();
+        $errorMessage = $errorBody['error']['message']
+            ?? $errorBody['message']
+            ?? "ABDM API error: HTTP {$response->status()}";
+
+        Log::error('AbdmService.callAbdmApi: API error', [
+            'status' => $response->status(),
+            'body' => $errorBody,
+            'endpoint' => $endpoint,
+        ]);
+
+        throw new \RuntimeException($errorMessage);
+    }
+
+    /**
+     * Encrypt data with ABDM's public key (RSA/OAEP)
+     */
+    private function encryptWithPublicKey(string $data): string
+    {
+        $publicKeyPath = config('services.abdm.public_key_path');
+
+        if ($publicKeyPath && file_exists($publicKeyPath)) {
+            $publicKey = openssl_pkey_get_public(file_get_contents($publicKeyPath));
+            if ($publicKey) {
+                openssl_public_encrypt($data, $encrypted, $publicKey, OPENSSL_PKCS1_OAEP_PADDING);
+                return base64_encode($encrypted);
+            }
+        }
+
+        // Fallback: base64 encode (for sandbox/testing)
+        Log::warning('AbdmService.encryptWithPublicKey: Using base64 fallback (no RSA key configured)');
+        return base64_encode($data);
+    }
+
+    /**
+     * Get Health Information Types for UI display
      */
     public static function getHiTypes(): array
     {
