@@ -29,6 +29,9 @@ use App\Http\Controllers\Web\ComplianceWebController;
 use App\Http\Controllers\Web\AbdmHiuController;
 use App\Http\Controllers\Web\AppShellController;
 use App\Http\Controllers\Web\SubscriptionController;
+use App\Http\Controllers\Web\IpdController;
+use App\Http\Controllers\Web\PharmacyController;
+use App\Http\Controllers\Web\LabController;
 
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -379,6 +382,47 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
         Route::post('/subscription', [SubscriptionController::class, 'create'])->name('subscription.create');
         Route::delete('/subscription/{subscription}', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // IPD MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('ipd')->name('ipd.')->group(function () {
+        Route::get('/', [IpdController::class, 'index'])->name('index');
+        Route::get('/bed-map', [IpdController::class, 'bedMap'])->name('bed-map');
+        Route::get('/admit', [IpdController::class, 'create'])->name('create');
+        Route::post('/admit', [IpdController::class, 'store'])->name('store');
+        Route::get('/{admission}', [IpdController::class, 'show'])->name('show');
+        Route::post('/{admission}/discharge', [IpdController::class, 'discharge'])->name('discharge');
+        Route::post('/{admission}/vitals', [IpdController::class, 'recordVitals'])->name('vitals.store');
+        Route::post('/{admission}/progress-notes', [IpdController::class, 'addProgressNote'])->name('progress-notes.store');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHARMACY MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
+        Route::get('/', [PharmacyController::class, 'index'])->name('index');
+        Route::get('/inventory', [PharmacyController::class, 'inventory'])->name('inventory');
+        Route::post('/items', [PharmacyController::class, 'addItem'])->name('items.store');
+        Route::post('/stock-in', [PharmacyController::class, 'stockIn'])->name('stock.in');
+        Route::get('/dispense', [PharmacyController::class, 'dispensingForm'])->name('dispense.form');
+        Route::post('/dispense', [PharmacyController::class, 'dispense'])->name('dispense');
+        Route::get('/history', [PharmacyController::class, 'dispensingHistory'])->name('history');
+        Route::get('/reports', [PharmacyController::class, 'stockReport'])->name('reports');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // LAB MANAGEMENT (Internal LIS)
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('laboratory')->name('laboratory.')->group(function () {
+        Route::get('/', [LabController::class, 'dashboard'])->name('index');
+        Route::get('/catalog', [LabController::class, 'catalog'])->name('catalog');
+        Route::post('/catalog', [LabController::class, 'storeTest'])->name('catalog.store');
+        Route::get('/orders', [LabController::class, 'orders'])->name('orders');
+        Route::post('/orders', [LabController::class, 'storeOrder'])->name('orders.store');
+        Route::get('/orders/{orderId}/results', [LabController::class, 'resultEntry'])->name('result-entry');
+        Route::post('/orders/{orderId}/results', [LabController::class, 'saveResult'])->name('save-result');
     });
 
     // ═══════════════════════════════════════════════════════════════════════
