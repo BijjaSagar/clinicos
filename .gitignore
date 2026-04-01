@@ -58,3 +58,8 @@ coverage/
 Archive.zip
 backend.zip
 *.zip
+
+# Local PDF generator venv (scripts/generate_docs_pdf.py)
+scripts/.venv_docs/
+# Downloaded by scripts/generate_docs_pdf.py (DejaVu OFL)
+scripts/fonts/NotoSans-Regular.ttf
