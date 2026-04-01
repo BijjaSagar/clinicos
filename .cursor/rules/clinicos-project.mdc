@@ -168,6 +168,7 @@ ClinicOS (क्लिनिक ओएस) is a cloud-based SaaS platform for In
 4. Performance optimization and security audit
 5. Connect frontend to actual backend APIs
 6. Add real-time features (WebSocket for queue updates)
+7. **Longer-term product line:** Hospital HIMS tier (~50+ licensed beds via super admin), full LIS, IPD, pharmacy; India GA first, then US/Malaysia-style localization packs (see `FEATURE_STATUS.md` roadmap section)
 
 ## Key Business Rules
 - Invoice numbers: CLNXXX-YYYY-NNNN format

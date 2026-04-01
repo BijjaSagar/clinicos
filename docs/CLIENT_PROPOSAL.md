@@ -187,6 +187,20 @@ Based on your clinic size, we recommend:
 
 ---
 
+## Future scope: hospitals, full lab, pharmacy (roadmap)
+
+For **multi-specialty hospitals** and **in-house diagnostics**, ClinicOS is planned to add:
+
+- **Hospital / HIMS tier** with **IPD** (admission, bed management, ward activity, discharge) and **hospital-grade OPD** (multi-department flows).
+- **Full laboratory (LIS)** — sample workflow, QC, and results—not only external lab partner links.
+- **Pharmacy** — central and satellite dispensing, inventory, purchase, linked to EMR and wards.
+
+**Bed capacity** is managed as a **licensed limit** set in **platform super admin** (typical minimum **~50 beds** for the hospital offering; higher counts supported per contract). **International rollout** (e.g. **US**, **Malaysia**) will reuse the same product with **country packs** after India is production-stable. Custom healthcare software benchmarks (including firms such as [Thinkitive](https://www.thinkitive.com/) in healthcare engineering) inform expected integration depth; ClinicOS pursues that as a **single product line**, not one-off projects.
+
+If your organisation is clinic-only today, you can adopt now and **grow into** the hospital modules when released—no separate “second system” required by design.
+
+---
+
 ## ABDM Compliance
 
 ClinicOS is built to the **Ayushman Bharat Digital Mission (ABDM)** specification:

@@ -1,7 +1,7 @@
 # ClinicOS Feature Status
 
-> **Last Updated:** March 27, 2026 (Code-verified refresh)  
-> **Version:** 1.3  
+> **Last Updated:** April 1, 2026  
+> **Version:** 1.4  
 > **Reference:** ClinicOS_Blueprint.docx
 
 ---
@@ -9,6 +9,8 @@
 ## Overview
 
 This document tracks the implementation status of ClinicOS features against the product blueprint. ClinicOS is a specialty-first EMR SaaS for Indian clinics covering Dermatology, Physiotherapy, Dental, Ophthalmology, Orthopaedics, ENT, and Gynaecology.
+
+**Product evolution:** The same platform is planned to grow into a **full HIMS (Hospital Information Management System)** tier for **hospitals (from ~50 beds upward)** with **super-admin–configurable licensed bed count**, plus **in-house lab (LIS)**, **IPD**, **hospital OPD**, and **pharmacy** modules. **India remains the first GA market** (GST, ABDM, Indian drug DB, UPI/Razorpay); **US, Malaysia, and other regions** follow via **localization packs** (billing codes, privacy/compliance hooks, language, currency)—not a separate codebase. Custom healthcare engineering firms such as [Thinkitive](https://www.thinkitive.com/) illustrate the market for deep EHR/HIMS and interoperability work; ClinicOS pursues a productized path with the same clinical depth goals.
 
 ---
 
@@ -38,6 +40,12 @@ This document tracks the implementation status of ClinicOS features against the 
 | Multi-location support | ⚡ | `MultiLocationController` + settings view + migration + location analytics endpoint | Appointment creation UI location picker + cross-location reporting |
 | Custom EMR no-code builder | ⚡ | `CustomEmrBuilderController` + builder UI + template CRUD | Tight integration into routine visit workflow |
 | Mobile app + ABDM M3 + telemetry/NABH/referrals | ⚡ | Patient app API scaffold exists; HIU M3 UI + DB scaffold; referrals/wearables/NABH checklist pages added | Flutter app + live HIU gateway |
+| **Hospital / HIMS tier (50+ beds, scalable)** | ❌ | Roadmap — facility profile + bed licensing model to be designed | Super admin assigns **bed count** (floor at ~50 for hospital SKU); ADT, ward/room/bed master, IPD charting |
+| **IPD (inpatient)** | ❌ | Roadmap | Admission/discharge, bed board, ward rounds, nursing notes, IPD billing hooks, OT handoff (later phase) |
+| **Hospital OPD (multi-department)** | ⚡ | Clinic OPD/appointments exist | Department-wise queues, consultant rosters, hospital-grade billing split, casualty/triage (roadmap) |
+| **Pharmacy / dispensary** | ❌ | Roadmap | OP/IP dispensing, stock & purchase, formulary, interaction checks linked to EMR, returns & expiry |
+| **Full LIS (in-house lab management)** | ❌ | Roadmap — distinct from outbound lab **integration** | Sample collection, accessioning, QC, analyser interfaces, result entry, critical-value workflow |
+| **Global editions (US, Malaysia, etc.)** | ❌ | Roadmap post–India GA | Locale, currency, **compliance pack** (e.g. HIPAA-oriented controls for US; local regulatory placeholders for Malaysia), billing semantics—not “India-only” long term |
 
 ---
 
@@ -299,6 +307,27 @@ This document tracks the implementation status of ClinicOS features against the 
    └── ABDM M2 certification readiness + ABDM M3 planning
    └── NABH pack, referrals, and wearable ingestion as expansion tracks
 ```
+
+---
+
+## Roadmap: Hospital HIMS, LIS, Pharma & International
+
+**Principle:** Ship and harden **India clinic + chain** first; add **hospital** as a **tenant tier** (`clinic` → `hospital`) with **module flags** (LIS, IPD, Pharmacy) enabled per subscription. **Super admin** (platform) defines **maximum licensed beds** per hospital customer (minimum commercial SKU ~50 beds; no hard upper cap in product design—only license).
+
+| Module | Scope (target) |
+|--------|----------------|
+| **OPD** | Extend today’s outpatient workflows: multi-specialty queues, billing at hospital level, integration with IPD referrals. |
+| **IPD** | Admissions, transfers, discharges; bed occupancy; daily charges; nursing documentation; eMAR (later); discharge summary. |
+| **Pharmacy** | Central store + satellite counters; indent from wards; OP retail; GST (India) then tax engine hooks for other countries. |
+| **LIS** | End-to-end in-house lab: order from EMR/IPD, barcode/sample lifecycle, instrument/file interfaces, verified results back to chart. |
+| **HIMS umbrella** | Shared master data (patients, providers, departments), security/RBAC, audit, interoperability (FHIR already aligned for ABDM—reusable for other markets). |
+
+**Internationalization (after India):**
+
+- **United States:** HIPAA-oriented audit/access patterns, note templates for US coding habits (ICD-10-CM/CPT alignment in product layers), payment rails separate from Razorpay.
+- **Malaysia (example APAC):** Local language UI, currency, and MOH-oriented reporting placeholders—implemented as **config + compliance pack**, not a fork.
+
+**Reference market:** Firms like [Thinkitive](https://www.thinkitive.com/) deliver custom healthcare software, EHR, and interoperability—useful benchmark for scope and integration complexity; ClinicOS aims to **productize** comparable depth for SMB hospitals and specialty groups.
 
 ---
 

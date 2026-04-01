@@ -133,6 +133,14 @@ Stop chasing patients manually. ClinicOS sends automatically:
 
 ---
 
+## Hospital, lab, pharmacy — on the roadmap
+
+ClinicOS today is built for **Indian specialty clinics and groups**. The product roadmap extends to **hospitals** as a first-class tier: **HIMS-style** capabilities including **IPD** (admissions, bed board, ward workflows), **hospital OPD**, a **full in-house lab (LIS)** beyond partner integrations, and a **pharmacy** module (stock, dispensing, formulary). **Licensed bed count** is **configured by platform super admin** per customer (commercial entry from about **50 beds**, scalable upward).
+
+**India ships first** (GST, ABDM, Indian drugs, UPI). **Other countries** (for example **US** and **Malaysia**) are planned as **localization and compliance packs** on the same core—language, currency, regulatory and billing semantics—after the India base is GA.
+
+---
+
 ## Pricing Plans
 
 | Plan | Best For | Price |

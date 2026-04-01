@@ -130,6 +130,16 @@ Built on 3 core principles:
 - Significantly higher ARPU (₹10,000–50,000/month per chain)
 - Goal: 50 enterprise accounts + 5,000 SMB clinics
 
+### Phase 4 — Hospital HIMS & Vertical Modules (Months 18–36)
+- **Hospital tenant tier** (not only clinics): minimum commercial SKU from **~50 licensed beds**, with **super-admin–configurable bed count** per customer (no arbitrary product ceiling—billing follows license).
+- **OPD at hospital scale:** multi-department queues, consultant rosters, tighter handoff to inpatient and billing.
+- **IPD:** admissions, transfers, discharges, **bed board**, ward activity, nursing documentation, IPD charges, discharge summary.
+- **Full LIS:** in-house lab operations (samples, QC, instruments, verified results)—beyond today’s outbound lab partner integrations.
+- **Pharmacy:** inpatient/outpatient dispensing, stock, purchase, formulary, returns/expiry, linked to prescriptions and wards.
+- **India first; then global:** same core codebase with **localization packs** for **US** (e.g. HIPAA-oriented controls, US coding/billing patterns) and markets such as **Malaysia** (language, currency, local reporting hooks)—after India GA.
+
+*Market reference:* Custom healthcare software and EHR vendors (e.g. engineering partners like [Thinkitive](https://www.thinkitive.com/) in custom healthcare / interoperability) show the depth of workflow and integration hospital clients expect; ClinicOS targets that depth in a **productized** multi-tenant platform.
+
 ### Distribution Channels
 - **Direct / self-serve** — online signup, 14-day trial, credit card
 - **Medical reps / channel partners** — commission-based sales in Tier 2/3 cities
@@ -148,8 +158,9 @@ Built on 3 core principles:
 | **Healthplix** | General practice focus, limited specialty depth |
 | **DrChrono / Epic** | US-built, no ABDM, no GST, no Indian drug database |
 | **HealthDesk** | Limited automation, no WhatsApp, no specialty templates |
+| **Legacy HIMS vendors** | Often on-prem, long deployments; weak specialty UX | ClinicOS cloud-native, specialty-first, then **hospital tier** with LIS/IPD/Pharma |
 
-**ClinicOS moat:** ABDM compliance + WhatsApp automation + specialty depth + Indian drug database + Razorpay integration — all in one platform that took 18+ months to build.
+**ClinicOS moat (today):** ABDM alignment + WhatsApp automation + specialty depth + Indian drug database + Razorpay — one platform hardened for India. **Tomorrow:** same stack scales to **hospital HIMS** and **international packs** without forking the product.
 
 ---
 
