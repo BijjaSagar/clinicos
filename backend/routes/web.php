@@ -32,6 +32,8 @@ use App\Http\Controllers\Web\SubscriptionController;
 use App\Http\Controllers\Web\IpdController;
 use App\Http\Controllers\Web\PharmacyController;
 use App\Http\Controllers\Web\LabController;
+use App\Http\Controllers\Web\OpdController;
+use App\Http\Controllers\Web\HospitalSettingsController;
 
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -423,6 +425,24 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/orders', [LabController::class, 'storeOrder'])->name('orders.store');
         Route::get('/orders/{orderId}/results', [LabController::class, 'resultEntry'])->name('result-entry');
         Route::post('/orders/{orderId}/results', [LabController::class, 'saveResult'])->name('save-result');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OPD QUEUE MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('opd')->name('opd.')->group(function () {
+        Route::get('/queue', [OpdController::class, 'queue'])->name('queue');
+        Route::post('/walkin', [OpdController::class, 'walkin'])->name('walkin');
+        Route::post('/{appointment}/status', [OpdController::class, 'updateStatus'])->name('status');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HOSPITAL SETTINGS
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('hospital-settings')->name('hospital-settings.')->middleware('role:owner')->group(function () {
+        Route::get('/', [HospitalSettingsController::class, 'index'])->name('index');
+        Route::post('/', [HospitalSettingsController::class, 'update'])->name('update');
+        Route::post('/wards', [HospitalSettingsController::class, 'storeWard'])->name('ward.store');
     });
 
     // ═══════════════════════════════════════════════════════════════════════
