@@ -18,6 +18,9 @@ class Clinic extends Model
         'name',
         'slug',
         'plan',
+        'facility_type',
+        'licensed_beds',
+        'hims_features',
         'specialties',
         'owner_user_id',
         'gstin',
@@ -48,6 +51,7 @@ class Clinic extends Model
 
     protected $casts = [
         'specialties' => 'array',
+        'hims_features' => 'array',
         'settings' => 'array',
         'is_active' => 'boolean',
         'abdm_m1_live' => 'boolean',
@@ -167,5 +171,44 @@ class Clinic extends Model
             return false;
         }
         return $this->trial_ends_at->isFuture();
+    }
+
+    /**
+     * Hospital-capable facility types (HIMS expansion).
+     */
+    public function isHospitalFacility(): bool
+    {
+        $t = $this->facility_type ?? 'clinic';
+        Log::debug('Clinic::isHospitalFacility', ['clinic_id' => $this->id, 'facility_type' => $t]);
+
+        return in_array($t, ['hospital', 'multispecialty_hospital'], true);
+    }
+
+    /**
+     * Whether a planned HIMS feature is enabled for this tenant (see config/hims_expansion.php).
+     */
+    public function hasHimsFeature(string $feature): bool
+    {
+        $flags = $this->hims_features ?? [];
+        $enabled = !empty($flags[$feature]);
+        Log::debug('Clinic::hasHimsFeature', [
+            'clinic_id' => $this->id,
+            'feature'   => $feature,
+            'enabled'   => $enabled,
+        ]);
+
+        return $enabled;
+    }
+
+    /**
+     * All known HIMS keys false — for super admin seeding when enabling hospital tier.
+     *
+     * @return array<string, bool>
+     */
+    public static function defaultHimsFeatureMap(): array
+    {
+        $keys = array_keys(config('hims_expansion.hims_feature_keys', []));
+
+        return array_fill_keys($keys, false);
     }
 }

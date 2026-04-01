@@ -329,6 +329,8 @@ This document tracks the implementation status of ClinicOS features against the 
 
 **Reference market:** Firms like [Thinkitive](https://www.thinkitive.com/) deliver custom healthcare software, EHR, and interoperability—useful benchmark for scope and integration complexity; ClinicOS aims to **productize** comparable depth for SMB hospitals and specialty groups.
 
+**Detailed module spec (Apr 2026):** See [`docs/HIMS_EXPANSION_PLAN.md`](docs/HIMS_EXPANSION_PLAN.md) — hospital core (beds, OPD, IPD, emergency), pharmacy, full LIS, billing/MIS, nursing/MAR/vitals, dashboards. **Repository foundation:** `clinics.facility_type`, `licensed_beds`, `hims_features` (JSON) + `config/hims_expansion.php` + `Clinic::isHospitalFacility()` / `hasHimsFeature()` / `defaultHimsFeatureMap()` — toggles are ready; domain tables and UIs ship per sprint.
+
 ---
 
 ## Sprint-Ready Execution Breakdown
