@@ -28,6 +28,7 @@ use App\Http\Controllers\Web\WearableWebController;
 use App\Http\Controllers\Web\ComplianceWebController;
 use App\Http\Controllers\Web\AbdmHiuController;
 use App\Http\Controllers\Web\AppShellController;
+use App\Http\Controllers\Web\SubscriptionController;
 
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -104,6 +105,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{patient}/{visit}/scales', [EmrWebController::class, 'saveScales'])->name('save-scales');
             Route::post('/{patient}/{visit}/procedures', [EmrWebController::class, 'saveProcedures'])->name('save-procedures');
             Route::post('/{patient}/{visit}/prescription', [EmrWebController::class, 'savePrescription'])->name('save-prescription');
+            Route::post('/{patient}/{visit}/custom-fields', [EmrWebController::class, 'saveCustomFields'])->name('save-custom-fields');
         });
         
         // Drug Search API (for EMR)
@@ -371,6 +373,15 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ═══════════════════════════════════════════════════════════════════════
+    // SUBSCRIPTION MANAGEMENT - owner ONLY
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::middleware('role:owner')->group(function () {
+        Route::get('/subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
+        Route::post('/subscription', [SubscriptionController::class, 'create'])->name('subscription.create');
+        Route::delete('/subscription/{subscription}', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
     // CUSTOM EMR BUILDER - owner ONLY
     // ═══════════════════════════════════════════════════════════════════════
     Route::prefix('emr-builder')->name('emr-builder.')->middleware('role:owner')->group(function () {
@@ -405,3 +416,8 @@ Route::prefix('book')->name('public.booking.')->group(function () {
 // RAZORPAY WEBHOOK (No auth required)
 // ═══════════════════════════════════════════════════════════════════════════
 Route::post('/webhooks/razorpay', [PaymentWebController::class, 'handleWebhook'])->name('webhooks.razorpay');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RAZORPAY SUBSCRIPTION WEBHOOK (No auth required)
+// ═══════════════════════════════════════════════════════════════════════════
+Route::post('/subscription/webhook', [SubscriptionController::class, 'webhook'])->name('subscription.webhook');

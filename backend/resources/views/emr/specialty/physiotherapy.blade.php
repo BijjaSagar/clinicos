@@ -427,6 +427,261 @@
     </div>
 </div>
 
+{{-- OUTCOME MEASURES SECTION --}}
+
+{{-- FIM (Functional Independence Measure) --}}
+<div class="form-section" x-data="fimSection()">
+    <div class="form-section-header" @click="open = !open">
+        <svg style="width:18px;height:18px;color:var(--purple, #7c3aed)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>
+        </svg>
+        <h3>Outcome Measures — FIM (Functional Independence Measure)</h3>
+        <span class="toggle" x-text="open ? '−' : '+'"></span>
+    </div>
+    <div class="form-body" x-show="open" x-collapse>
+        <div style="margin-bottom:12px;padding:10px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--text3)">
+            <strong>Scoring:</strong> 1=Total Assist &nbsp;|&nbsp; 2=Maximal Assist &nbsp;|&nbsp; 3=Moderate Assist &nbsp;|&nbsp; 4=Minimal Assist &nbsp;|&nbsp; 5=Supervision &nbsp;|&nbsp; 6=Modified Independence &nbsp;|&nbsp; 7=Complete Independence &nbsp;|&nbsp; <strong>Total range: 18–126</strong>
+        </div>
+
+        {{-- Self-Care --}}
+        <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Self-Care</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+                <template x-for="item in fimData.selfCare" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1" x-text="item.label"></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateFim()">
+                            <option value="">-</option>
+                            <template x-for="n in [1,2,3,4,5,6,7]" :key="n"><option :value="n" x-text="n"></option></template>
+                        </select>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {{-- Sphincter Control --}}
+        <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Sphincter Control</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+                <template x-for="item in fimData.sphincter" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1" x-text="item.label"></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateFim()">
+                            <option value="">-</option>
+                            <template x-for="n in [1,2,3,4,5,6,7]" :key="n"><option :value="n" x-text="n"></option></template>
+                        </select>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {{-- Transfers --}}
+        <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Transfers</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+                <template x-for="item in fimData.transfers" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1" x-text="item.label"></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateFim()">
+                            <option value="">-</option>
+                            <template x-for="n in [1,2,3,4,5,6,7]" :key="n"><option :value="n" x-text="n"></option></template>
+                        </select>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {{-- Locomotion --}}
+        <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Locomotion</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+                <template x-for="item in fimData.locomotion" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1" x-text="item.label"></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateFim()">
+                            <option value="">-</option>
+                            <template x-for="n in [1,2,3,4,5,6,7]" :key="n"><option :value="n" x-text="n"></option></template>
+                        </select>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {{-- Communication --}}
+        <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Communication</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+                <template x-for="item in fimData.communication" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1" x-text="item.label"></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateFim()">
+                            <option value="">-</option>
+                            <template x-for="n in [1,2,3,4,5,6,7]" :key="n"><option :value="n" x-text="n"></option></template>
+                        </select>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {{-- Social Cognition --}}
+        <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Social Cognition</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+                <template x-for="item in fimData.socialCognition" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1" x-text="item.label"></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateFim()">
+                            <option value="">-</option>
+                            <template x-for="n in [1,2,3,4,5,6,7]" :key="n"><option :value="n" x-text="n"></option></template>
+                        </select>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {{-- FIM Total --}}
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--bg);border-radius:10px;border:1.5px solid var(--border)">
+            <span style="font-size:13px;font-weight:600;color:var(--text2)">FIM Total Score</span>
+            <span style="font-size:22px;font-weight:800;color:var(--purple, #7c3aed)" x-text="fimTotal()"></span>
+            <span style="font-size:11px;color:var(--text3)">/ 126 &nbsp;(min 18)</span>
+        </div>
+
+        <input type="hidden" name="physio_fim_data" :value="JSON.stringify(fimData)">
+    </div>
+</div>
+
+{{-- Barthel Index --}}
+<div class="form-section" x-data="barthelSection()">
+    <div class="form-section-header" @click="open = !open">
+        <svg style="width:18px;height:18px;color:var(--teal, #0d9488)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+        </svg>
+        <h3>Outcome Measures — Barthel Index</h3>
+        <span class="toggle" x-text="open ? '−' : '+'"></span>
+    </div>
+    <div class="form-body" x-show="open" x-collapse>
+        <div style="margin-bottom:12px;padding:10px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--text3)">
+            <strong>Interpretation:</strong> 0–20 = Total dependence &nbsp;|&nbsp; 21–60 = Severe dependence &nbsp;|&nbsp; 61–90 = Moderate dependence &nbsp;|&nbsp; 91–99 = Slight dependence &nbsp;|&nbsp; 100 = Full independence
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:8px;margin-bottom:16px">
+            <template x-for="item in barthelData" :key="item.key">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                    <span style="font-size:12px;flex:1" x-text="item.label"></span>
+                    <select class="field-select" style="width:60px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateBarthel()">
+                        <option value="">-</option>
+                        <template x-for="opt in item.options" :key="opt"><option :value="opt" x-text="opt"></option></template>
+                    </select>
+                </div>
+            </template>
+        </div>
+
+        {{-- Barthel Total --}}
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--bg);border-radius:10px;border:1.5px solid var(--border)">
+            <span style="font-size:13px;font-weight:600;color:var(--text2)">Barthel Total</span>
+            <span style="font-size:22px;font-weight:800;color:var(--teal, #0d9488)" x-text="barthelTotal()"></span>
+            <span style="font-size:11px;color:var(--text3)">/ 100</span>
+            <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--bg2, #f1f5f9);color:var(--text2)" x-text="barthelInterpretation()"></span>
+        </div>
+
+        <input type="hidden" name="physio_barthel_data" :value="JSON.stringify(barthelData)">
+    </div>
+</div>
+
+{{-- WOMAC --}}
+<div class="form-section" x-data="womacSection()">
+    <div class="form-section-header" @click="open = !open">
+        <svg style="width:18px;height:18px;color:var(--orange, #ea580c)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3"/>
+        </svg>
+        <h3>Outcome Measures — WOMAC (Knee / Hip OA)</h3>
+        <span class="toggle" x-text="open ? '−' : '+'"></span>
+    </div>
+    <div class="form-body" x-show="open" x-collapse>
+        <div style="margin-bottom:12px;padding:10px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--text3)">
+            <strong>Scoring per item:</strong> 0=None &nbsp;|&nbsp; 1=Mild &nbsp;|&nbsp; 2=Moderate &nbsp;|&nbsp; 3=Severe &nbsp;|&nbsp; 4=Extreme &nbsp;|&nbsp; <strong>Total range: 0–96</strong> (Pain 0–20 | Stiffness 0–8 | Function 0–68)
+        </div>
+
+        {{-- Pain Subscale A1-A5 --}}
+        <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">
+                Pain Subscale &nbsp;<span style="font-weight:400;font-size:11px;color:var(--text3)">(A1–A5, max 20)</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:8px">
+                <template x-for="item in womacData.pain" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1"><span style="font-weight:600;color:var(--text3);margin-right:4px" x-text="item.key + ':'"></span><span x-text="item.label"></span></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateWomac()">
+                            <option value="">-</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+                </template>
+            </div>
+            <div style="margin-top:6px;font-size:12px;color:var(--text3)">Pain subscale total: <strong x-text="womacSubscale('pain') + ' / 20'"></strong></div>
+        </div>
+
+        {{-- Stiffness Subscale B1-B2 --}}
+        <div style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">
+                Stiffness Subscale &nbsp;<span style="font-weight:400;font-size:11px;color:var(--text3)">(B1–B2, max 8)</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:8px">
+                <template x-for="item in womacData.stiffness" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1"><span style="font-weight:600;color:var(--text3);margin-right:4px" x-text="item.key + ':'"></span><span x-text="item.label"></span></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateWomac()">
+                            <option value="">-</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+                </template>
+            </div>
+            <div style="margin-top:6px;font-size:12px;color:var(--text3)">Stiffness subscale total: <strong x-text="womacSubscale('stiffness') + ' / 8'"></strong></div>
+        </div>
+
+        {{-- Physical Function Subscale C1-C17 --}}
+        <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">
+                Physical Function Subscale &nbsp;<span style="font-weight:400;font-size:11px;color:var(--text3)">(C1–C17, max 68)</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:8px">
+                <template x-for="item in womacData.function" :key="item.key">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:8px;gap:8px">
+                        <span style="font-size:12px;flex:1"><span style="font-weight:600;color:var(--text3);margin-right:4px" x-text="item.key + ':'"></span><span x-text="item.label"></span></span>
+                        <select class="field-select" style="width:55px;padding:5px 6px;font-size:13px;font-weight:700;text-align:center" x-model.number="item.score" @change="updateWomac()">
+                            <option value="">-</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+                </template>
+            </div>
+            <div style="margin-top:6px;font-size:12px;color:var(--text3)">Physical function subscale total: <strong x-text="womacSubscale('function') + ' / 68'"></strong></div>
+        </div>
+
+        {{-- WOMAC Total --}}
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--bg);border-radius:10px;border:1.5px solid var(--border)">
+            <span style="font-size:13px;font-weight:600;color:var(--text2)">WOMAC Total</span>
+            <span style="font-size:22px;font-weight:800;color:var(--orange, #ea580c)" x-text="womacTotal()"></span>
+            <span style="font-size:11px;color:var(--text3)">/ 96</span>
+        </div>
+
+        <input type="hidden" name="physio_womac_data" :value="JSON.stringify(womacData)">
+    </div>
+</div>
+
 @push('scripts')
 <script>
 console.log('Physiotherapy EMR specialty template loaded');
@@ -527,6 +782,205 @@ function treatmentSection() {
         updateTreatment() {
             if (window.triggerAutoSave) window.triggerAutoSave();
         }
+    };
+}
+
+// FIM Section Component
+function fimSection() {
+    const saved = @json($visit->getStructuredField('physio.fim') ?? null);
+
+    const defaults = {
+        selfCare: [
+            { key: 'sc1', label: 'Eating',        score: '' },
+            { key: 'sc2', label: 'Grooming',      score: '' },
+            { key: 'sc3', label: 'Bathing',       score: '' },
+            { key: 'sc4', label: 'Dressing – Upper', score: '' },
+            { key: 'sc5', label: 'Dressing – Lower', score: '' },
+            { key: 'sc6', label: 'Toileting',     score: '' },
+        ],
+        sphincter: [
+            { key: 'sp1', label: 'Bladder Management', score: '' },
+            { key: 'sp2', label: 'Bowel Management',   score: '' },
+        ],
+        transfers: [
+            { key: 'tr1', label: 'Bed / Chair / Wheelchair', score: '' },
+            { key: 'tr2', label: 'Toilet',                   score: '' },
+            { key: 'tr3', label: 'Tub / Shower',             score: '' },
+        ],
+        locomotion: [
+            { key: 'lo1', label: 'Walk / Wheelchair', score: '' },
+            { key: 'lo2', label: 'Stairs',            score: '' },
+        ],
+        communication: [
+            { key: 'co1', label: 'Comprehension', score: '' },
+            { key: 'co2', label: 'Expression',    score: '' },
+        ],
+        socialCognition: [
+            { key: 'sg1', label: 'Social Interaction', score: '' },
+            { key: 'sg2', label: 'Problem Solving',    score: '' },
+            { key: 'sg3', label: 'Memory',             score: '' },
+        ],
+    };
+
+    // Merge saved scores into defaults if available
+    function mergeGroup(defGroup, savedGroup) {
+        if (!savedGroup) return defGroup;
+        return defGroup.map(item => {
+            const found = savedGroup.find(s => s.key === item.key);
+            return found ? { ...item, score: found.score } : item;
+        });
+    }
+
+    const fimData = saved ? {
+        selfCare:       mergeGroup(defaults.selfCare,       saved.selfCare),
+        sphincter:      mergeGroup(defaults.sphincter,      saved.sphincter),
+        transfers:      mergeGroup(defaults.transfers,      saved.transfers),
+        locomotion:     mergeGroup(defaults.locomotion,     saved.locomotion),
+        communication:  mergeGroup(defaults.communication,  saved.communication),
+        socialCognition:mergeGroup(defaults.socialCognition,saved.socialCognition),
+    } : defaults;
+
+    return {
+        open: false,
+        fimData,
+
+        allItems() {
+            return [
+                ...this.fimData.selfCare,
+                ...this.fimData.sphincter,
+                ...this.fimData.transfers,
+                ...this.fimData.locomotion,
+                ...this.fimData.communication,
+                ...this.fimData.socialCognition,
+            ];
+        },
+
+        fimTotal() {
+            return this.allItems().reduce((sum, item) => sum + (Number(item.score) || 0), 0);
+        },
+
+        updateFim() {
+            if (window.triggerAutoSave) window.triggerAutoSave();
+        },
+    };
+}
+
+// Barthel Index Section Component
+function barthelSection() {
+    const savedArr = @json($visit->getStructuredField('physio.barthel') ?? null);
+
+    const defaults = [
+        { key: 'b_feeding',   label: 'Feeding',    score: '', options: [0, 5, 10] },
+        { key: 'b_bathing',   label: 'Bathing',    score: '', options: [0, 5] },
+        { key: 'b_grooming',  label: 'Grooming',   score: '', options: [0, 5] },
+        { key: 'b_dressing',  label: 'Dressing',   score: '', options: [0, 5, 10] },
+        { key: 'b_bowels',    label: 'Bowels',     score: '', options: [0, 5, 10] },
+        { key: 'b_bladder',   label: 'Bladder',    score: '', options: [0, 5, 10] },
+        { key: 'b_toilet',    label: 'Toilet Use', score: '', options: [0, 5, 10] },
+        { key: 'b_transfers', label: 'Transfers',  score: '', options: [0, 5, 10, 15] },
+        { key: 'b_mobility',  label: 'Mobility',   score: '', options: [0, 5, 10, 15] },
+        { key: 'b_stairs',    label: 'Stairs',     score: '', options: [0, 5, 10] },
+    ];
+
+    const barthelData = savedArr
+        ? defaults.map(item => {
+            const found = savedArr.find(s => s.key === item.key);
+            return found ? { ...item, score: found.score } : item;
+          })
+        : defaults;
+
+    return {
+        open: false,
+        barthelData,
+
+        barthelTotal() {
+            return this.barthelData.reduce((sum, item) => sum + (Number(item.score) || 0), 0);
+        },
+
+        barthelInterpretation() {
+            const t = this.barthelTotal();
+            if (t <= 20)  return 'Total dependence';
+            if (t <= 60)  return 'Severe dependence';
+            if (t <= 90)  return 'Moderate dependence';
+            if (t <= 99)  return 'Slight dependence';
+            return 'Full independence';
+        },
+
+        updateBarthel() {
+            if (window.triggerAutoSave) window.triggerAutoSave();
+        },
+    };
+}
+
+// WOMAC Section Component
+function womacSection() {
+    const saved = @json($visit->getStructuredField('physio.womac') ?? null);
+
+    const defaults = {
+        pain: [
+            { key: 'A1', label: 'Walking on a flat surface', score: '' },
+            { key: 'A2', label: 'Going up or down stairs',   score: '' },
+            { key: 'A3', label: 'At night while in bed',     score: '' },
+            { key: 'A4', label: 'Sitting or lying',          score: '' },
+            { key: 'A5', label: 'Standing upright',          score: '' },
+        ],
+        stiffness: [
+            { key: 'B1', label: 'Morning stiffness after waking',          score: '' },
+            { key: 'B2', label: 'Stiffness after sitting / lying / resting', score: '' },
+        ],
+        function: [
+            { key: 'C1',  label: 'Descending stairs',               score: '' },
+            { key: 'C2',  label: 'Ascending stairs',                score: '' },
+            { key: 'C3',  label: 'Rising from sitting',             score: '' },
+            { key: 'C4',  label: 'Standing',                        score: '' },
+            { key: 'C5',  label: 'Bending to floor / picking up object', score: '' },
+            { key: 'C6',  label: 'Walking on flat surface',         score: '' },
+            { key: 'C7',  label: 'Getting in / out of car',         score: '' },
+            { key: 'C8',  label: 'Going shopping',                  score: '' },
+            { key: 'C9',  label: 'Putting on socks / stockings',    score: '' },
+            { key: 'C10', label: 'Rising from bed',                 score: '' },
+            { key: 'C11', label: 'Taking off socks / stockings',    score: '' },
+            { key: 'C12', label: 'Lying in bed',                    score: '' },
+            { key: 'C13', label: 'Getting in / out of bath',        score: '' },
+            { key: 'C14', label: 'Sitting',                         score: '' },
+            { key: 'C15', label: 'Getting on / off toilet',         score: '' },
+            { key: 'C16', label: 'Heavy domestic duties',           score: '' },
+            { key: 'C17', label: 'Light domestic duties',           score: '' },
+        ],
+    };
+
+    function mergeGroup(defGroup, savedGroup) {
+        if (!savedGroup) return defGroup;
+        return defGroup.map(item => {
+            const found = savedGroup.find(s => s.key === item.key);
+            return found ? { ...item, score: found.score } : item;
+        });
+    }
+
+    const womacData = saved ? {
+        pain:      mergeGroup(defaults.pain,      saved.pain),
+        stiffness: mergeGroup(defaults.stiffness, saved.stiffness),
+        function:  mergeGroup(defaults.function,  saved.function),
+    } : defaults;
+
+    return {
+        open: false,
+        womacData,
+
+        womacSubscale(subscale) {
+            return (this.womacData[subscale] || [])
+                .reduce((sum, item) => sum + (Number(item.score) || 0), 0);
+        },
+
+        womacTotal() {
+            return this.womacSubscale('pain')
+                 + this.womacSubscale('stiffness')
+                 + this.womacSubscale('function');
+        },
+
+        updateWomac() {
+            if (window.triggerAutoSave) window.triggerAutoSave();
+        },
     };
 }
 

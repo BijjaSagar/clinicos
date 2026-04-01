@@ -211,6 +211,9 @@
     <div class="emr-tab" :class="{ 'active': activeTab === 'progress' }" @click="activeTab = 'progress'">📈 Progress</div>
     <div class="emr-tab" :class="{ 'active': activeTab === 'investigations' }" @click="activeTab = 'investigations'">🔬 Investigations @if(($labOrders ?? collect())->count() > 0)({{ $labOrders->count() }})@endif</div>
     <div class="emr-tab" :class="{ 'active': activeTab === 'billing' }" @click="activeTab = 'billing'">🧾 Billing @if($visit->invoice)✓@endif</div>
+    @if(($customTemplates ?? collect())->count() > 0)
+    <div class="emr-tab" :class="{ 'active': activeTab === 'custom' }" @click="activeTab = 'custom'">Custom Fields</div>
+    @endif
   </div>
 
   {{-- EMR BODY --}}
@@ -1199,6 +1202,151 @@
           </div>
         </div>
       </div>
+
+      {{-- ══════ CUSTOM FIELDS TAB ══════ --}}
+      @if(($customTemplates ?? collect())->count() > 0)
+      <div x-show="activeTab === 'custom'" x-cloak
+           x-data="{
+             customValues: {},
+             init() {
+               // Pre-populate from saved structured_data.custom
+               const saved = @json(($visit->structured_data['custom'] ?? []));
+               if (saved && typeof saved === 'object') {
+                 this.customValues = saved;
+               }
+             },
+             getField(templateId, fieldName) {
+               return (this.customValues[templateId] ?? {})[fieldName] ?? '';
+             },
+             setField(templateId, fieldName, value) {
+               if (!this.customValues[templateId]) {
+                 this.customValues[templateId] = {};
+               }
+               this.customValues[templateId][fieldName] = value;
+               this.$nextTick(() => {
+                 const hidden = document.getElementById('custom_field_data_input');
+                 if (hidden) hidden.value = JSON.stringify(this.customValues);
+               });
+             },
+             async saveCustomFields() {
+               const url = '{{ route('emr.save-custom-fields', [$patient, $visit]) }}';
+               const payload = { custom_field_data: JSON.stringify(this.customValues) };
+               try {
+                 const res = await fetch(url, {
+                   method: 'POST',
+                   headers: {
+                     'Content-Type': 'application/json',
+                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                     'Accept': 'application/json'
+                   },
+                   body: JSON.stringify(payload)
+                 });
+                 const data = await res.json();
+                 if (data.success) {
+                   alert('Custom fields saved!');
+                 } else {
+                   alert('Save failed: ' + (data.error || 'Unknown error'));
+                 }
+               } catch (e) {
+                 alert('Save failed: ' + e.message);
+               }
+             }
+           }">
+
+        <input type="hidden" id="custom_field_data_input" name="custom_field_data" :value="JSON.stringify(customValues)">
+
+        @foreach($customTemplates as $template)
+        @php
+          $fields = is_string($template->fields ?? null)
+            ? json_decode($template->fields, true)
+            : (array)($template->fields ?? []);
+        @endphp
+        <div class="form-section" style="margin-bottom:16px">
+          <div class="form-section-header" x-data="{open:true}" @click="open=!open">
+            <h3>{{ $template->name }}</h3>
+            @if(!empty($template->description))
+            <span style="font-size:12px;color:var(--text3);margin-left:8px">{{ $template->description }}</span>
+            @endif
+            <span class="toggle" x-text="open ? '−' : '+'"></span>
+          </div>
+          <div class="form-body" x-show="open">
+            @if(!empty($fields))
+            <div class="form-row" style="grid-template-columns: repeat(auto-fill, minmax(220px,1fr))">
+              @foreach($fields as $field)
+              @php
+                $fieldName = $field['name'] ?? $field['key'] ?? 'field_' . $loop->index;
+                $fieldLabel = $field['label'] ?? ucwords(str_replace('_', ' ', $fieldName));
+                $fieldType = $field['type'] ?? 'text';
+                $templateId = (string)$template->id;
+              @endphp
+              <div class="field-group">
+                <div class="field-label">{{ $fieldLabel }}</div>
+                @if($fieldType === 'textarea')
+                  <textarea class="field-textarea" style="min-height:60px"
+                    x-bind:value="getField('{{ $templateId }}', '{{ $fieldName }}')"
+                    @input="setField('{{ $templateId }}', '{{ $fieldName }}', $event.target.value)"
+                    placeholder="{{ $field['placeholder'] ?? '' }}"></textarea>
+                @elseif($fieldType === 'select')
+                  <select class="field-select"
+                    x-bind:value="getField('{{ $templateId }}', '{{ $fieldName }}')"
+                    @change="setField('{{ $templateId }}', '{{ $fieldName }}', $event.target.value)">
+                    <option value="">Select…</option>
+                    @foreach($field['options'] ?? [] as $opt)
+                    <option value="{{ is_array($opt) ? ($opt['value'] ?? $opt['label'] ?? $opt) : $opt }}">
+                      {{ is_array($opt) ? ($opt['label'] ?? $opt['value'] ?? $opt) : $opt }}
+                    </option>
+                    @endforeach
+                  </select>
+                @elseif($fieldType === 'radio')
+                  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+                    @foreach($field['options'] ?? [] as $opt)
+                    @php $optVal = is_array($opt) ? ($opt['value'] ?? $opt['label'] ?? $opt) : $opt; @endphp
+                    <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
+                      <input type="radio"
+                        :checked="getField('{{ $templateId }}', '{{ $fieldName }}') === '{{ $optVal }}'"
+                        @change="setField('{{ $templateId }}', '{{ $fieldName }}', '{{ $optVal }}')"
+                        value="{{ $optVal }}">
+                      {{ is_array($opt) ? ($opt['label'] ?? $optVal) : $opt }}
+                    </label>
+                    @endforeach
+                  </div>
+                @elseif($fieldType === 'number')
+                  <input type="number" class="field-input"
+                    :value="getField('{{ $templateId }}', '{{ $fieldName }}')"
+                    @input="setField('{{ $templateId }}', '{{ $fieldName }}', $event.target.value)"
+                    placeholder="{{ $field['placeholder'] ?? '' }}"
+                    min="{{ $field['min'] ?? '' }}" max="{{ $field['max'] ?? '' }}">
+                @elseif($fieldType === 'checkbox')
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:4px;cursor:pointer">
+                    <input type="checkbox"
+                      :checked="getField('{{ $templateId }}', '{{ $fieldName }}') == '1' || getField('{{ $templateId }}', '{{ $fieldName }}') === true"
+                      @change="setField('{{ $templateId }}', '{{ $fieldName }}', $event.target.checked ? '1' : '0')">
+                    {{ $fieldLabel }}
+                  </label>
+                @else
+                  <input type="text" class="field-input"
+                    :value="getField('{{ $templateId }}', '{{ $fieldName }}')"
+                    @input="setField('{{ $templateId }}', '{{ $fieldName }}', $event.target.value)"
+                    placeholder="{{ $field['placeholder'] ?? '' }}">
+                @endif
+              </div>
+              @endforeach
+            </div>
+            @else
+            <p style="color:var(--text3);font-size:13px">No fields configured for this template.</p>
+            @endif
+          </div>
+        </div>
+        @endforeach
+
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button type="button" @click="saveCustomFields()"
+            style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--blue);color:white">
+            Save Custom Fields
+          </button>
+        </div>
+      </div>
+      @endif
 
     </div>{{-- /emr-main --}}
   </div>{{-- /emr-body --}}

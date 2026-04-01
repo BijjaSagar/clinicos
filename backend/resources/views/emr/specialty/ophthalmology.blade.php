@@ -696,6 +696,156 @@
             <input type="hidden" name="ophthal_diagnoses" :value="JSON.stringify(selectedDiagnoses)">
         </div>
     </div>
+
+    {{-- Systemic Disease Flags --}}
+    <div class="ophthal-card" style="margin-top: 16px;"
+         x-data="{
+           systemic: @json(($visit ?? null)?->getStructuredField('ophthal_systemic_data') ?? [
+             'diabetes' => false,
+             'dm_hba1c' => '',
+             'dm_duration' => '',
+             'dm_dr_grade' => '',
+             'hypertension' => false,
+             'htn_bp' => '',
+             'htn_duration' => '',
+             'htn_retino_grade' => '',
+             'thyroid' => false,
+             'glaucoma_risk' => false,
+             'glaucoma_family_hx' => false,
+             'glaucoma_disc_changes' => false,
+             'glaucoma_field_defects' => false,
+             'autoimmune' => false,
+             'other_systemic' => ''
+           ]),
+           updateSystemic() {
+             if (window.triggerAutoSave) window.triggerAutoSave();
+             const hidden = document.getElementById('ophthal_systemic_data_input');
+             if (hidden) hidden.value = JSON.stringify(this.systemic);
+           }
+         }">
+        <div class="ophthal-header" @click="sections.systemic = !sections.systemic">
+            <span style="font-size: 18px;">🏥</span>
+            <h3>Systemic Disease Flags</h3>
+            <span style="margin-left: auto; color: #64748b;" x-text="sections.systemic ? '▼' : '▶'"></span>
+        </div>
+        <div class="ophthal-body" x-show="sections.systemic" x-collapse>
+
+            <input type="hidden" id="ophthal_systemic_data_input" name="ophthal_systemic_data"
+                   :value="JSON.stringify(systemic)">
+
+            {{-- Diabetes Mellitus --}}
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px">
+                <label style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:10px">
+                    <input type="checkbox" x-model="systemic.diabetes" @change="updateSystemic()" style="width:16px;height:16px">
+                    Diabetes Mellitus
+                </label>
+                <div x-show="systemic.diabetes" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px">
+                    <div class="field-group">
+                        <div class="eye-label">HbA1c (%)</div>
+                        <input type="number" class="field-input" step="0.1" min="0" max="20"
+                               x-model="systemic.dm_hba1c" @input="updateSystemic()" placeholder="e.g. 7.2">
+                    </div>
+                    <div class="field-group">
+                        <div class="eye-label">Duration (years)</div>
+                        <input type="number" class="field-input" min="0"
+                               x-model="systemic.dm_duration" @input="updateSystemic()" placeholder="e.g. 5">
+                    </div>
+                    <div class="field-group">
+                        <div class="eye-label">DR Grading</div>
+                        <select class="field-select" x-model="systemic.dm_dr_grade" @change="updateSystemic()">
+                            <option value="">Select grade…</option>
+                            <option value="No DR">No DR</option>
+                            <option value="Mild NPDR">Mild NPDR</option>
+                            <option value="Moderate NPDR">Moderate NPDR</option>
+                            <option value="Severe NPDR">Severe NPDR</option>
+                            <option value="PDR">PDR</option>
+                            <option value="CSME">CSME</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Hypertension --}}
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px">
+                <label style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:10px">
+                    <input type="checkbox" x-model="systemic.hypertension" @change="updateSystemic()" style="width:16px;height:16px">
+                    Hypertension
+                </label>
+                <div x-show="systemic.hypertension" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px">
+                    <div class="field-group">
+                        <div class="eye-label">Blood Pressure</div>
+                        <input type="text" class="field-input"
+                               x-model="systemic.htn_bp" @input="updateSystemic()" placeholder="e.g. 140/90">
+                    </div>
+                    <div class="field-group">
+                        <div class="eye-label">Duration (years)</div>
+                        <input type="number" class="field-input" min="0"
+                               x-model="systemic.htn_duration" @input="updateSystemic()" placeholder="e.g. 3">
+                    </div>
+                    <div class="field-group">
+                        <div class="eye-label">Hypertensive Retinopathy Grade</div>
+                        <select class="field-select" x-model="systemic.htn_retino_grade" @change="updateSystemic()">
+                            <option value="">Select grade…</option>
+                            <option value="0">Grade 0 — None</option>
+                            <option value="1">Grade 1 — Mild</option>
+                            <option value="2">Grade 2 — Moderate</option>
+                            <option value="3">Grade 3 — Severe</option>
+                            <option value="4">Grade 4 — Malignant</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Thyroid Disease --}}
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:12px">
+                <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer">
+                    <input type="checkbox" x-model="systemic.thyroid" @change="updateSystemic()" style="width:16px;height:16px">
+                    <span style="font-weight:700">Thyroid Disease</span>
+                    <span style="font-size:12px;color:#64748b;margin-left:4px">(Graves' / Hashimoto's / Hypothyroid)</span>
+                </label>
+            </div>
+
+            {{-- Glaucoma Risk --}}
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px">
+                <label style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:10px">
+                    <input type="checkbox" x-model="systemic.glaucoma_risk" @change="updateSystemic()" style="width:16px;height:16px">
+                    Glaucoma Risk Factors
+                </label>
+                <div x-show="systemic.glaucoma_risk" style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                        <input type="checkbox" x-model="systemic.glaucoma_family_hx" @change="updateSystemic()" style="width:14px;height:14px">
+                        Family History of Glaucoma
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                        <input type="checkbox" x-model="systemic.glaucoma_disc_changes" @change="updateSystemic()" style="width:14px;height:14px">
+                        Suspicious Disc Changes
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                        <input type="checkbox" x-model="systemic.glaucoma_field_defects" @change="updateSystemic()" style="width:14px;height:14px">
+                        Visual Field Defects
+                    </label>
+                </div>
+            </div>
+
+            {{-- Autoimmune Disease --}}
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:12px">
+                <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer">
+                    <input type="checkbox" x-model="systemic.autoimmune" @change="updateSystemic()" style="width:16px;height:16px">
+                    <span style="font-weight:700">Autoimmune Disease</span>
+                    <span style="font-size:12px;color:#64748b;margin-left:4px">(RA, SLE, Sjogren's, Ankylosing Spondylitis, etc.)</span>
+                </label>
+            </div>
+
+            {{-- Other Systemic Condition --}}
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:14px">
+                <div class="eye-label" style="margin-bottom:8px">Other Systemic Condition</div>
+                <input type="text" class="field-input"
+                       x-model="systemic.other_systemic" @input="updateSystemic()"
+                       placeholder="e.g. CKD, Sickle Cell Disease, Sarcoidosis…">
+            </div>
+
+        </div>
+    </div>
 </div>
 
 <script>
@@ -710,7 +860,8 @@ function ophthalmologyEMR() {
             rxPdf: true,
             slitLamp: false,
             fundus: false,
-            diagnosis: true
+            diagnosis: true,
+            systemic: false
         },
         
         snellenValues: ['6/6', '6/9', '6/12', '6/18', '6/24', '6/36', '6/60', '3/60', '1/60', 'HM', 'PL', 'NPL'],

@@ -185,11 +185,30 @@ class EmrWebController extends Controller
         // Pass scaleChanges as lastScales for specialty templates
         $lastScales = $scaleChanges;
 
+        // Load custom EMR templates for this clinic/specialty
+        $customTemplates = collect();
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('custom_emr_templates')) {
+                $customTemplates = \DB::table('custom_emr_templates')
+                    ->where('clinic_id', $clinicId)
+                    ->where('is_active', true)
+                    ->where(function($q) use ($visit) {
+                        $q->whereNull('specialty')
+                          ->orWhere('specialty', $visit->specialty ?? '');
+                    })
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get();
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('EmrWebController: custom templates load failed', ['error' => $e->getMessage()]);
+        }
+
         return view('emr.show', compact(
             'patient', 'visit', 'visitHistory', 'prescription',
             'patientPhotos', 'labOrders', 'previousPrescriptions',
             'scaleChanges', 'previousVisit', 'availableProcedures', 'commonComplaints',
-            'lastScales'
+            'lastScales', 'customTemplates'
         ));
     }
 
@@ -1153,6 +1172,41 @@ class EmrWebController extends Controller
         ]);
 
         return $warnings;
+    }
+
+    /**
+     * Save custom EMR field data for a visit
+     */
+    public function saveCustomFields(Request $request, Patient $patient, Visit $visit): JsonResponse
+    {
+        $clinicId = auth()->user()->clinic_id;
+        abort_unless($patient->clinic_id === $clinicId && $visit->clinic_id === $clinicId, 403);
+        abort_unless($visit->patient_id === $patient->id, 404);
+
+        Log::info('EmrWebController@saveCustomFields', ['visit_id' => $visit->id]);
+
+        $validated = $request->validate([
+            'custom_field_data' => ['required', 'string'],
+        ]);
+
+        try {
+            $decoded = json_decode($validated['custom_field_data'], true);
+            if (!is_array($decoded)) {
+                return response()->json(['success' => false, 'error' => 'Invalid JSON in custom_field_data'], 422);
+            }
+
+            $structuredData = $visit->structured_data ?? [];
+            $structuredData['custom'] = array_merge($structuredData['custom'] ?? [], $decoded);
+
+            $visit->update(['structured_data' => $structuredData]);
+
+            Log::info('Custom fields saved', ['visit_id' => $visit->id]);
+
+            return response()->json(['success' => true, 'at' => now()->toIso8601String()]);
+        } catch (\Throwable $e) {
+            Log::error('Save custom fields error', ['visit_id' => $visit->id, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Save failed.'], 500);
+        }
     }
 
     /**

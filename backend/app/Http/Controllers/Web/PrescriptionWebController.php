@@ -9,6 +9,7 @@ use App\Models\PrescriptionItem;
 use App\Models\PrescriptionTemplate;
 use App\Models\User;
 use App\Models\Visit;
+use App\Services\DrugInteractionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -315,10 +316,34 @@ class PrescriptionWebController extends Controller
 
             Log::info('PrescriptionWebController: Saved ' . count($validated['items']) . ' prescription items');
 
+            // Non-blocking drug interaction check (warnings only — prescription already saved)
+            $drugNames = array_column($validated['items'], 'drug_name');
+            $interactions = DrugInteractionService::check($drugNames);
+            $hasMajorInteractions = collect($interactions)->contains('severity', 'major');
+
+            // Non-blocking patient allergy check
+            $allergyWarnings = [];
+            $patient = $visit->patient;
+            if ($patient && !empty($patient->allergy_notes)) {
+                foreach ($drugNames as $drugName) {
+                    if (stripos($patient->allergy_notes, $drugName) !== false) {
+                        $allergyWarnings[] = $drugName;
+                    }
+                }
+                if (!empty($allergyWarnings)) {
+                    Log::warning('PrescriptionWebController: Allergy warnings for visit ' . $visit->id, [
+                        'allergy_warnings' => $allergyWarnings,
+                    ]);
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Prescription saved successfully',
                 'count' => count($validated['items']),
+                'interactions' => $interactions,
+                'has_major_interactions' => $hasMajorInteractions,
+                'allergy_warnings' => $allergyWarnings,
             ]);
 
         } catch (\Throwable $e) {

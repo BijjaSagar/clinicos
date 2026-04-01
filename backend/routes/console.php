@@ -41,6 +41,12 @@ Schedule::command('whatsapp:send-reminders')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Reconcile Razorpay payments with local invoice records (daily at 2am)
+Schedule::command('razorpay:reconcile')
+    ->dailyAt('02:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Archive old audit logs monthly
 Schedule::command('activitylog:clean --days=365')
     ->monthly();
