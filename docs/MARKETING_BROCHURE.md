@@ -14,21 +14,21 @@ No generic foreign software. No complicated setup. Just a clinic that runs smoot
 
 ## Built for Your Specialty
 
-### 🩺 Dermatology
+### Dermatology
 - Body diagram with lesion mapping — mark exactly where conditions appear
 - PASI, IGA, and DLQI scoring with automatic trend tracking
 - Before/after photo comparison with patient consent management
 - Procedure tracking — LASER, PRP, Botox, Chemical Peel, Microneedling
 - Drug interaction alerts for common dermatology medications (Isotretinoin, Methotrexate)
 
-### 🦷 Dental
+### Dental
 - 32-tooth FDI chart — click any tooth to record treatment history
 - Treatment plans with cost estimates sent directly to patients
 - Periodontal charting (6-point probing)
 - Lab work orders for crowns, braces, and dentures
 - X-ray attachment per tooth
 
-### 👁️ Ophthalmology
+### Ophthalmology
 - Visual acuity log (Snellen/LogMAR, OD/OS, near and distance)
 - Full refraction table — Sphere, Cylinder, Axis, Add, Prism
 - IOP readings with NCT/GAT method tracking
@@ -37,7 +37,7 @@ No generic foreign software. No complicated setup. Just a clinic that runs smoot
 - One-click spectacle and contact lens PDF prescription
 - Systemic disease flags (Diabetic retinopathy grading, HTN retinopathy)
 
-### 🏃 Physiotherapy
+### Physiotherapy
 - ROM (Range of Motion) dynamic table for any joint
 - Manual Muscle Testing (MMT) grading — 0 to 5
 - VAS Pain Scale with severity color coding
@@ -46,17 +46,17 @@ No generic foreign software. No complicated setup. Just a clinic that runs smoot
 - WOMAC Scale — 24-item knee/hip osteoarthritis measure
 - Home Exercise Programme (HEP) generator with WhatsApp delivery
 
-### 🦴 Orthopaedics
+### Orthopaedics
 - Joint examination templates
 - Fracture classification (AO system)
 - Post-surgical rehabilitation tracking
 
-### 👂 ENT
+### ENT
 - Audiogram entry and tympanogram
 - Nasal endoscopy findings
 - DHI Vertigo Scale
 
-### 🤰 Gynaecology
+### Gynaecology
 - Obstetric history (LMP, EDD, Gravida/Para)
 - Antenatal visit tracking
 - Menstrual cycle tracking
@@ -66,7 +66,7 @@ No generic foreign software. No complicated setup. Just a clinic that runs smoot
 
 ## Features Every Clinic Needs
 
-### 📱 WhatsApp Automation
+### WhatsApp Automation
 Stop chasing patients manually. ClinicOS sends automatically:
 - Appointment confirmation the moment you book
 - Reminder 24 hours before (with confirm/reschedule link)
@@ -77,7 +77,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 - Birthday greetings
 - Payment reminder for overdue invoices
 
-### 💊 Digital Prescription
+### Digital Prescription
 - Indian drug database with 50,000+ medicines
 - Generic and brand name search
 - Drug interaction alerts (50+ critical interactions pre-loaded)
@@ -87,7 +87,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 - Beautiful e-prescription PDF in seconds
 - Specialty PDFs — spectacle, contact lens for ophthalmology
 
-### 📅 Smart Scheduling
+### Smart Scheduling
 - Doctor, room, and equipment slots — all in one calendar
 - Walk-in token queue with wait time display
 - Online patient booking page (`yourname.clinicos.in`)
@@ -95,7 +95,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 - Pre-visit WhatsApp questionnaire sent automatically
 - Teleconsultation meeting URL attached to appointment
 
-### 💰 Billing & Payments
+### Billing & Payments
 - GST-compliant invoices (with SAC codes)
 - PDF invoice generation
 - Razorpay payment links — UPI, cards, net banking
@@ -104,7 +104,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 - Insurance/TPA claim support
 - Daily automatic payment reconciliation
 
-### 📸 Photo Vault
+### Photo Vault
 - Unlimited clinical photo storage
 - Before/after comparison (side-by-side and slider)
 - Body map photo tagging
@@ -112,7 +112,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 - Digital consent signature capture
 - Encrypted storage option
 
-### 🤖 AI Documentation Assistant
+### AI Documentation Assistant
 - Voice-to-EMR dictation (English + Hindi)
 - Automatic visit note generation
 - Consultation summary for patient handout
@@ -154,9 +154,12 @@ Stop chasing patients manually. ClinicOS sends automatically:
 3. **Import patients** or start fresh
 4. **Go live** — your first appointment, today
 
-**Call/WhatsApp:** +91 XXXXX XXXXX
-**Email:** hello@clinicos.in
-**Website:** clinicos.in
+**Contact**
+
+**Sagar Bijja**  
+Call / WhatsApp: **+91 89838 39143**  
+Email: hello@clinicos.in  
+Website: clinicos.in
 
 ---
 

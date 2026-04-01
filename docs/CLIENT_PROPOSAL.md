@@ -1,8 +1,8 @@
 # ClinicOS — Client Proposal
 
-**Prepared for:** [Client Clinic Name]
-**Date:** [Date]
-**Prepared by:** ClinicOS Team
+**Prepared for:** [Client Clinic Name]  
+**Date:** [Date]  
+**Prepared by:** Sagar Bijja, ClinicOS (RH Technology, Pune)
 
 ---
 
@@ -88,13 +88,13 @@ ClinicOS has purpose-built EMR templates — not generic forms. Here is what you
 
 ### For Your Day-to-Day Operations
 
-#### 📅 Appointment Management
+#### Appointment Management
 - Calendar view with doctor, room, and equipment columns
 - Walk-in token queue with estimated wait time display on the waiting room screen
 - Online booking page (`yourname.clinicos.in`) — patients book 24/7 without calling
 - Advance payment at booking — collect consultation fee online before the appointment
 
-#### 📱 WhatsApp Automation (Zero Staff Effort)
+#### WhatsApp Automation (Zero Staff Effort)
 | Trigger | Message Sent Automatically |
 |---------|---------------------------|
 | Appointment booked | Confirmation + pre-visit questionnaire link |
@@ -106,7 +106,7 @@ ClinicOS has purpose-built EMR templates — not generic forms. Here is what you
 | Invoice unpaid >3 days | Payment link via UPI/cards |
 | Patient birthday | Personalised greeting |
 
-#### 💊 Prescriptions
+#### Prescriptions
 - Search by generic name or brand name (Indian drug database)
 - Dosage auto-suggestion — common regimens pre-filled
 - Drug interaction alert — 50+ critical interactions pre-loaded with clinical descriptions
@@ -114,14 +114,14 @@ ClinicOS has purpose-built EMR templates — not generic forms. Here is what you
 - Professional PDF prescription with your letterhead, signature, and clinic stamp
 - Sent to patient's WhatsApp with one click
 
-#### 💰 Billing
+#### Billing
 - GST-compliant invoice (with HSN/SAC codes)
 - One-click Razorpay payment link — patient pays via UPI, card, or net banking
 - QR code payment for walk-in patients
 - Automatic reconciliation — payment status updated when patient pays
 - Monthly revenue reports, GST report for your CA
 
-#### 📸 Photo Vault
+#### Photo Vault
 - Unlimited clinical photos per patient
 - Before/after comparison (slider and side-by-side view)
 - Body map tagging — photos linked to exact location
@@ -214,25 +214,25 @@ This means your clinic is future-proof as the government expands digital health 
 
 ## Frequently Asked Questions
 
-**Q: Can I import my existing patient data?**
+**Q: Can I import my existing patient data?**  
 A: Yes. We support Excel and CSV import for patient name, phone, date of birth, and medical history.
 
-**Q: What happens to my data if I stop subscribing?**
+**Q: What happens to my data if I stop subscribing?**  
 A: You can export all your data in PDF and Excel format at any time. We hold your data for 90 days after cancellation for retrieval.
 
-**Q: Do I need a computer or can I use a tablet/phone?**
+**Q: Do I need a computer or can I use a tablet/phone?**  
 A: ClinicOS works on any device with a browser — desktop, laptop, tablet. The mobile app (iOS/Android) is available for doctors on the move.
 
-**Q: Does it work offline?**
+**Q: Does it work offline?**  
 A: Core features require internet connection. We recommend a backup mobile hotspot for uninterrupted clinic operations.
 
-**Q: What if my staff doesn't know computers well?**
+**Q: What if my staff doesn't know computers well?**  
 A: The interface is designed for clinic staff with no technical background. Training takes 2 hours. We provide video tutorials in Hindi and English.
 
-**Q: How long does WhatsApp API approval take?**
+**Q: How long does WhatsApp API approval take?**  
 A: Meta typically approves new WhatsApp Business accounts in 3–5 business days. We handle the application on your behalf.
 
-**Q: Is there a long-term contract?**
+**Q: Is there a long-term contract?**  
 A: No. Month-to-month subscription. Annual billing gives 20% discount.
 
 ---
@@ -241,16 +241,16 @@ A: No. Month-to-month subscription. Annual billing gives 20% discount.
 
 | Criteria | ClinicOS | Generic Practice Software | Paper/Excel |
 |----------|----------|--------------------------|-------------|
-| Specialty EMR depth | ✅ Built for your specialty | ❌ Generic forms | ❌ None |
-| WhatsApp automation | ✅ 8 automated triggers | ❌ Manual | ❌ Manual |
-| ABDM/ABHA compliance | ✅ M1+M2+M3 | ⚠️ Partial | ❌ None |
-| Indian drug database | ✅ 50,000+ drugs | ⚠️ Limited | ❌ None |
-| Drug interaction alerts | ✅ 50+ interactions | ❌ None | ❌ None |
-| Online patient booking | ✅ clinicname.clinicos.in | ⚠️ Via Practo (fee) | ❌ None |
-| Razorpay payment links | ✅ Built-in | ❌ Separate account | ❌ None |
-| Photo vault | ✅ Before/after + consent | ❌ None | ❌ None |
-| GST invoicing | ✅ Automated | ⚠️ Manual | ❌ None |
-| AI dictation | ✅ Hindi + English | ❌ None | ❌ None |
+| Specialty EMR depth | Yes — built for your specialty | No — generic forms | No |
+| WhatsApp automation | Yes — 8 automated triggers | No | No |
+| ABDM/ABHA compliance | Yes — M1+M2+M3 | Partial | No |
+| Indian drug database | Yes — 50,000+ drugs | Limited | No |
+| Drug interaction alerts | Yes — 50+ interactions | No | No |
+| Online patient booking | Yes — clinicname.clinicos.in | Often via third party (extra fee) | No |
+| Razorpay payment links | Yes — built-in | No — separate setup | No |
+| Photo vault | Yes — before/after + consent | No | No |
+| GST invoicing | Yes — automated | Often manual | No |
+| AI dictation | Yes — Hindi + English | No | No |
 | Setup time | 1 week | 4–8 weeks | Immediate |
 | Monthly cost | ₹999–₹3,999 | ₹3,000–₹15,000 | ₹0 |
 
@@ -262,16 +262,19 @@ A: No. Month-to-month subscription. Annual billing gives 20% discount.
 2. **Start your 14-day free trial** — no credit card, no commitment
 3. **Go live** — with full onboarding support from our team
 
-**To proceed, contact us:**
+**To proceed, contact:**
 
-📧 **hello@clinicos.in**
-📱 **+91 XXXXX XXXXX** (WhatsApp or Call)
-🌐 **clinicos.in**
+**Sagar Bijja**  
+ClinicOS — RH Technology, Pune  
+
+Email: hello@clinicos.in  
+Phone / WhatsApp: **+91 89838 39143**  
+Website: clinicos.in
 
 We look forward to helping your clinic run better.
 
 ---
 
-*This proposal is valid for 30 days from the date above.*
-*All prices are exclusive of GST (18% applicable).*
-*ClinicOS is a product of [Company Name], registered under [GST Number].*
+*This proposal is valid for 30 days from the date above.*  
+*All prices are exclusive of GST (18% applicable).*  
+*ClinicOS is offered by RH Technology, Pune. [Add GST number when finalised.]*

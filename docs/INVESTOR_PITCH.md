@@ -107,7 +107,7 @@ Built on 3 core principles:
 | Orthopaedics | 100,000 | Medium |
 | **Total TAM** | **~1.3M** | |
 
-**Capturing 1% of TAM** (13,000 clinics) at ₹1,800 ARPU = **₹28 crore ARR**
+**Capturing 1% of TAM** (13,000 clinics) at ₹1,800 ARPU = **₹28 crore ARR**  
 **Capturing 5% of TAM** (65,000 clinics) at ₹1,800 ARPU = **₹140 crore ARR**
 
 ---
@@ -174,18 +174,18 @@ Built on 3 core principles:
 
 | Milestone | Status |
 |-----------|--------|
-| Full product architecture designed | ✅ |
-| All 7 specialty EMR templates built | ✅ |
-| WhatsApp automation (8 triggers) live | ✅ |
-| ABDM M1 (ABHA creation) complete | ✅ |
-| GST billing + Razorpay integration | ✅ |
-| Public booking + payment at booking | ✅ |
-| Insurance/TPA module scaffolded | ✅ |
-| Lab integration (5 providers) scaffolded | ✅ |
-| AI dictation wired (Whisper + Claude) | ✅ |
-| Multi-location / clinic chains | ✅ |
-| Beta testing with clinics | 🔄 In progress |
-| ABDM M2 production certification | 🔄 In progress |
+| Full product architecture designed | Complete |
+| All 7 specialty EMR templates built | Complete |
+| WhatsApp automation (8 triggers) live | Complete |
+| ABDM M1 (ABHA creation) complete | Complete |
+| GST billing + Razorpay integration | Complete |
+| Public booking + payment at booking | Complete |
+| Insurance/TPA module scaffolded | Complete |
+| Lab integration (5 providers) scaffolded | Complete |
+| AI dictation wired (Whisper + Claude) | Complete |
+| Multi-location / clinic chains | Complete |
+| Beta testing with clinics | In progress |
+| ABDM M2 production certification | In progress |
 
 ---
 
@@ -199,7 +199,7 @@ Built on 3 core principles:
 | Year 4 | 35,000 | ₹2,200 | ₹92.4 Cr |
 | Year 5 | 80,000 | ₹2,500 | ₹240 Cr |
 
-**Gross margin target: 75–80%** (SaaS infrastructure costs + WhatsApp API costs)
+**Gross margin target: 75–80%** (SaaS infrastructure costs + WhatsApp API costs)  
 **CAC target: ₹8,000–15,000** (12–18 month payback at ₹1,200 ARPU)
 
 ---
@@ -235,20 +235,20 @@ Built on 3 core principles:
 
 ## Team
 
-*(Add founder bios here)*
+**Sagar Bijja** — Founder & CEO, ClinicOS  
+Healthcare technology and product leadership; building ClinicOS for Indian specialty clinics.
 
-- **[Founder Name]** — CEO | Background in healthcare IT / clinical practice
-- **[Co-founder Name]** — CTO | Background in full-stack engineering / SaaS
-- **Advisors** — Medical professionals across target specialties
+**Advisors** — Medical professionals across dermatology, dental, ophthalmology, and related specialties (to be named as formal advisory board is expanded).
 
 ---
 
 ## Contact
 
-**[Founder Name]**
-CEO, ClinicOS
-📧 founder@clinicos.in
-📱 +91 XXXXX XXXXX
-🌐 clinicos.in
+**Sagar Bijja**  
+Founder & CEO, ClinicOS  
+
+Email: hello@clinicos.in  
+Phone / WhatsApp: **+91 89838 39143**  
+Website: clinicos.in
 
 *Pitch deck and financial model available on request.*
