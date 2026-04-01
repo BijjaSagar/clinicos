@@ -90,7 +90,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 ### Smart Scheduling
 - Doctor, room, and equipment slots — all in one calendar
 - Walk-in token queue with wait time display
-- Online patient booking page (`yourname.clinicos.in`)
+- Online patient booking page (`yourname.clinic0s.com`)
 - Advance payment collection at booking via Razorpay
 - Pre-visit WhatsApp questionnaire sent automatically
 - Teleconsultation meeting URL attached to appointment
@@ -149,7 +149,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 
 ## How to Get Started
 
-1. **Sign up** at clinicos.in — takes 2 minutes
+1. **Sign up** at https://clinic0s.com/ — takes 2 minutes
 2. **Set up your clinic** — add doctors, rooms, services
 3. **Import patients** or start fresh
 4. **Go live** — your first appointment, today
@@ -159,7 +159,7 @@ Stop chasing patients manually. ClinicOS sends automatically:
 **Sagar Bijja**  
 Call / WhatsApp: **+91 89838 39143**  
 Email: hello@clinicos.in  
-Website: clinicos.in
+Website: https://clinic0s.com/
 
 ---
 

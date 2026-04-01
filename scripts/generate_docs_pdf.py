@@ -300,7 +300,7 @@ def build_html_document(*, cover_title: str, cover_tagline: str, body_html: str)
   </div>
   <div class="content">
     {body_html}
-    <p class="footer-note">ClinicOS — Smart EMR &amp; practice platform for Indian specialty clinics. clinicos.in</p>
+    <p class="footer-note">ClinicOS — Smart EMR &amp; practice platform for Indian specialty clinics. https://clinic0s.com/</p>
   </div>
 </body>
 </html>

@@ -91,7 +91,7 @@ ClinicOS has purpose-built EMR templates — not generic forms. Here is what you
 #### Appointment Management
 - Calendar view with doctor, room, and equipment columns
 - Walk-in token queue with estimated wait time display on the waiting room screen
-- Online booking page (`yourname.clinicos.in`) — patients book 24/7 without calling
+- Online booking page (`yourname.clinic0s.com`) — patients book 24/7 without calling
 - Advance payment at booking — collect consultation fee online before the appointment
 
 #### WhatsApp Automation (Zero Staff Effort)
@@ -246,7 +246,7 @@ A: No. Month-to-month subscription. Annual billing gives 20% discount.
 | ABDM/ABHA compliance | Yes — M1+M2+M3 | Partial | No |
 | Indian drug database | Yes — 50,000+ drugs | Limited | No |
 | Drug interaction alerts | Yes — 50+ interactions | No | No |
-| Online patient booking | Yes — clinicname.clinicos.in | Often via third party (extra fee) | No |
+| Online patient booking | Yes — clinicname.clinic0s.com | Often via third party (extra fee) | No |
 | Razorpay payment links | Yes — built-in | No — separate setup | No |
 | Photo vault | Yes — before/after + consent | No | No |
 | GST invoicing | Yes — automated | Often manual | No |
@@ -269,7 +269,7 @@ ClinicOS — RH Technology, Pune
 
 Email: hello@clinicos.in  
 Phone / WhatsApp: **+91 89838 39143**  
-Website: clinicos.in
+Website: https://clinic0s.com/
 
 We look forward to helping your clinic run better.
 

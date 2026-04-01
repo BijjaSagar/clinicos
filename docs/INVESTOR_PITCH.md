@@ -68,7 +68,7 @@ Built on 3 core principles:
 - Multi-location support (clinic chains and franchise groups)
 - Insurance/TPA claim management
 - Lab integration (Dr. Lal, SRL, Thyrocare, Metropolis, Pathkind)
-- Public online booking (`clinicname.clinicos.in`)
+- Public online booking (`clinicname.clinic0s.com`)
 - Super admin panel with subscription management
 
 ---
@@ -249,6 +249,6 @@ Founder & CEO, ClinicOS
 
 Email: hello@clinicos.in  
 Phone / WhatsApp: **+91 89838 39143**  
-Website: clinicos.in
+Website: https://clinic0s.com/
 
 *Pitch deck and financial model available on request.*
