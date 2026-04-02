@@ -361,7 +361,7 @@
     .map-field strong { color: #6ee7b7; font-size: 12px; }
 
     /* ── PRICING ── */
-    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 56px; }
     .price-card {
       background: white; border: 1.5px solid var(--border);
       border-radius: var(--radius-lg); padding: 32px; position: relative;
@@ -435,7 +435,8 @@
     @media (max-width: 768px) {
       .hero { grid-template-columns: 1fr; gap: 48px; padding: 64px 20px 48px; }
       .hero-visual { display: none; }
-      .modules-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .modules-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
       .steps-grid { grid-template-columns: 1fr; }
       .steps-grid::before { display: none; }
       .spec-content.active, .abdm-grid, .ai-grid { grid-template-columns: 1fr; }
@@ -531,7 +532,7 @@
         Built for India's 8 lakh+ specialty clinics
       </div>
       <h1>The clinic OS that <span class="accent">thinks like a specialist</span></h1>
-      <p class="hero-sub">Specialty-first EMR, intelligent scheduling, GST billing, ABDM compliance, and WhatsApp communication — in one platform designed for Indian specialty clinics.</p>
+      <p class="hero-sub">Specialty-first EMR, intelligent scheduling, GST billing, ABDM compliance, and WhatsApp communication — in one platform designed for Indian specialty clinics and hospitals. From solo practice to full HIMS with IPD, pharmacy, and lab.</p>
       <div class="hero-actions">
         <a href="{{ route('register') }}" class="btn btn-primary btn-lg">Start 30-day free trial</a>
         <a href="{{ route('public.booking.directory') }}" class="btn btn-outline btn-lg">Book a visit (patients)</a>
@@ -543,8 +544,12 @@
           <div class="stat-label">Target clinics</div>
         </div>
         <div class="stat-item">
-          <div class="stat-num">7</div>
-          <div class="stat-label">Specialties</div>
+          <div class="stat-num">15+</div>
+          <div class="stat-label">Modules</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">6</div>
+          <div class="stat-label">Roles</div>
         </div>
         <div class="stat-item">
           <div class="stat-num">₹1,499</div>
@@ -921,7 +926,7 @@
 <!-- MODULES -->
 <section class="section" id="features">
   <div class="section-inner">
-    <div class="section-label">9 Integrated Modules</div>
+    <div class="section-label">15+ Integrated Modules</div>
     <h2>Everything your clinic needs, <br>nothing it doesn't</h2>
     <p class="section-sub">Each module is designed to save time or generate revenue. If it does neither, it doesn't ship.</p>
     <div class="modules-grid">
@@ -987,6 +992,48 @@
         <h3>Clinic Analytics</h3>
         <p>Revenue, appointment, and patient retention reports. Specialty KPIs — session completion rates, treatment response tracking.</p>
         <span class="module-chip">Specialty KPIs</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">10</div>
+        <div class="module-icon" style="background:#fef3c7">🛏️</div>
+        <h3>IPD Management</h3>
+        <p>Full admission-discharge-transfer workflow. Bed management across wards. Visiting card printing. Treatment tracking and nursing notes.</p>
+        <span class="module-chip">ADT Workflow</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">11</div>
+        <div class="module-icon" style="background:#fce7f3">💊</div>
+        <h3>Pharmacy &amp; Inventory</h3>
+        <p>FIFO batch dispensing, stock alerts, expiry tracking, pharmacist portal with dedicated work queue. Drug database with 40,000+ Indian medicines.</p>
+        <span class="module-chip">FIFO Dispensing</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">12</div>
+        <div class="module-icon" style="background:#e0e7ff">🔬</div>
+        <h3>Laboratory (LIS)</h3>
+        <p>Full lab information system. Test catalog, sample collection, result entry, doctor notification. Dedicated lab technician portal.</p>
+        <span class="module-chip">Full LIS</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">13</div>
+        <div class="module-icon" style="background:#dbeafe">👥</div>
+        <h3>OPD Queue Management</h3>
+        <p>Real-time patient queue with auto-refresh. Walk-in registration. Wait time tracking. Multi-doctor queue support.</p>
+        <span class="module-chip">Real-time Queue</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">14</div>
+        <div class="module-icon" style="background:#f1f5f9">⚙️</div>
+        <h3>Hospital Settings</h3>
+        <p>Ward &amp; bed configuration. Department management. Multi-role access control. Feature flag per tenant.</p>
+        <span class="module-chip">Multi-tenant</span>
+      </div>
+      <div class="module-card">
+        <div class="module-num">15</div>
+        <div class="module-icon" style="background:#ede9fe">🛡️</div>
+        <h3>Role-Based Access</h3>
+        <p>Doctor, nurse, receptionist, pharmacist, lab technician roles. Owner dashboard. Granular permission control per module.</p>
+        <span class="module-chip">6 Roles</span>
       </div>
     </div>
   </div>
@@ -1197,6 +1244,23 @@
         </ul>
         <a href="{{ route('register') }}" class="btn btn-outline btn-lg" style="width:100%;justify-content:center">Start free trial</a>
       </div>
+      <div class="price-card">
+        <div class="price-plan">Hospital / HIMS</div>
+        <div class="price-hi">अस्पताल</div>
+        <div class="price-amount"><span class="rupee">₹</span><span class="num">14,999</span><span class="period">/month</span></div>
+        <p class="price-desc">Full hospital management. IPD, pharmacy, lab, OPD queue, multi-role access. Up to 20 doctors, unlimited beds.</p>
+        <ul class="price-features">
+          <li>Everything in Group Practice</li>
+          <li>IPD bed &amp; ward management</li>
+          <li>Pharmacy inventory (FIFO)</li>
+          <li>Laboratory Information System</li>
+          <li>OPD queue management</li>
+          <li>Role-based access (6 roles)</li>
+          <li>Dedicated portals (pharmacist, lab tech)</li>
+          <li>Daily automated backups</li>
+        </ul>
+        <a href="#about" class="btn btn-primary btn-lg" style="width:100%;justify-content:center">Contact sales</a>
+      </div>
     </div>
     <p style="text-align:center;color:var(--text3);font-size:13px;margin-top:24px">Additional doctor seats: ₹299/month · Hospital OPD departments: custom pricing</p>
   </div>
@@ -1267,6 +1331,30 @@
           <td class="yes">✓ All SAC codes + TDS</td>
         </tr>
         <tr>
+          <td>IPD Bed Management</td>
+          <td class="no">✕</td>
+          <td class="partial">Partial</td>
+          <td class="yes">✓ Full ADT</td>
+        </tr>
+        <tr>
+          <td>Pharmacy FIFO Dispensing</td>
+          <td class="no">✕</td>
+          <td class="no">✕</td>
+          <td class="yes">✓ Batch tracking</td>
+        </tr>
+        <tr>
+          <td>Lab Information System</td>
+          <td class="no">✕</td>
+          <td class="partial">Partial</td>
+          <td class="yes">✓ Full LIS</td>
+        </tr>
+        <tr>
+          <td>Role-based access (6 roles)</td>
+          <td class="partial">Partial</td>
+          <td class="partial">Partial</td>
+          <td class="yes">✓ 6 roles</td>
+        </tr>
+        <tr>
           <td>Starting price / month</td>
           <td>₹1,499–₹5,000</td>
           <td>₹2,000+</td>
@@ -1280,7 +1368,7 @@
 <!-- CTA -->
 <section class="cta-section">
   <h2>Ready to run a clinic that runs itself?</h2>
-  <p>Join specialists across Dermatology, Physiotherapy, Dental, and Ophthalmology who've replaced paper and generic tools with ClinicOS.</p>
+  <p>Join specialists and hospitals across Dermatology, Physiotherapy, Dental, Ophthalmology, and full HIMS who've replaced paper and generic tools with ClinicOS.</p>
   <div class="cta-actions">
     <a href="{{ route('register') }}" class="btn btn-white btn-lg">Start 30-day free trial</a>
     <a href="#features" class="btn btn-outline-white btn-lg">See a live demo</a>
@@ -1309,6 +1397,9 @@
           <li><a href="#features">WhatsApp Comms</a></li>
           <li><a href="#abdm">ABDM Compliance</a></li>
           <li><a href="#features">AI Assistant</a></li>
+          <li><a href="#features">IPD Management</a></li>
+          <li><a href="#features">Pharmacy &amp; Lab</a></li>
+          <li><a href="#features">Hospital HIMS</a></li>
         </ul>
       </div>
       <div class="footer-col">
