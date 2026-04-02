@@ -85,6 +85,8 @@ class AdminClinicController extends Controller
 
         $moduleRule = Rule::in(ClinicProductModules::validModuleKeys());
 
+        $facilityTypeRule = Rule::in(array_keys(config('hims_expansion.facility_types')));
+
         $validated = $request->validate([
             'clinic_name' => 'required|string|max:200',
             'owner_name' => 'required|string|max:200',
@@ -98,6 +100,10 @@ class AdminClinicController extends Controller
             'trial_days' => 'nullable|integer|min:0|max:365',
             'product_modules' => ['required', 'array', 'min:1'],
             'product_modules.*' => ['string', $moduleRule],
+            'facility_type' => ['nullable', 'string', $facilityTypeRule],
+            'licensed_beds' => 'nullable|integer|min:0',
+            'hims_features' => 'nullable|array',
+            'hims_features.*' => 'in:1',
         ]);
 
         try {
@@ -106,16 +112,31 @@ class AdminClinicController extends Controller
                 'enabled_count' => count($settings['enabled_product_modules'] ?? []),
             ]);
 
+            // Build HIMS features JSON from submitted checkboxes
+            $himsFeatures = [];
+            $validHimsKeys = array_keys(config('hims_expansion.hims_feature_keys'));
+            foreach ($validHimsKeys as $key) {
+                $himsFeatures[$key] = !empty($validated['hims_features'][$key]);
+            }
+
+            $slug = Str::slug($validated['clinic_name']);
+            if (Clinic::where('slug', $slug)->exists()) {
+                $slug = $slug . '-' . Str::random(6);
+            }
+
             // Create clinic
             $clinic = Clinic::create([
                 'name' => $validated['clinic_name'],
-                'slug' => Str::slug($validated['clinic_name']) . '-' . Str::random(6),
+                'slug' => $slug,
                 'plan' => $validated['plan'],
                 'specialties' => $validated['specialty'] ? [$validated['specialty']] : ['general'],
                 'city' => $validated['city'] ?? 'Unknown',
                 'state' => $validated['state'] ?? 'Unknown',
                 'is_active' => true,
                 'settings' => $settings,
+                'facility_type' => $validated['facility_type'] ?? 'clinic',
+                'licensed_beds' => $validated['licensed_beds'] ?? null,
+                'hims_features' => $himsFeatures,
                 'trial_ends_at' => $validated['plan'] === 'trial'
                     ? now()->addDays($validated['trial_days'] ?? 30)
                     : null,
@@ -202,6 +223,8 @@ class AdminClinicController extends Controller
 
         $moduleRule = Rule::in(ClinicProductModules::validModuleKeys());
 
+        $facilityTypeRule = Rule::in(array_keys(config('hims_expansion.facility_types')));
+
         $validated = $request->validate([
             'name' => 'required|string|max:200',
             'plan' => 'required|in:trial,solo,small,group,enterprise',
@@ -215,6 +238,10 @@ class AdminClinicController extends Controller
             'trial_ends_at' => 'nullable|date',
             'product_modules' => ['required', 'array', 'min:1'],
             'product_modules.*' => ['string', $moduleRule],
+            'facility_type' => ['nullable', 'string', $facilityTypeRule],
+            'licensed_beds' => 'nullable|integer|min:0',
+            'hims_features' => 'nullable|array',
+            'hims_features.*' => 'in:1',
         ]);
 
         try {
