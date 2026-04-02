@@ -38,6 +38,10 @@ use App\Http\Controllers\Web\HospitalSettingsController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\SetupWizardController;
 use App\Http\Controllers\Web\WhatsAppSettingsController;
+use App\Http\Controllers\Web\NotificationController;
+use App\Http\Controllers\Web\PublicQueueController;
+use App\Http\Controllers\Web\ShiftHandoverController;
+use App\Http\Controllers\Web\PatientPortalController;
 
 // Health check for monitoring
 Route::get('/health', function () {
@@ -478,6 +482,30 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ═══════════════════════════════════════════════════════════════════════
+    // IN-APP NOTIFICATIONS
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::post('/notifications/mark-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-read');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GLOBAL SEARCH (Item 13 — Cmd+K)
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::get('/api/global-search', [NotificationController::class, 'globalSearch'])->name('global-search');
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // IPD DISCHARGE SUMMARY PDF (Item 3)
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::get('/ipd/{admission}/discharge-summary', [IpdController::class, 'dischargeSummary'])->name('ipd.discharge-summary');
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SHIFT HANDOVER NOTES (Item 11)
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('shift-handover')->name('shift-handover.')->middleware(['role:doctor,nurse'])->group(function () {
+        Route::get('/', [ShiftHandoverController::class, 'index'])->name('index');
+        Route::post('/', [ShiftHandoverController::class, 'store'])->name('store');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
     // AUDIT LOG - owner ONLY
     // ═══════════════════════════════════════════════════════════════════════
     Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index')->middleware('role:owner');
@@ -516,6 +544,35 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/templates/{template}/export', [CustomEmrBuilderController::class, 'exportTemplate'])->name('templates.export');
         Route::post('/import', [CustomEmrBuilderController::class, 'importTemplate'])->name('import');
         Route::get('/field-types', [CustomEmrBuilderController::class, 'getFieldTypes'])->name('field-types');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC SIGNED INVOICE PDF (No auth — signed URL only — Item 12)
+// ═══════════════════════════════════════════════════════════════════════════
+Route::get('/invoices/{invoice}/pdf-public', [BillingWebController::class, 'publicPdf'])->name('billing.pdf-public');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC OPD QUEUE (No auth required — Item 5)
+// ═══════════════════════════════════════════════════════════════════════════
+Route::get('/queue/{clinicSlug}', [PublicQueueController::class, 'show'])->name('public.queue');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATIENT PORTAL (Item 10)
+// ═══════════════════════════════════════════════════════════════════════════
+Route::prefix('patient-portal')->name('patient-portal.')->group(function () {
+    Route::get('/login', [PatientPortalController::class, 'showLogin'])->name('login');
+    Route::post('/login/send-otp', [PatientPortalController::class, 'sendOtp'])->name('send-otp');
+    Route::post('/login/verify-otp', [PatientPortalController::class, 'verifyOtp'])->name('verify-otp');
+    Route::post('/logout', [PatientPortalController::class, 'logout'])->name('logout');
+    Route::middleware('patient.portal')->group(function () {
+        Route::get('/', [PatientPortalController::class, 'dashboard'])->name('dashboard');
+        Route::get('/appointments', [PatientPortalController::class, 'appointments'])->name('appointments');
+        Route::get('/prescriptions', [PatientPortalController::class, 'prescriptions'])->name('prescriptions');
+        Route::get('/prescriptions/{visitId}/pdf', [PatientPortalController::class, 'prescriptionPdf'])->name('prescription-pdf');
+        Route::get('/lab-reports', [PatientPortalController::class, 'labReports'])->name('lab-reports');
+        Route::get('/lab-reports/{orderId}/pdf', [PatientPortalController::class, 'labReportPdf'])->name('lab-report-pdf');
+        Route::get('/invoices', [PatientPortalController::class, 'invoices'])->name('invoices');
     });
 });
 

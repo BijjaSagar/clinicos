@@ -12,9 +12,11 @@ use App\Models\IpdVital;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\Ward;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
@@ -320,6 +322,38 @@ class IpdController extends Controller
             'message' => 'Progress note added successfully.',
             'note'    => $note->load('author'),
         ]);
+    }
+
+    // ─── Discharge Summary PDF (Item 3) ─────────────────────────────────────
+
+    public function dischargeSummary(IpdAdmission $admission)
+    {
+        $this->authorizeClinic($admission->clinic_id);
+
+        $admission->load(['patient', 'bed.ward', 'ward', 'primaryDoctor']);
+
+        $vitals = $admission->vitals()->orderBy('recorded_at')->get();
+        $progressNotes = $admission->progressNotes()->with('author')->orderBy('note_date')->get();
+        $medicationOrders = $admission->medicationOrders()->orderBy('created_at')->get();
+
+        $clinic = auth()->user()->clinic;
+        $footer = DB::table('hospital_settings')
+            ->where('clinic_id', $admission->clinic_id)
+            ->where('key', 'discharge_summary_footer')
+            ->value('value') ?? '';
+
+        try {
+            $pdf = Pdf::loadView('ipd.discharge-summary-pdf', compact(
+                'admission', 'vitals', 'progressNotes', 'medicationOrders', 'clinic', 'footer'
+            ))->setPaper('a4');
+
+            return $pdf->download("discharge-summary-{$admission->admission_number}.pdf");
+        } catch (\Throwable $e) {
+            Log::error('Discharge summary PDF failed', ['admission_id' => $admission->id, 'error' => $e->getMessage()]);
+            return view('ipd.discharge-summary-pdf', compact(
+                'admission', 'vitals', 'progressNotes', 'medicationOrders', 'clinic', 'footer'
+            ));
+        }
     }
 
     // ─── Print Prescription ─────────────────────────────────────────────────

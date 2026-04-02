@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Invoice;
 use App\Models\WhatsappMessage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
@@ -135,7 +136,121 @@ class DashboardController extends Controller
             $revenueChart = collect();
         }
 
-        return view('dashboard.index', compact('appointments', 'stats', 'whatsappMessages', 'revenueChart'));
+        $todaysTasks = $this->buildTodaysTasks($role, $clinicId, $today);
+
+        return view('dashboard.index', compact('appointments', 'stats', 'whatsappMessages', 'revenueChart', 'todaysTasks'));
+    }
+
+    /**
+     * Build role-specific actionable tasks for today.
+     */
+    private function buildTodaysTasks(string $role, int $clinicId, \Carbon\Carbon $today): array
+    {
+        $tasks = [];
+
+        try {
+            if ($role === 'doctor' || $role === 'owner') {
+                // Patients waiting to be seen
+                $waiting = DB::table('appointments')
+                    ->where('clinic_id', $clinicId)
+                    ->whereDate('scheduled_at', $today)
+                    ->where('status', 'checked_in')
+                    ->count();
+                if ($waiting > 0) {
+                    $tasks[] = ['count' => $waiting, 'label' => 'patients waiting', 'urgency' => $waiting >= 5 ? 'warning' : 'normal', 'url' => route('schedule'), 'icon' => 'user'];
+                }
+
+                // Pending lab results to review
+                $pendingLabs = DB::table('lab_orders')
+                    ->where('clinic_id', $clinicId)
+                    ->where('status', 'resulted')
+                    ->whereNull('reviewed_at')
+                    ->count();
+                if ($pendingLabs > 0) {
+                    $tasks[] = ['count' => $pendingLabs, 'label' => 'lab results to review', 'urgency' => 'warning', 'url' => route('lab.index'), 'icon' => 'flask'];
+                }
+
+                // Critical lab results
+                $criticalLabs = DB::table('lab_results')
+                    ->join('lab_orders', 'lab_results.lab_order_id', '=', 'lab_orders.id')
+                    ->where('lab_orders.clinic_id', $clinicId)
+                    ->where('lab_results.is_critical', true)
+                    ->whereDate('lab_results.created_at', $today)
+                    ->count();
+                if ($criticalLabs > 0) {
+                    $tasks[] = ['count' => $criticalLabs, 'label' => 'critical lab alert(s)', 'urgency' => 'critical', 'url' => route('lab.index'), 'icon' => 'alert'];
+                }
+
+                // Active IPD patients
+                $ipdCount = DB::table('ipd_admissions')
+                    ->where('clinic_id', $clinicId)
+                    ->where('status', 'admitted')
+                    ->count();
+                if ($ipdCount > 0) {
+                    $tasks[] = ['count' => $ipdCount, 'label' => 'IPD patients admitted', 'urgency' => 'normal', 'url' => route('ipd.index'), 'icon' => 'bed'];
+                }
+            }
+
+            if ($role === 'receptionist' || $role === 'owner') {
+                // Pending invoices
+                $pendingInvoices = DB::table('invoices')
+                    ->where('clinic_id', $clinicId)
+                    ->whereIn('payment_status', ['pending', 'partial'])
+                    ->count();
+                if ($pendingInvoices > 0) {
+                    $tasks[] = ['count' => $pendingInvoices, 'label' => 'invoices pending payment', 'urgency' => $pendingInvoices >= 10 ? 'warning' : 'normal', 'url' => route('billing.index'), 'icon' => 'money'];
+                }
+
+                // Today's scheduled appointments not yet confirmed
+                $unconfirmed = DB::table('appointments')
+                    ->where('clinic_id', $clinicId)
+                    ->whereDate('scheduled_at', $today)
+                    ->whereIn('status', ['booked', 'confirmed'])
+                    ->count();
+                if ($unconfirmed > 0) {
+                    $tasks[] = ['count' => $unconfirmed, 'label' => 'appointments today (not checked in)', 'urgency' => 'normal', 'url' => route('schedule'), 'icon' => 'calendar'];
+                }
+            }
+
+            if ($role === 'nurse') {
+                // Active IPD patients needing vitals
+                $vitalsNeeded = DB::table('ipd_admissions')
+                    ->where('clinic_id', $clinicId)
+                    ->where('status', 'admitted')
+                    ->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('ipd_vitals')
+                            ->whereColumn('ipd_vitals.ipd_admission_id', 'ipd_admissions.id')
+                            ->whereDate('ipd_vitals.recorded_at', today());
+                    })
+                    ->count();
+                if ($vitalsNeeded > 0) {
+                    $tasks[] = ['count' => $vitalsNeeded, 'label' => 'patients need vitals today', 'urgency' => 'warning', 'url' => route('ipd.index'), 'icon' => 'pulse'];
+                }
+
+                // Active IPD patients
+                $ipdCount = DB::table('ipd_admissions')
+                    ->where('clinic_id', $clinicId)
+                    ->where('status', 'admitted')
+                    ->count();
+                if ($ipdCount > 0) {
+                    $tasks[] = ['count' => $ipdCount, 'label' => 'IPD patients under care', 'urgency' => 'normal', 'url' => route('ipd.index'), 'icon' => 'bed'];
+                }
+
+                // Whether today's shift handover has been done
+                $handoverDone = DB::table('shift_handover_notes')
+                    ->where('clinic_id', $clinicId)
+                    ->whereDate('handover_date', $today)
+                    ->exists();
+                if (!$handoverDone) {
+                    $tasks[] = ['count' => 0, 'label' => 'shift handover note not yet written', 'urgency' => 'warning', 'url' => route('shift-handover.index'), 'icon' => 'clipboard'];
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('buildTodaysTasks failed', ['error' => $e->getMessage()]);
+        }
+
+        return $tasks;
     }
 
     /**

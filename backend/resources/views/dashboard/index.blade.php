@@ -105,6 +105,46 @@ $demoWhatsapp = [
         </div>
     </div>
 
+    {{-- ── TODAY'S TASKS (Item 14 — role-based) ── --}}
+    @if(!empty($todaysTasks ?? []))
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <h3 class="text-sm font-bold text-gray-900">Today's Tasks</h3>
+        </div>
+        <div class="flex flex-wrap gap-3 p-4">
+            @foreach($todaysTasks as $task)
+            @php
+                $urgencyClass = match($task['urgency']) {
+                    'critical' => 'bg-red-50 border-red-200 text-red-700',
+                    'warning'  => 'bg-amber-50 border-amber-200 text-amber-700',
+                    default    => 'bg-blue-50 border-blue-200 text-blue-700',
+                };
+                $countClass = match($task['urgency']) {
+                    'critical' => 'text-red-800',
+                    'warning'  => 'text-amber-800',
+                    default    => 'text-blue-800',
+                };
+            @endphp
+            <a href="{{ $task['url'] }}"
+               class="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border {{ $urgencyClass }} text-sm font-medium transition-opacity hover:opacity-80">
+                @if($task['count'] > 0)
+                <span class="font-bold text-base {{ $countClass }}">{{ $task['count'] }}</span>
+                @else
+                {{-- Warning icon for zero-count tasks (e.g. "not yet done") --}}
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                @endif
+                <span>{{ $task['label'] }}</span>
+            </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     {{-- ── SCHEDULE + QUEUE/WHATSAPP ── --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 

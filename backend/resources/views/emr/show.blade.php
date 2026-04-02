@@ -806,6 +806,13 @@
                this.recalculateSafetyWarnings();
                this.triggerAutoSave();
              },
+             repeatLastRx(lastDrugs) {
+               if (!confirm('This will replace the current prescription with the last one. Continue?')) return;
+               this.drugs = lastDrugs.map(d => ({ ...d }));
+               this.recalculateSafetyWarnings();
+               this.triggerAutoSave();
+               console.log('Repeated last Rx', { count: this.drugs.length });
+             },
              triggerAutoSave() {
                window.dispatchEvent(new CustomEvent('emr-autosave'));
              }
@@ -840,6 +847,37 @@
             </div>
 
             {{-- Prescription table --}}
+            {{-- Item 4: Repeat Last Rx panel --}}
+            @if($previousPrescriptions && $previousPrescriptions->isNotEmpty())
+            @php
+                $lastRxForRepeat = $previousPrescriptions->first();
+                $lastRxDrugs = $lastRxForRepeat->drugs->map(fn($d) => [
+                    'name'         => $d->drug_name,
+                    'generic'      => $d->generic_name ?? '',
+                    'dose'         => $d->dose,
+                    'frequency'    => $d->frequency,
+                    'duration'     => $d->duration,
+                    'instructions' => $d->instructions ?? '',
+                ])->toArray();
+            @endphp
+            <div style="margin-bottom:14px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <div>
+                        <span style="font-weight:700;color:#1e40af;">↺ Last Prescription</span>
+                        <span style="color:#3b82f6;margin-left:8px;">{{ $lastRxForRepeat->created_at->format('d M Y') }}</span>
+                        <span style="color:#6b7280;margin-left:8px;">
+                            {{ $lastRxForRepeat->drugs->pluck('drug_name')->take(3)->join(', ') }}{{ $lastRxForRepeat->drugs->count() > 3 ? ' +'.($lastRxForRepeat->drugs->count()-3).' more' : '' }}
+                        </span>
+                    </div>
+                    <button type="button"
+                        @click="repeatLastRx({{ json_encode($lastRxDrugs) }})"
+                        style="padding:5px 14px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;">
+                        Repeat this Rx
+                    </button>
+                </div>
+            </div>
+            @endif
+
             <table class="drug-table">
               <thead>
                 <tr>

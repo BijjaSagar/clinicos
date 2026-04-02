@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\InAppNotification;
 use App\Models\LabTestCatalog;
 use App\Models\Patient;
 use App\Models\User;
@@ -275,6 +276,46 @@ class LabTechnicianController extends Controller
         }
 
         Log::info('Lab results saved', ['order_id' => $orderId, 'by' => auth()->id()]);
+
+        // ── Item 2: Notify the ordering doctor in-app ─────────────────────
+        try {
+            $orderRow = DB::table('lab_orders')
+                ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
+                ->where('lab_orders.id', $orderId)
+                ->select('lab_orders.created_by', 'lab_orders.clinic_id', 'lab_orders.order_number',
+                         'patients.name as patient_name')
+                ->first();
+
+            if ($orderRow && $orderRow->created_by) {
+                // Check if any result was flagged critical
+                $hasCritical = DB::table('lab_results')
+                    ->whereIn('order_item_id', function ($q) use ($orderId) {
+                        $q->select('id')->from('lab_order_items')->where('order_id', $orderId);
+                    })
+                    ->where('is_critical', true)
+                    ->exists();
+
+                $title  = $hasCritical
+                    ? "CRITICAL lab result — {$orderRow->patient_name}"
+                    : "Lab results ready — {$orderRow->patient_name}";
+                $body   = "Order #{$orderRow->order_number} results have been entered by the lab.";
+                $colour = $hasCritical ? 'red' : 'blue';
+                $icon   = $hasCritical ? 'alert' : 'flask';
+
+                InAppNotification::send(
+                    userId:    $orderRow->created_by,
+                    clinicId:  $orderRow->clinic_id,
+                    type:      $hasCritical ? 'critical_result' : 'lab_result',
+                    title:     $title,
+                    body:      $body,
+                    actionUrl: route('lab.technician.report', $orderId),
+                    icon:      $icon,
+                    colour:    $colour
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Doctor lab notification failed', ['error' => $e->getMessage()]);
+        }
 
         // Send WhatsApp notification to patient (best-effort)
         try {

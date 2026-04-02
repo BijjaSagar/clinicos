@@ -39,7 +39,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class,
             'hims' => \App\Http\Middleware\CheckHimsFeature::class,
             'clinic.tenant' => \App\Http\Middleware\EnsureApiClinicTenant::class,
-            'clinic.module' => \App\Http\Middleware\EnsureClinicProductModule::class,
+            'clinic.module'  => \App\Http\Middleware\EnsureClinicProductModule::class,
+            'patient.portal' => \App\Http\Middleware\PatientPortalAuth::class,
         ]);
 
         // Redirect guests to login

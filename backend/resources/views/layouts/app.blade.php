@@ -557,18 +557,72 @@ if (!function_exists('route_exists')) {
                 </button>
 
                 {{-- Notification bell --}}
-                <button type="button" class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700" aria-label="Notifications">
-                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                    </svg>
-                    {{-- Badge --}}
-                    @php $notifCount = 3; @endphp
-                    @if($notifCount > 0)
-                    <span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                        {{ $notifCount > 9 ? '9+' : $notifCount }}
-                    </span>
-                    @endif
-                </button>
+                @php
+                    $notifCount = \App\Models\InAppNotification::unreadCountFor(auth()->id());
+                    $recentNotifs = \App\Models\InAppNotification::forUser(auth()->id())
+                        ->orderByDesc('created_at')->limit(8)->get();
+                @endphp
+                <div x-data="{ notifOpen: false }" class="relative">
+                    <button @click="notifOpen = !notifOpen; if(notifOpen) fetch('/notifications/mark-read', {method:'POST',headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content}})"
+                        type="button" class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700" aria-label="Notifications">
+                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        @if($notifCount > 0)
+                        <span x-show="!notifOpen" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {{ $notifCount > 9 ? '9+' : $notifCount }}
+                        </span>
+                        @endif
+                    </button>
+
+                    {{-- Dropdown panel --}}
+                    <div x-show="notifOpen" x-cloak @click.outside="notifOpen = false"
+                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                            <span class="text-sm font-semibold text-gray-900">Notifications</span>
+                            @if($notifCount > 0)
+                            <span class="text-xs text-red-500 font-medium">{{ $notifCount }} unread</span>
+                            @endif
+                        </div>
+                        <div class="divide-y divide-gray-50 max-h-80 overflow-y-auto">
+                            @forelse($recentNotifs as $notif)
+                            <a href="{{ $notif->action_url ?? '#' }}"
+                               class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors {{ $notif->is_read ? 'opacity-60' : '' }}">
+                                <div class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
+                                    {{ match($notif->colour) {
+                                        'red'   => 'bg-red-100 text-red-600',
+                                        'green' => 'bg-green-100 text-green-600',
+                                        'amber' => 'bg-amber-100 text-amber-600',
+                                        default => 'bg-blue-100 text-blue-600',
+                                    } }}">
+                                    @if($notif->icon === 'flask')
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    @elseif($notif->icon === 'alert')
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    @elseif($notif->icon === 'user')
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    @else
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                                    @endif
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-semibold text-gray-900 truncate">{{ $notif->title }}</p>
+                                    <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ $notif->body }}</p>
+                                    <p class="text-[10px] text-gray-400 mt-1">{{ $notif->created_at->diffForHumans() }}</p>
+                                </div>
+                                @if(!$notif->is_read)
+                                <div class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5"></div>
+                                @endif
+                            </a>
+                            @empty
+                            <div class="px-4 py-8 text-center text-xs text-gray-400">No notifications yet</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
 
                 {{-- Doctor avatar --}}
                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 cursor-pointer"
@@ -577,6 +631,36 @@ if (!function_exists('route_exists')) {
                 </div>
             </div>
         </header>
+
+        {{-- Item 8: Critical lab result banner for doctors --}}
+        @if(in_array(auth()->user()?->role, ['doctor', 'owner']))
+        @php
+            $criticalAlerts = \App\Models\InAppNotification::where('user_id', auth()->id())
+                ->where('type', 'critical_result')
+                ->where('is_read', false)
+                ->with([])
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get();
+        @endphp
+        @foreach($criticalAlerts as $alert)
+        <div x-data="{ show: true }" x-show="show" x-cloak
+             class="flex items-center gap-3 px-4 py-2.5 bg-red-600 text-white text-sm">
+            <svg class="w-4 h-4 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span class="font-semibold">CRITICAL RESULT:</span>
+            <span class="flex-1">{{ $alert->body }}</span>
+            @if($alert->action_url)
+            <a href="{{ $alert->action_url }}" class="underline font-semibold whitespace-nowrap">View Report →</a>
+            @endif
+            <button @click="show = false; fetch('/notifications/mark-read', {method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}'}})"
+                    class="ml-2 text-red-200 hover:text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        @endforeach
+        @endif
 
         {{-- Page Content --}}
         <main class="flex-1 overflow-y-auto overflow-x-hidden min-h-0 min-w-0">
@@ -593,5 +677,98 @@ if (!function_exists('route_exists')) {
 </div>
 
 @stack('scripts')
+
+{{-- Item 13: Cmd+K / Ctrl+K Global Search --}}
+<div x-data="{
+    open: false,
+    query: '',
+    results: [],
+    loading: false,
+    selectedIdx: 0,
+    async search() {
+        if (this.query.length < 2) { this.results = []; return; }
+        this.loading = true;
+        try {
+            const r = await fetch('/api/global-search?q=' + encodeURIComponent(this.query), {
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
+            });
+            this.results = await r.json();
+        } catch(e) { this.results = []; }
+        this.loading = false;
+        this.selectedIdx = 0;
+    },
+    open_() { this.open = true; this.$nextTick(() => this.$refs.qs?.focus()); },
+    close() { this.open = false; this.query = ''; this.results = []; },
+    go(url) { if (url) { window.location = url; this.close(); } },
+    keydown(e) {
+        if (!this.open) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.selectedIdx = Math.min(this.selectedIdx+1, this.results.length-1); }
+        if (e.key === 'ArrowUp')   { e.preventDefault(); this.selectedIdx = Math.max(this.selectedIdx-1, 0); }
+        if (e.key === 'Enter')     { e.preventDefault(); if (this.results[this.selectedIdx]) this.go(this.results[this.selectedIdx].url); }
+        if (e.key === 'Escape')    { this.close(); }
+    }
+}"
+x-init="
+    document.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); open_(); }
+    });
+    document.addEventListener('keydown', e => keydown(e));
+">
+    {{-- Backdrop --}}
+    <div x-show="open" x-cloak @click="close()"
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         class="fixed inset-0 bg-black/40 z-[9000] backdrop-blur-sm"></div>
+
+    {{-- Modal --}}
+    <div x-show="open" x-cloak
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+         class="fixed inset-x-4 top-[15vh] mx-auto max-w-xl bg-white rounded-2xl shadow-2xl z-[9001] overflow-hidden border border-gray-100">
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input x-ref="qs" type="text" x-model="query" @input.debounce.250ms="search()"
+                   placeholder="Search patients, invoices, appointments…"
+                   class="flex-1 text-sm text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent">
+            <kbd class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded font-mono">ESC</kbd>
+        </div>
+        <div class="max-h-80 overflow-y-auto">
+            <template x-if="loading">
+                <div class="px-4 py-6 text-center text-sm text-gray-400">Searching…</div>
+            </template>
+            <template x-if="!loading && query.length >= 2 && results.length === 0">
+                <div class="px-4 py-6 text-center text-sm text-gray-400">No results for "<span x-text="query"></span>"</div>
+            </template>
+            <template x-for="(item, idx) in results" :key="idx">
+                <a :href="item.url" @click="close()"
+                   :class="idx === selectedIdx ? 'bg-blue-50' : 'hover:bg-gray-50'"
+                   class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 transition-colors">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                         :class="{
+                            'bg-blue-100 text-blue-700': item.type === 'patient',
+                            'bg-green-100 text-green-700': item.type === 'invoice',
+                            'bg-purple-100 text-purple-700': item.type === 'appointment',
+                         }">
+                        <span x-text="item.type === 'patient' ? 'P' : item.type === 'invoice' ? '₹' : 'A'"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate" x-text="item.label"></p>
+                        <p class="text-xs text-gray-400 truncate" x-text="item.sublabel"></p>
+                    </div>
+                    <span class="text-xs text-gray-300 capitalize" x-text="item.type"></span>
+                </a>
+            </template>
+            <template x-if="!loading && query.length < 2">
+                <div class="px-4 py-4 text-xs text-gray-400 space-y-1">
+                    <p>Start typing to search patients, invoices, or appointments.</p>
+                    <p>Use <kbd class="bg-gray-100 px-1 rounded font-mono">↑</kbd> <kbd class="bg-gray-100 px-1 rounded font-mono">↓</kbd> to navigate, <kbd class="bg-gray-100 px-1 rounded font-mono">↵</kbd> to open.</p>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

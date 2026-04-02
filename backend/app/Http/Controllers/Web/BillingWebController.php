@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class BillingWebController extends Controller
@@ -223,18 +224,22 @@ class BillingWebController extends Controller
                 $phone = '91' . $phone;
             }
 
-            // Create WhatsApp message
+            // Generate a signed public URL for the PDF (valid for 72 hours)
+            $pdfUrl = URL::signedRoute('billing.pdf-public', ['invoice' => $invoice->id], now()->addHours(72));
+
+            // Create WhatsApp message with PDF download link
             $message = "Hello {$patient->name},\n\n";
             $message .= "Your invoice from {$clinic->name} is ready.\n\n";
             $message .= "Invoice #: {$invoice->invoice_number}\n";
             $message .= "Amount: ₹" . number_format($invoice->total, 2) . "\n";
             $message .= "Status: " . ucfirst($invoice->payment_status) . "\n\n";
-            
+
             $balance = $invoice->total - ($invoice->paid ?? 0);
             if ($balance > 0) {
                 $message .= "Balance Due: ₹" . number_format($balance, 2) . "\n\n";
             }
-            
+
+            $message .= "📄 Download your invoice PDF:\n{$pdfUrl}\n\n";
             $message .= "Thank you for choosing {$clinic->name}!";
 
             // Generate WhatsApp URL
@@ -246,10 +251,30 @@ class BillingWebController extends Controller
             // Redirect to WhatsApp (opens in new tab via JavaScript)
             return back()->with('success', 'Opening WhatsApp...')
                          ->with('whatsapp_url', $whatsappUrl);
-                         
+
         } catch (\Throwable $e) {
             Log::error('WhatsApp send failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
             return back()->with('error', 'Failed to send WhatsApp: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Public signed PDF download — no auth required, URL must be signed.
+     */
+    public function publicPdf(Request $request, Invoice $invoice)
+    {
+        if (!$request->hasValidSignature()) {
+            abort(403, 'This link has expired or is invalid.');
+        }
+
+        $invoice->load(['patient', 'items', 'clinic']);
+
+        try {
+            $pdf = Pdf::loadView('billing.invoice-pdf', compact('invoice'));
+            return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
+        } catch (\Throwable $e) {
+            Log::error('Public PDF generation failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
+            return view('billing.invoice-pdf', compact('invoice'));
         }
     }
 

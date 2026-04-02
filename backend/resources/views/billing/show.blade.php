@@ -197,4 +197,10 @@
         </div>
     </div>
 </div>
+
+@if(session('whatsapp_url'))
+<script>
+    window.open("{{ session('whatsapp_url') }}", '_blank', 'noopener');
+</script>
+@endif
 @endsection

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentService;
 use App\Models\ClinicLocation;
+use App\Models\InAppNotification;
 use App\Models\Patient;
 use App\Models\User;
 use App\Services\WhatsAppService;
@@ -288,6 +289,35 @@ class AppointmentWebController extends Controller
                 'from'           => $currentStatus,
                 'to'             => $newStatus,
             ]);
+
+            // ── Item 1: Check-in side effects ─────────────────────────────
+            if ($newStatus === 'checked_in') {
+                $appointment->load('patient');
+                $patientName = $appointment->patient?->name ?? 'Patient';
+
+                // Auto-add token to OPD queue (update appointment queue_token if not set)
+                if (empty($appointment->queue_token)) {
+                    $todayMax = Appointment::where('clinic_id', $appointment->clinic_id)
+                        ->whereDate('scheduled_at', today())
+                        ->whereNotNull('queue_token')
+                        ->max('queue_token');
+                    $appointment->update(['queue_token' => ($todayMax ?? 0) + 1]);
+                }
+
+                // Notify the assigned doctor in-app
+                if ($appointment->doctor_id) {
+                    InAppNotification::send(
+                        userId:    $appointment->doctor_id,
+                        clinicId:  $appointment->clinic_id,
+                        type:      'checkin',
+                        title:     "Patient checked in — Token #{$appointment->queue_token}",
+                        body:      "{$patientName} has checked in and is waiting for consultation.",
+                        actionUrl: route('schedule'),
+                        icon:      'user',
+                        colour:    'green'
+                    );
+                }
+            }
 
             return back()->with('success', 'Appointment status updated.');
         } catch (\Throwable $e) {

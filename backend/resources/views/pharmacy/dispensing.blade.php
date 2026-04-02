@@ -97,6 +97,72 @@
             {{-- Items Table --}}
             <div class="overflow-x-auto border border-gray-100 rounded-xl">
                 <table class="w-full">
+                    {{-- Item 6: Quick search / barcode shortcut --}}
+                    <div class="px-4 pb-3 flex items-center gap-3" x-data="{ medSearch: '', suggestions: [] }"
+                         x-init="
+                            document.addEventListener('keydown', e => {
+                                if ((e.key === '/' || (e.key === 'f' && (e.ctrlKey || e.metaKey))) && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'SELECT') {
+                                    e.preventDefault();
+                                    $refs.medSearchInput.focus();
+                                }
+                            });
+                         ">
+                        <div class="relative flex-1">
+                            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </div>
+                            <input type="text" x-ref="medSearchInput"
+                                x-model="medSearch"
+                                placeholder="Search medicine or scan barcode… (press / to focus)"
+                                class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                @input.debounce.200ms="
+                                    suggestions = medSearch.length > 1
+                                        ? {{ json_encode(collect($medicines ?? [])->map(fn($m) => ['id' => $m->id, 'name' => $m->name, 'stock' => $m->current_stock ?? 0, 'price' => $m->price_per_unit ?? 0])->values()->toArray()) }}.filter(m => m.name.toLowerCase().includes(medSearch.toLowerCase()))
+                                        : []
+                                "
+                                @keydown.enter.prevent="
+                                    if (suggestions.length === 1) {
+                                        const m = suggestions[0];
+                                        const emptyRow = rows.findIndex(r => !r.itemId);
+                                        if (emptyRow >= 0) {
+                                            rows[emptyRow].itemId = m.id;
+                                            rows[emptyRow].price = m.price;
+                                            rows[emptyRow].total = m.price;
+                                        } else {
+                                            rows.push({ itemId: m.id, qty: 1, price: m.price, total: m.price, notes: '' });
+                                        }
+                                        medSearch = '';
+                                        suggestions = [];
+                                    }
+                                "
+                                @keydown.escape="medSearch = ''; suggestions = []"
+                            />
+                            {{-- Suggestions dropdown --}}
+                            <div x-show="suggestions.length > 0" x-cloak
+                                 class="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                <template x-for="m in suggestions" :key="m.id">
+                                    <div @click="
+                                            const emptyRow = rows.findIndex(r => !r.itemId);
+                                            if (emptyRow >= 0) {
+                                                rows[emptyRow].itemId = m.id;
+                                                rows[emptyRow].price = m.price;
+                                                rows[emptyRow].total = m.price;
+                                            } else {
+                                                rows.push({ itemId: m.id, qty: 1, price: m.price, total: m.price, notes: '' });
+                                            }
+                                            medSearch = '';
+                                            suggestions = [];
+                                        "
+                                         class="flex items-center justify-between px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-50 last:border-0">
+                                        <span x-text="m.name" class="font-medium text-gray-800"></span>
+                                        <span class="text-xs text-gray-400" x-text="m.stock + ' in stock'"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <span class="text-xs text-gray-400 whitespace-nowrap hidden sm:block">Press <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 font-mono">/</kbd> to search</span>
+                    </div>
+
                     <thead>
                         <tr class="bg-gray-50 border-b border-gray-100">
                             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-[40%]">Medicine</th>
