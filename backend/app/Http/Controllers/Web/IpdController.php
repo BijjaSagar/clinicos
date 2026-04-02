@@ -246,9 +246,20 @@ class IpdController extends Controller
             'discharged_by'    => auth()->id(),
         ]);
 
+        // Auto-generate room charge invoice (non-blocking)
+        try {
+            $autoInvoice = app(\App\Services\AutoInvoiceService::class)
+                ->fromIpdDischarge($admission->id, $admission->patient_id, $admission->clinic_id);
+            if ($autoInvoice) {
+                Log::info('Auto-invoice created for IPD discharge', ['invoice_id' => $autoInvoice->id]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Auto-invoice from IPD discharge failed (non-blocking)', ['error' => $e->getMessage()]);
+        }
+
         return redirect()
             ->route('ipd.index')
-            ->with('success', "Patient {$admission->patient->name} discharged successfully.");
+            ->with('success', "Patient {$admission->patient->name} discharged. Room charge invoice auto-generated.");
     }
 
     // ─── Record Vitals ───────────────────────────────────────────────────────

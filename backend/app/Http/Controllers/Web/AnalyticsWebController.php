@@ -84,9 +84,10 @@ class AnalyticsWebController extends Controller
         $topServices = collect();
         try {
             $topServices = DB::table('appointments')
-                ->join('appointment_services', 'appointments.service_id', '=', 'appointment_services.id')
+                ->leftJoin('appointment_services', 'appointments.service_id', '=', 'appointment_services.id')
                 ->where('appointments.clinic_id', $clinicId)
                 ->where('appointments.scheduled_at', '>=', $startDate)
+                ->whereNotNull('appointment_services.id')
                 ->select('appointment_services.name', DB::raw('COUNT(*) as count'))
                 ->groupBy('appointment_services.name')
                 ->orderByDesc('count')

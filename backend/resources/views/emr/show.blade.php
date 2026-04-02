@@ -1135,25 +1135,61 @@
             </div>
             
             <div style="background:var(--bg);border-radius:10px;padding:16px">
-              <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Previous Results</div>
-              <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Completed Results</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
                 @forelse($completedLabs as $lab)
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:white;border-radius:8px;border:1px solid var(--border)">
-                  <div>
-                    <div style="font-size:13px;font-weight:600;color:var(--dark)">
-                      {{ $lab->tests->pluck('test_name')->join(', ') ?: 'Lab Tests' }}
+                <div style="background:white;border-radius:8px;border:1px solid var(--border);overflow:hidden">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)">
+                    <div>
+                      <div style="font-size:13px;font-weight:600;color:var(--dark)">
+                        {{ $lab->tests->pluck('test_name')->join(', ') ?: 'Lab Tests' }}
+                      </div>
+                      <div style="font-size:11px;color:var(--text3)">
+                        Completed: {{ $lab->updated_at->format('d M Y') }}
+                      </div>
                     </div>
-                    <div style="font-size:11px;color:var(--text3)">
-                      Completed: {{ $lab->updated_at->format('d M Y') }}
-                    </div>
+                    <span style="background:var(--green-light);color:var(--green);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600">
+                      Completed ✓
+                    </span>
                   </div>
-                  <span style="background:var(--green-light);color:var(--green);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600">
-                    Completed ✓
-                  </span>
+                  @if($lab->tests->isNotEmpty())
+                  <table style="width:100%;font-size:11px;border-collapse:collapse">
+                    <thead>
+                      <tr style="background:#f8fafc">
+                        <th style="padding:6px 14px;text-align:left;color:var(--text3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.04em">Test</th>
+                        <th style="padding:6px 14px;text-align:left;color:var(--text3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.04em">Result</th>
+                        <th style="padding:6px 14px;text-align:left;color:var(--text3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.04em">Unit</th>
+                        <th style="padding:6px 14px;text-align:left;color:var(--text3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.04em">Reference Range</th>
+                        <th style="padding:6px 14px;text-align:center;color:var(--text3);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.04em">Flag</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @foreach($lab->tests as $test)
+                      <tr style="border-top:1px solid #f1f5f9">
+                        <td style="padding:7px 14px;font-weight:500;color:var(--dark)">{{ $test->test_name }}</td>
+                        <td style="padding:7px 14px;font-weight:700;color:{{ $test->is_abnormal ? '#dc2626' : 'var(--dark)' }}">
+                          {{ $test->result_value ?: '—' }}
+                        </td>
+                        <td style="padding:7px 14px;color:var(--text3)">{{ $test->result_unit ?: '—' }}</td>
+                        <td style="padding:7px 14px;color:var(--text3)">{{ $test->reference_range ?: '—' }}</td>
+                        <td style="padding:7px 14px;text-align:center">
+                          @if($test->is_abnormal)
+                            <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700">Abnormal</span>
+                          @elseif($test->result_value)
+                            <span style="background:var(--green-light);color:var(--green);padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600">Normal</span>
+                          @else
+                            <span style="color:var(--text3);font-size:10px">Pending</span>
+                          @endif
+                        </td>
+                      </tr>
+                      @endforeach
+                    </tbody>
+                  </table>
+                  @endif
                 </div>
                 @empty
                 <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">
-                  No previous lab results
+                  No completed lab results yet
                 </div>
                 @endforelse
               </div>

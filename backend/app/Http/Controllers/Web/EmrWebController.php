@@ -127,11 +127,12 @@ class EmrWebController extends Controller
             ->get()
             ->groupBy('photo_type');
 
-        // Get lab orders for this patient (no eager-load of tests — table may vary by schema)
+        // Lab orders with test results eager-loaded
         $labOrders = LabOrder::where('patient_id', $patient->id)
             ->where('clinic_id', $clinicId)
+            ->with(['tests'])
             ->orderByDesc('created_at')
-            ->limit(5)
+            ->limit(10)
             ->get();
 
         // Get previous prescriptions for alerts
@@ -806,9 +807,20 @@ class EmrWebController extends Controller
 
             Log::info('Visit finalised successfully', ['visit_id' => $visit->id, 'patient_id' => $patient->id]);
 
+            // Auto-generate consultation invoice (non-blocking)
+            try {
+                $autoInvoice = app(\App\Services\AutoInvoiceService::class)
+                    ->fromVisit($visit->id, $patient->id, $clinicId, $visit->doctor_id ?? auth()->id());
+                if ($autoInvoice) {
+                    Log::info('Auto-invoice created for visit', ['invoice_id' => $autoInvoice->id]);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Auto-invoice from visit failed (non-blocking)', ['error' => $e->getMessage()]);
+            }
+
             return redirect()
                 ->route('patients.show', $patient)
-                ->with('success', 'Visit finalised successfully.');
+                ->with('success', 'Visit finalised. Invoice auto-generated — check the Billing tab.');
         } catch (\Throwable $e) {
             Log::error('EMR finalise error', [
                 'visit_id' => $visit->id, 

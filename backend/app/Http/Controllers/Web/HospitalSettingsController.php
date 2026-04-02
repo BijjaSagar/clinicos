@@ -71,11 +71,12 @@ class HospitalSettingsController extends Controller
     public function storeWard(Request $request)
     {
         $validated = $request->validate([
-            'name'      => 'required|string|max:100',
-            'type'      => 'required|in:general,icu,nicu,picu,maternity,surgical,medical,orthopedic,pediatric,emergency,private,semi_private',
-            'total_beds'=> 'required|integer|min:1',
-            'floor'     => 'nullable|string|max:50',
-            'notes'     => 'nullable|string',
+            'name'       => 'required|string|max:100',
+            'type'       => 'required|in:general,icu,nicu,picu,maternity,surgical,medical,orthopedic,pediatric,emergency,private,semi_private',
+            'total_beds' => 'required|integer|min:1',
+            'floor'      => 'nullable|string|max:50',
+            'notes'      => 'nullable|string',
+            'daily_rate' => 'nullable|numeric|min:0',
         ]);
 
         $clinicId = auth()->user()->clinic_id;
@@ -94,6 +95,7 @@ class HospitalSettingsController extends Controller
             'total_beds' => $validated['total_beds'],
             'floor'      => $validated['floor'] ?? null,
             'notes'      => $validated['notes'] ?? null,
+            'daily_rate' => $validated['daily_rate'] ?? 0,
             'clinic_id'  => $clinicId,
             'is_active'  => true,
             'created_at' => now(),

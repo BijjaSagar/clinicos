@@ -85,6 +85,15 @@
                 @enderror
             </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Consultation Fee (₹)</label>
+                        <input type="number" name="consultation_fee" min="0" step="50"
+                               value="{{ old('consultation_fee', 0) }}"
+                               placeholder="e.g. 500"
+                               class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-xs text-gray-400 mt-1">Used for auto-invoice generation on visit finalisation.</p>
+                    </div>
+
             <hr class="border-gray-200">
 
             {{-- Password --}}

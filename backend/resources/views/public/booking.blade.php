@@ -281,20 +281,53 @@
                 <h2 class="sora text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
                 <p class="text-gray-600 mb-6">Your appointment has been successfully booked.</p>
 
-                <div class="bg-gray-50 rounded-xl p-6 mb-6 text-left">
+                {{-- Appointment Details Card --}}
+                <div class="bg-gray-50 rounded-xl p-6 mb-4 text-left">
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Appointment Details</h3>
                     <div class="grid gap-3">
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Appointment ID</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 text-sm">Reference No.</span>
                             <span class="font-mono font-semibold text-blue-600" x-text="'#' + bookingResult.id"></span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Date & Time</span>
-                            <span class="font-semibold" x-text="bookingResult.date + ' at ' + bookingResult.time"></span>
+                        <div class="border-t border-gray-200"></div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 text-sm">Doctor</span>
+                            <span class="font-semibold text-gray-900 text-sm" x-text="bookingResult.doctor"></span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Doctor</span>
-                            <span class="font-semibold" x-text="bookingResult.doctor"></span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 text-sm">Date</span>
+                            <span class="font-semibold text-gray-900 text-sm" x-text="bookingResult.date"></span>
                         </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 text-sm">Time</span>
+                            <span class="font-semibold text-gray-900 text-sm" x-text="bookingResult.time"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 text-sm">Clinic</span>
+                            <span class="font-semibold text-gray-900 text-sm" x-text="clinicName"></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Save Reference Reminder --}}
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-left flex gap-3">
+                    <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-semibold text-amber-800">Save your reference number</p>
+                        <p class="text-xs text-amber-700 mt-0.5">Please note down your appointment reference <span class="font-mono font-bold" x-text="'#' + bookingResult.id"></span>. You may need it when you arrive at the clinic.</p>
+                    </div>
+                </div>
+
+                {{-- Add to Calendar hint --}}
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4 text-left flex gap-3">
+                    <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-semibold text-blue-800">Add to your calendar</p>
+                        <p class="text-xs text-blue-700 mt-0.5">Don't forget your appointment on <span class="font-semibold" x-text="bookingResult.date"></span> at <span class="font-semibold" x-text="bookingResult.time"></span>. Add it to your phone calendar so you get a reminder.</p>
                     </div>
                 </div>
 
@@ -305,9 +338,15 @@
                     <a :href="preVisitUrl" class="text-blue-600 underline break-all text-sm" target="_blank" rel="noopener">Open pre-visit form</a>
                 </div>
 
-                <button @click="resetForm()" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors">
-                    Book Another Appointment
-                </button>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a href="{{ route('public.booking.directory') }}"
+                       class="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                        ← Back to Home
+                    </a>
+                    <button @click="resetForm()" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors text-sm">
+                        Book Another Appointment
+                    </button>
+                </div>
             </div>
         </div>
 

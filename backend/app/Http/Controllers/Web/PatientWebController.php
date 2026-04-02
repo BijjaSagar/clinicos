@@ -52,6 +52,19 @@ class PatientWebController extends Controller
             $data              = $request->validated();
             $data['clinic_id'] = auth()->user()->clinic_id;
 
+            // Duplicate patient detection — warn if phone already registered
+            if (!empty($data['phone'])) {
+                $existing = Patient::where('clinic_id', $data['clinic_id'])
+                    ->where('phone', $data['phone'])
+                    ->whereNull('deleted_at')
+                    ->first();
+                if ($existing) {
+                    return back()
+                        ->withInput()
+                        ->with('warning', "A patient with this phone number already exists: <strong>{$existing->name}</strong>. <a href='" . route('patients.show', $existing) . "' class='underline'>View existing patient →</a>");
+                }
+            }
+
             $patient = Patient::create($data);
 
             Log::info('Patient created via web', ['patient_id' => $patient->id]);

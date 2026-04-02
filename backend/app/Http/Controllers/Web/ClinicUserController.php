@@ -52,6 +52,7 @@ class ClinicUserController extends Controller
             'password' => 'required|string|min:6|confirmed',
             'role' => ['required', Rule::in(['doctor', 'receptionist', 'nurse', 'staff', 'pharmacist', 'lab_technician'])],
             'specialty' => 'nullable|string|max:255',
+            'consultation_fee' => 'nullable|numeric|min:0',
         ]);
 
         try {
@@ -65,6 +66,7 @@ class ClinicUserController extends Controller
                 'password' => Hash::make($validated['password']),
                 'role' => $validated['role'],
                 'specialty' => $validated['specialty'] ?? null,
+                'consultation_fee' => $validated['consultation_fee'] ?? 0,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]);
@@ -107,6 +109,7 @@ class ClinicUserController extends Controller
             'password' => 'nullable|string|min:6|confirmed',
             'role' => ['required', Rule::in(['owner', 'doctor', 'receptionist', 'nurse', 'staff', 'pharmacist', 'lab_technician'])],
             'specialty' => 'nullable|string|max:255',
+            'consultation_fee' => 'nullable|numeric|min:0',
         ]);
 
         try {
@@ -116,6 +119,7 @@ class ClinicUserController extends Controller
                 'phone' => $validated['phone'],
                 'role' => $validated['role'],
                 'specialty' => $validated['specialty'] ?? null,
+                'consultation_fee' => $validated['consultation_fee'] ?? $user->consultation_fee,
             ];
 
             if (!empty($validated['password'])) {

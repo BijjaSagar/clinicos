@@ -67,7 +67,32 @@ class PharmacyController extends Controller
             ->limit(10)
             ->get();
 
-        return view('pharmacy.index', compact('stats', 'recentDispensing', 'lowStockItems'));
+        // Pending prescriptions queue — show prescriptions awaiting pharmacy fulfillment
+        $pendingPrescriptions = DB::table('prescriptions')
+            ->join('patients', 'prescriptions.patient_id', '=', 'patients.id')
+            ->leftJoin('visits', 'prescriptions.visit_id', '=', 'visits.id')
+            ->where('prescriptions.clinic_id', $clinicId)
+            ->where('prescriptions.created_at', '>=', now()->subHours(48))
+            ->select(
+                'prescriptions.id',
+                'prescriptions.visit_id',
+                'prescriptions.created_at',
+                'patients.name as patient_name',
+                'patients.phone as patient_phone',
+                'visits.diagnosis_text'
+            )
+            ->orderByDesc('prescriptions.created_at')
+            ->limit(20)
+            ->get()
+            ->map(function ($rx) {
+                $rx->drugs = DB::table('prescription_drugs')
+                    ->where('prescription_id', $rx->id)
+                    ->select('drug_name', 'dose', 'frequency', 'duration')
+                    ->get();
+                return $rx;
+            });
+
+        return view('pharmacy.index', compact('stats', 'recentDispensing', 'lowStockItems', 'pendingPrescriptions'));
     }
 
     // ── Pharmacist Portal ──────────────────────────────────────────────────
@@ -368,6 +393,14 @@ class PharmacyController extends Controller
             }
 
             DB::commit();
+
+            // Auto-generate pharmacy invoice (non-blocking)
+            try {
+                app(\App\Services\AutoInvoiceService::class)
+                    ->fromPharmacyDispensing($dispensing->id, $clinicId, $validated['patient_id'] ?? null);
+            } catch (\Throwable $e) {
+                Log::warning('Auto-invoice from pharmacy dispensing failed', ['error' => $e->getMessage()]);
+            }
 
             Log::info('PharmacyController@dispense created', [
                 'dispensing_id'     => $dispensing->id,

@@ -47,6 +47,56 @@
         </div>
     </div>
 
+    {{-- Pending Prescriptions Queue --}}
+    @if(($pendingPrescriptions ?? collect())->isNotEmpty())
+    <div class="bg-white rounded-2xl border border-amber-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-amber-100 bg-amber-50 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h3 class="font-semibold text-amber-900 text-sm">Pending Prescriptions</h3>
+                <span class="px-2 py-0.5 bg-amber-200 text-amber-800 text-xs font-bold rounded-full">{{ $pendingPrescriptions->count() }}</span>
+            </div>
+            <a href="{{ route('pharmacy.dispensing') }}" class="text-xs text-amber-700 font-semibold hover:underline">Open Dispensing →</a>
+        </div>
+        <div class="divide-y divide-gray-50">
+            @foreach($pendingPrescriptions as $rx)
+            <div class="px-5 py-3 flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <p class="text-sm font-semibold text-gray-900">{{ $rx->patient_name }}</p>
+                        @if($rx->patient_phone)
+                        <span class="text-xs text-gray-400">{{ $rx->patient_phone }}</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        {{ \Carbon\Carbon::parse($rx->created_at)->diffForHumans() }}
+                        @if($rx->diagnosis_text) · {{ Str::limit($rx->diagnosis_text, 40) }} @endif
+                    </p>
+                    @if($rx->drugs->isNotEmpty())
+                    <div class="flex flex-wrap gap-1.5 mt-1.5">
+                        @foreach($rx->drugs->take(4) as $drug)
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-md">
+                            {{ $drug->drug_name }} {{ $drug->dose ?? '' }}
+                        </span>
+                        @endforeach
+                        @if($rx->drugs->count() > 4)
+                        <span class="text-xs text-gray-400">+{{ $rx->drugs->count() - 4 }} more</span>
+                        @endif
+                    </div>
+                    @endif
+                </div>
+                <a href="{{ route('pharmacy.dispensing') }}?patient_id={{ $rx->patient_name }}"
+                   class="flex-shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                    Dispense
+                </a>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     {{-- Quick Actions --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         @php
