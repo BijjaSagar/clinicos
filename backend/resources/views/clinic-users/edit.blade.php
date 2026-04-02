@@ -99,6 +99,8 @@
                     <option value="doctor" {{ old('role', $user->role) === 'doctor' ? 'selected' : '' }}>Doctor</option>
                     <option value="receptionist" {{ old('role', $user->role) === 'receptionist' ? 'selected' : '' }}>Receptionist</option>
                     <option value="nurse" {{ old('role', $user->role) === 'nurse' ? 'selected' : '' }}>Nurse</option>
+                    <option value="pharmacist" {{ old('role', $user->role) === 'pharmacist' ? 'selected' : '' }}>Pharmacist</option>
+                    <option value="lab_technician" {{ old('role', $user->role) === 'lab_technician' ? 'selected' : '' }}>Lab Technician</option>
                     <option value="staff" {{ old('role', $user->role) === 'staff' ? 'selected' : '' }}>Other Staff</option>
                 </select>
                 @if($user->role === 'owner')

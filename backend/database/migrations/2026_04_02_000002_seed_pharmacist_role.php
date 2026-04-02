@@ -1,29 +1,34 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Add pharmacist to the users.role enum column.
+ * No-op if migration 000001 already added both roles.
+ */
 return new class extends Migration
 {
     public function up(): void
     {
-        $role = Role::firstOrCreate(['name' => 'pharmacist', 'guard_name' => 'web']);
-        $permissions = [
-            'view pharmacy',
-            'dispense medicine',
-            'manage inventory',
-            'view patients',
-        ];
-        foreach ($permissions as $perm) {
-            $permission = Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
-            $role->givePermissionTo($permission);
+        $current = DB::select("SHOW COLUMNS FROM users LIKE 'role'");
+        if (empty($current)) {
+            return;
         }
+
+        $typeStr = $current[0]->Type ?? $current[0]->type ?? '';
+        if (str_contains($typeStr, 'pharmacist')) {
+            return; // Already added by 000001 migration
+        }
+
+        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM(
+            'super_admin','owner','doctor','receptionist','nurse','staff',
+            'vendor_admin','lab_technician','pharmacist'
+        ) NOT NULL DEFAULT 'staff'");
     }
 
     public function down(): void
     {
-        $role = Role::findByName('pharmacist', 'web');
-        $role?->delete();
+        // No-op: handled by 000001 down()
     }
 };

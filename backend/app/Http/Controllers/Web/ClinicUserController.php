@@ -50,7 +50,7 @@ class ClinicUserController extends Controller
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:6|confirmed',
-            'role' => ['required', Rule::in(['doctor', 'receptionist', 'nurse', 'staff'])],
+            'role' => ['required', Rule::in(['doctor', 'receptionist', 'nurse', 'staff', 'pharmacist', 'lab_technician'])],
             'specialty' => 'nullable|string|max:255',
         ]);
 
@@ -105,7 +105,7 @@ class ClinicUserController extends Controller
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:6|confirmed',
-            'role' => ['required', Rule::in(['owner', 'doctor', 'receptionist', 'nurse', 'staff'])],
+            'role' => ['required', Rule::in(['owner', 'doctor', 'receptionist', 'nurse', 'staff', 'pharmacist', 'lab_technician'])],
             'specialty' => 'nullable|string|max:255',
         ]);
 

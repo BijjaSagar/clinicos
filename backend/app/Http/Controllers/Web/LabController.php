@@ -237,6 +237,9 @@ class LabController extends Controller
             }
         });
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Lab order created successfully']);
+        }
         return redirect()->route('laboratory.orders')->with('success', 'Lab order created successfully');
     }
 
@@ -256,7 +259,8 @@ class LabController extends Controller
 
         abort_if(!$order, 404);
 
-        // Get items via lab_order_items (HIMS schema) or fallback to tests JSON
+        // Get items via lab_order_items (HIMS schema)
+        $items = collect();
         if (DB::getSchemaBuilder()->hasTable('lab_order_items')) {
             $items = DB::table('lab_order_items')
                 ->join('lab_tests_catalog', 'lab_order_items.test_id', '=', 'lab_tests_catalog.id')
@@ -268,14 +272,37 @@ class LabController extends Controller
                 )
                 ->get()
                 ->map(function ($item) {
-                    $item->result_value   = $item->result_value   ?? null;
-                    $item->is_abnormal    = $item->is_abnormal    ?? false;
-                    $item->remarks        = $item->remarks        ?? null;
+                    $item->result_value    = $item->result_value   ?? null;
+                    $item->is_abnormal     = $item->is_abnormal    ?? false;
+                    $item->remarks         = $item->remarks        ?? null;
                     $item->reference_range = null;
                     return $item;
                 });
-        } else {
-            $items = collect();
+        }
+
+        // Fallback: if no items found in lab_order_items, parse the JSON tests column
+        if ($items->isEmpty() && !empty($order->tests)) {
+            $testIds = is_string($order->tests) ? json_decode($order->tests, true) : (array) $order->tests;
+            if (!empty($testIds)) {
+                $catalogTests = DB::table('lab_tests_catalog')
+                    ->whereIn('id', $testIds)
+                    ->get();
+                $items = $catalogTests->map(function ($test, $index) use ($orderId) {
+                    return (object) [
+                        'id'            => $test->id,
+                        'order_id'      => $orderId,
+                        'test_id'       => $test->id,
+                        'test_name'     => $test->test_name,
+                        'unit'          => $test->unit ?? null,
+                        'price'         => $test->price ?? 0,
+                        'status'        => 'pending',
+                        'result_value'  => null,
+                        'is_abnormal'   => false,
+                        'remarks'       => null,
+                        'reference_range' => null,
+                    ];
+                });
+            }
         }
 
         return view('lab.result-entry', compact('order', 'items'));

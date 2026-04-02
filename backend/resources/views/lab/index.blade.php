@@ -274,16 +274,18 @@ function labDashboard() {
             patient_id: '',
             provider: '',
             tests: [],
+            notes: '',
+            priority: 'routine',
             sample_collection_type: 'lab',
             collection_date: '',
         },
 
         get orderTotal() {
-            return this.orderForm.tests.reduce((sum, t) => sum + t.price, 0);
+            return this.orderForm.tests.reduce((sum, t) => sum + (t.price || 0), 0);
         },
 
         get canSubmit() {
-            return this.orderForm.patient_id && this.orderForm.provider && this.orderForm.tests.length > 0;
+            return this.orderForm.patient_id && this.orderForm.tests.length > 0;
         },
 
         selectProvider(provider) {
@@ -324,23 +326,29 @@ function labDashboard() {
 
         async submitOrder() {
             try {
-                const response = await fetch('/lab/orders', {
+                const payload = {
+                    patient_id: this.orderForm.patient_id,
+                    tests: this.orderForm.tests.map(t => t.id).filter(Boolean),
+                    notes: this.orderForm.notes || '',
+                    priority: this.orderForm.priority || 'routine',
+                    _token: document.querySelector('meta[name="csrf-token"]').content,
+                };
+                const response = await fetch('/laboratory/orders', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
                     },
-                    body: JSON.stringify(this.orderForm),
+                    body: JSON.stringify(payload),
                 });
 
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('Order created: ' + data.order_number);
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
                     this.showOrderModal = false;
                     location.reload();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || data.message || 'Failed to create order'));
                 }
             } catch (error) {
                 console.error('Order error:', error);

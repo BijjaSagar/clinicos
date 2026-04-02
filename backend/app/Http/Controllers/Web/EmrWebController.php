@@ -127,10 +127,9 @@ class EmrWebController extends Controller
             ->get()
             ->groupBy('photo_type');
 
-        // Get lab orders for this patient
+        // Get lab orders for this patient (no eager-load of tests — table may vary by schema)
         $labOrders = LabOrder::where('patient_id', $patient->id)
             ->where('clinic_id', $clinicId)
-            ->with('tests')
             ->orderByDesc('created_at')
             ->limit(5)
             ->get();

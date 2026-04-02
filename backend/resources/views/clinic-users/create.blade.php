@@ -64,6 +64,8 @@
                     <option value="doctor" {{ old('role') === 'doctor' ? 'selected' : '' }}>Doctor</option>
                     <option value="receptionist" {{ old('role') === 'receptionist' ? 'selected' : '' }}>Receptionist</option>
                     <option value="nurse" {{ old('role') === 'nurse' ? 'selected' : '' }}>Nurse</option>
+                    <option value="pharmacist" {{ old('role') === 'pharmacist' ? 'selected' : '' }}>Pharmacist</option>
+                    <option value="lab_technician" {{ old('role') === 'lab_technician' ? 'selected' : '' }}>Lab Technician</option>
                     <option value="staff" {{ old('role') === 'staff' ? 'selected' : '' }}>Other Staff</option>
                 </select>
                 @error('role')

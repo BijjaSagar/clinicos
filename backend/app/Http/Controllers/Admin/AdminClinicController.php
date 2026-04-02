@@ -138,7 +138,7 @@ class AdminClinicController extends Controller
                 'licensed_beds' => $validated['licensed_beds'] ?? null,
                 'hims_features' => $himsFeatures,
                 'trial_ends_at' => $validated['plan'] === 'trial'
-                    ? now()->addDays($validated['trial_days'] ?? 30)
+                    ? now()->addDays((int)($validated['trial_days'] ?? 30))
                     : null,
             ]);
 
