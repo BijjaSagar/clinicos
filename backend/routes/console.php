@@ -47,6 +47,12 @@ Schedule::command('razorpay:reconcile')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Database backup daily at 3am
+Schedule::command('backup:database --keep=30')
+    ->dailyAt('03:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Archive old audit logs monthly
 Schedule::command('activitylog:clean --days=365')
     ->monthly();

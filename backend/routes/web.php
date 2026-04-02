@@ -39,6 +39,25 @@ use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\SetupWizardController;
 use App\Http\Controllers\Web\WhatsAppSettingsController;
 
+// Health check for monitoring
+Route::get('/health', function () {
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        return response()->json([
+            'status' => 'ok',
+            'timestamp' => now()->toIso8601String(),
+            'database' => 'connected',
+            'version' => config('app.version', '2.0.0'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'timestamp' => now()->toIso8601String(),
+            'database' => 'disconnected',
+        ], 503);
+    }
+})->name('health');
+
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
 

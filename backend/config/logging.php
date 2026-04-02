@@ -36,7 +36,7 @@ return [
 
         'stack' => [
             'driver'            => 'stack',
-            'channels'          => explode(',', env('LOG_STACK', 'daily')),
+            'channels'          => explode(',', env('LOG_CHANNELS', 'daily,sentry')),
             'ignore_exceptions' => false,
         ],
 
@@ -103,6 +103,12 @@ return [
         'null' => [
             'driver'  => 'monolog',
             'handler' => NullHandler::class,
+        ],
+
+        'sentry' => [
+            'driver' => 'sentry',
+            'level'  => env('LOG_LEVEL', 'error'),
+            'bubble' => true,
         ],
 
         'emergency' => [
