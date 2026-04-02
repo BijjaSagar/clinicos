@@ -244,11 +244,13 @@ if (!function_exists('route_exists')) {
                 
                 // Define which roles can access which menu items
                 $roleAccess = [
-                    'owner' => ['all'], // Owner has access to everything
-                    'doctor' => ['dashboard', 'app-v2', 'schedule', 'patients', 'emr', 'whatsapp', 'billing', 'photo-vault', 'prescriptions', 'vendor', 'analytics', 'referrals', 'wearables', 'compliance', 'abdm-hiu'],
-                    'receptionist' => ['dashboard', 'app-v2', 'schedule', 'patients', 'whatsapp', 'billing', 'payments', 'gst-reports', 'referrals'],
-                    'nurse' => ['dashboard', 'app-v2', 'schedule', 'patients', 'emr', 'photo-vault', 'prescriptions'],
-                    'staff' => ['dashboard', 'app-v2', 'schedule'],
+                    'owner'          => ['all'], // Owner has access to everything
+                    'doctor'         => ['dashboard', 'app-v2', 'schedule', 'patients', 'emr', 'whatsapp', 'billing', 'photo-vault', 'prescriptions', 'vendor', 'analytics', 'referrals', 'wearables', 'compliance', 'abdm-hiu'],
+                    'receptionist'   => ['dashboard', 'app-v2', 'schedule', 'patients', 'whatsapp', 'billing', 'payments', 'gst-reports', 'referrals'],
+                    'nurse'          => ['dashboard', 'app-v2', 'schedule', 'patients', 'emr', 'photo-vault', 'prescriptions'],
+                    'lab_technician' => ['lab-portal', 'laboratory'],
+                    'pharmacist'     => ['pharmacy'],
+                    'staff'          => ['dashboard', 'app-v2', 'schedule'],
                 ];
                 
                 $userAccess = $roleAccess[$userRole] ?? $roleAccess['staff'];
@@ -265,24 +267,27 @@ if (!function_exists('route_exists')) {
                     : static fn (string $navKey): bool => true;
 
                 $navSections = [];
-                
-                // CLINIC Section
-                $clinicItems = [];
-                $clinicItems[] = ['route' => 'dashboard', 'label' => 'Dashboard', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>', 'badge' => null, 'key' => 'dashboard'];
-                if ($canAccess('app-v2')) {
-                    $clinicItems[] = ['route' => 'app.home', 'label' => 'Workspace v2', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>', 'badge' => null, 'key' => 'app-v2'];
+
+                // CLINIC Section — hidden for HIMS-only roles (they have their own portals)
+                $isHimsOnlyRole = in_array($userRole, ['lab_technician', 'pharmacist']);
+                if (!$isHimsOnlyRole) {
+                    $clinicItems = [];
+                    $clinicItems[] = ['route' => 'dashboard', 'label' => 'Dashboard', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>', 'badge' => null, 'key' => 'dashboard'];
+                    if ($canAccess('app-v2')) {
+                        $clinicItems[] = ['route' => 'app.home', 'label' => 'Workspace v2', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>', 'badge' => null, 'key' => 'app-v2'];
+                    }
+                    $clinicItems[] = ['route' => 'schedule', 'label' => 'Schedule', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>', 'badge' => '14', 'badgeColor' => 'blue', 'key' => 'schedule'];
+                    if ($canAccess('patients')) {
+                        $clinicItems[] = ['route' => 'patients.index', 'label' => 'Patients', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null, 'key' => 'patients'];
+                    }
+                    if ($canAccess('emr') && $modNav('emr')) {
+                        $clinicItems[] = ['route' => 'emr.index', 'label' => 'EMR / Notes', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>', 'badge' => null, 'key' => 'emr'];
+                    }
+                    if ($canAccess('whatsapp') && $modNav('whatsapp')) {
+                        $clinicItems[] = ['route' => 'whatsapp.index', 'label' => 'WhatsApp', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>', 'badge' => '3', 'badgeColor' => 'red', 'key' => 'whatsapp'];
+                    }
+                    $navSections[] = ['label' => 'Clinic', 'items' => $clinicItems];
                 }
-                $clinicItems[] = ['route' => 'schedule', 'label' => 'Schedule', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>', 'badge' => '14', 'badgeColor' => 'blue', 'key' => 'schedule'];
-                if ($canAccess('patients')) {
-                    $clinicItems[] = ['route' => 'patients.index', 'label' => 'Patients', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null, 'key' => 'patients'];
-                }
-                if ($canAccess('emr') && $modNav('emr')) {
-                    $clinicItems[] = ['route' => 'emr.index', 'label' => 'EMR / Notes', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>', 'badge' => null, 'key' => 'emr'];
-                }
-                if ($canAccess('whatsapp') && $modNav('whatsapp')) {
-                    $clinicItems[] = ['route' => 'whatsapp.index', 'label' => 'WhatsApp', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>', 'badge' => '3', 'badgeColor' => 'red', 'key' => 'whatsapp'];
-                }
-                $navSections[] = ['label' => 'Clinic', 'items' => $clinicItems];
                 
                 // BILLING Section (only if user has access to any billing feature)
                 if (($canAccess('billing') && $modNav('billing')) || ($canAccess('payments') && $modNav('payments')) || ($canAccess('gst-reports') && $modNav('gst-reports'))) {
@@ -302,7 +307,8 @@ if (!function_exists('route_exists')) {
                 }
                 
                 // CLINICAL Section (only if user has access to any clinical feature)
-                if (($canAccess('photo-vault') && $modNav('photo-vault')) || ($canAccess('prescriptions') && $modNav('prescriptions')) || ($canAccess('vendor') && $modNav('vendor')) || ($canAccess('referrals') && $modNav('referrals')) || ($canAccess('wearables') && $modNav('wearables'))) {
+                $isHimsOnlyRole = in_array($userRole, ['lab_technician', 'pharmacist']);
+                if ($isHimsOnlyRole || ($canAccess('photo-vault') && $modNav('photo-vault')) || ($canAccess('prescriptions') && $modNav('prescriptions')) || ($canAccess('vendor') && $modNav('vendor')) || ($canAccess('referrals') && $modNav('referrals')) || ($canAccess('wearables') && $modNav('wearables'))) {
                     $clinicalItems = [];
                     if ($canAccess('photo-vault') && $modNav('photo-vault')) {
                         $clinicalItems[] = ['route' => 'photo-vault.index', 'label' => 'Photo Vault', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>', 'badge' => null, 'key' => 'photo-vault'];

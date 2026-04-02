@@ -13,9 +13,18 @@ class DashboardController extends Controller
 {
     public function index(): View|\Illuminate\Http\RedirectResponse
     {
+        // Role-based dashboard redirect
+        $role = auth()->user()->role;
+        if ($role === 'lab_technician') {
+            return redirect()->route('lab.technician.dashboard');
+        }
+        if ($role === 'pharmacist') {
+            return redirect()->route('pharmacy.index');
+        }
+
         // Redirect to setup wizard if clinic hasn't completed setup
         $clinic = auth()->user()->clinic;
-        if ($clinic && !($clinic->settings['setup_completed'] ?? false) && auth()->user()->role === 'owner') {
+        if ($clinic && !($clinic->settings['setup_completed'] ?? false) && $role === 'owner') {
             return redirect()->route('setup-wizard.index');
         }
 
