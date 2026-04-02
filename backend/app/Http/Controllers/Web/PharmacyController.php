@@ -23,31 +23,41 @@ class PharmacyController extends Controller
         $clinicId = auth()->user()->clinic_id;
 
         // ── Stats ────────────────────────────────────────────────────────────
-        $itemsInStock = PharmacyItem::where('clinic_id', $clinicId)
-            ->active()
-            ->count();
+        $totalMedicines = PharmacyItem::where('clinic_id', $clinicId)->active()->count();
 
-        $lowStockCount = PharmacyItem::where('clinic_id', $clinicId)
-            ->active()
-            ->lowStock()
-            ->count();
+        $lowStockCount = PharmacyItem::where('clinic_id', $clinicId)->active()->lowStock()->count();
 
-        $expiringSoon = PharmacyStock::where('clinic_id', $clinicId)
-            ->where('quantity_available', '>', 0)
-            ->where('expiry_date', '>=', now()->toDateString())
-            ->where('expiry_date', '<=', now()->addDays(30)->toDateString())
-            ->count();
+        $dispensedToday = PharmacyDispensing::where('clinic_id', $clinicId)
+            ->whereDate('created_at', today())->count();
 
-        $todaysSalesAmount = PharmacyDispensing::where('clinic_id', $clinicId)
-            ->whereDate('created_at', today())
+        $monthlyRevenue = PharmacyDispensing::where('clinic_id', $clinicId)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
             ->sum('total');
 
-        $stats = compact('itemsInStock', 'lowStockCount', 'expiringSoon', 'todaysSalesAmount');
+        $stats = [
+            'total_medicines'  => $totalMedicines,
+            'low_stock_count'  => $lowStockCount,
+            'dispensed_today'  => $dispensedToday,
+            'monthly_revenue'  => number_format($monthlyRevenue, 0),
+            // keep old keys too for any other views
+            'itemsInStock'     => $totalMedicines,
+            'lowStockCount'    => $lowStockCount,
+            'expiringSoon'     => PharmacyStock::where('clinic_id', $clinicId)->where('quantity_available', '>', 0)->where('expiry_date', '>=', now()->toDateString())->where('expiry_date', '<=', now()->addDays(30)->toDateString())->count(),
+            'todaysSalesAmount'=> PharmacyDispensing::where('clinic_id', $clinicId)->whereDate('created_at', today())->sum('total'),
+        ];
 
-        // ── Recent dispensing records (last 20) ───────────────────────────────
-        $recentDispensing = PharmacyDispensing::with(['patient', 'items.item', 'dispensedBy'])
-            ->where('clinic_id', $clinicId)
-            ->latest()
+        // ── Recent dispensing records — flat query so view can access ->patient_name etc ──
+        $recentDispensing = DB::table('pharmacy_dispensing')
+            ->leftJoin('patients', 'pharmacy_dispensing.patient_id', '=', 'patients.id')
+            ->where('pharmacy_dispensing.clinic_id', $clinicId)
+            ->select(
+                'pharmacy_dispensing.*',
+                'patients.name as patient_name',
+                DB::raw('(SELECT COUNT(*) FROM pharmacy_dispensing_items WHERE dispensing_id = pharmacy_dispensing.id) as items_count'),
+                'pharmacy_dispensing.total as total_amount'
+            )
+            ->orderByDesc('pharmacy_dispensing.created_at')
             ->limit(20)
             ->get();
 

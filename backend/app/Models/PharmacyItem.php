@@ -74,4 +74,10 @@ class PharmacyItem extends Model
             ->where('item_id', $this->id)
             ->sum('quantity_available');
     }
+
+    // Compatibility: views use current_stock
+    public function getCurrentStockAttribute(): int
+    {
+        return $this->stock_quantity;
+    }
 }

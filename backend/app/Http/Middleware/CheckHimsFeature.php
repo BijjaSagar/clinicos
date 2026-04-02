@@ -23,8 +23,11 @@ class CheckHimsFeature
             return redirect()->route('login');
         }
 
-        // Super admins bypass
+        // Super admins and clinic owners always bypass HIMS feature gate
         if ($user->clinic_id === null && $user->role === 'super_admin') {
+            return $next($request);
+        }
+        if ($user->role === 'owner') {
             return $next($request);
         }
 

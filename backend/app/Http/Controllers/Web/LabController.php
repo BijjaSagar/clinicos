@@ -15,12 +15,20 @@ class LabController extends Controller
     {
         $clinicId = auth()->user()->clinic_id;
         $stats = [
-            'total_tests'     => LabTestCatalog::where('clinic_id', $clinicId)->count(),
-            'active_tests'    => LabTestCatalog::where('clinic_id', $clinicId)->where('is_active', true)->count(),
-            'pending_results' => DB::table('lab_orders')->where('clinic_id', $clinicId)->whereIn('status', ['pending', 'sample_collected', 'processing'])->count(),
-            'orders_today'    => DB::table('lab_orders')->where('clinic_id', $clinicId)->whereDate('created_at', today())->count(),
+            'total_tests'      => LabTestCatalog::where('clinic_id', $clinicId)->count(),
+            'active_tests'     => LabTestCatalog::where('clinic_id', $clinicId)->where('is_active', true)->count(),
+            'pending_results'  => DB::table('lab_orders')->where('clinic_id', $clinicId)->whereIn('status', ['pending', 'sample_collected', 'processing'])->count(),
+            'orders_today'     => DB::table('lab_orders')->where('clinic_id', $clinicId)->whereDate('created_at', today())->count(),
+            'results_received' => DB::table('lab_orders')->where('clinic_id', $clinicId)->where('status', 'completed')->whereMonth('created_at', now()->month)->count(),
         ];
-        return view('lab.index', compact('stats'));
+        $recentOrders = DB::table('lab_orders')
+            ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
+            ->where('lab_orders.clinic_id', $clinicId)
+            ->select('lab_orders.*', 'patients.name as patient_name')
+            ->orderByDesc('lab_orders.created_at')
+            ->limit(10)
+            ->get();
+        return view('lab.index', compact('stats', 'recentOrders'));
     }
 
     public function catalog()
