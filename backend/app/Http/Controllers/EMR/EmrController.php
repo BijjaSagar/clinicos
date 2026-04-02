@@ -139,8 +139,8 @@ class EmrController extends Controller
 
         $validated = $request->validate([
             'body_region'  => 'required|string',
-            'x_pct'        => 'required|numeric|min:0|max:100',
-            'y_pct'        => 'required|numeric|min:0|max:100',
+            'x_pct'        => 'nullable|numeric|min:0|max:100',
+            'y_pct'        => 'nullable|numeric|min:0|max:100',
             'lesion_type'  => 'required|string', // macule, papule, plaque, vesicle…
             'size_cm'      => 'nullable|numeric',
             'colour'       => 'nullable|string',

@@ -46,7 +46,11 @@ class LabController extends Controller
             ->select('lab_orders.*', 'patients.name as patient_name')
             ->get();
 
-        return view('lab.index', compact('stats', 'recentOrders'));
+        $patients = \App\Models\Patient::where('clinic_id', $clinicId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone']);
+
+        return view('lab.index', compact('stats', 'recentOrders', 'patients'));
     }
 
     /**

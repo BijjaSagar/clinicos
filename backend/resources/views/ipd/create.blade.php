@@ -48,7 +48,7 @@
                     <option value="">Select patient…</option>
                     @foreach($patients as $patient)
                     <option value="{{ $patient->id }}" {{ old('patient_id') == $patient->id ? 'selected' : '' }}>
-                        {{ $patient->name }}@if($patient->phone) — {{ $patient->phone }}@endif@if($patient->age_years) ({{ $patient->age_years }}y{{ $patient->sex ? ', '.ucfirst($patient->sex) : '' }})@endif
+                        {{ $patient->name }}{{ $patient->phone ? ' — '.$patient->phone : '' }}{{ $patient->age_years ? ' ('.$patient->age_years.'y'.($patient->sex ? ', '.ucfirst($patient->sex) : '').')' : '' }}
                     </option>
                     @endforeach
                 </select>

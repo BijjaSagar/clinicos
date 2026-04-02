@@ -45,7 +45,7 @@ class VendorWebController extends Controller
 
             Log::info('VendorWebController@index success', ['orders_count' => $orders->count()]);
 
-            return view('vendor.index', compact('orders', 'stats', 'partnerClinics'));
+            return view('lab-orders.index', compact('orders', 'stats', 'partnerClinics'));
         } catch (\Throwable $e) {
             Log::error('VendorWebController@index error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             throw $e;

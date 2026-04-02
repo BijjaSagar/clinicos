@@ -215,30 +215,36 @@ class PharmacyController extends Controller
 
     public function stockIn(Request $request)
     {
+        // The inventory form uses: pharmacy_item_id, quantity, batch_number,
+        // expiry_date, purchase_price, supplier_name — map to DB column names.
         $validated = $request->validate([
-            'item_id'       => 'required|integer|exists:pharmacy_items,id',
-            'batch_number'  => 'required|string|max:100',
-            'expiry_date'   => 'required|date|after:today',
-            'quantity_in'   => 'required|integer|min:1',
-            'purchase_rate' => 'required|numeric|min:0',
-            'mrp'           => 'required|numeric|min:0',
-            'supplier_id'   => 'nullable|integer',
-            'grn_id'        => 'nullable|integer',
+            'pharmacy_item_id' => 'required|integer|exists:pharmacy_items,id',
+            'quantity'         => 'required|integer|min:1',
+            'batch_number'     => 'nullable|string|max:100',
+            'expiry_date'      => 'nullable|date',
+            'purchase_price'   => 'nullable|numeric|min:0',
+            'supplier_name'    => 'nullable|string|max:255',
         ]);
 
-        $validated['clinic_id']         = auth()->user()->clinic_id;
-        $validated['quantity_out']       = 0;
-        $validated['quantity_available'] = $validated['quantity_in'];
-
-        $stock = PharmacyStock::create($validated);
+        $stock = PharmacyStock::create([
+            'clinic_id'          => auth()->user()->clinic_id,
+            'item_id'            => $validated['pharmacy_item_id'],
+            'batch_number'       => $validated['batch_number']  ?? null,
+            'expiry_date'        => $validated['expiry_date']   ?? null,
+            'quantity_in'        => $validated['quantity'],
+            'quantity_out'       => 0,
+            'quantity_available' => $validated['quantity'],
+            'purchase_rate'      => $validated['purchase_price'] ?? 0,
+            'mrp'                => $validated['purchase_price'] ?? 0,
+        ]);
 
         Log::info('PharmacyController@stockIn created', ['stock_id' => $stock->id]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Stock received successfully.',
-            'stock'   => $stock,
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Stock received.', 'stock' => $stock]);
+        }
+
+        return redirect()->route('pharmacy.inventory')->with('success', 'Stock added successfully.');
     }
 
     // ── Dispense (POST) ──────────────────────────────────────────────────────

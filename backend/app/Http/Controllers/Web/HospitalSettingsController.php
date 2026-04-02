@@ -72,14 +72,24 @@ class HospitalSettingsController extends Controller
     {
         $validated = $request->validate([
             'name'      => 'required|string|max:100',
-            'type'      => 'required|in:general,icu,emergency,maternity,paediatric,surgical,medical,private,semi_private',
+            'type'      => 'required|in:general,icu,nicu,picu,maternity,surgical,medical,orthopedic,pediatric,emergency,private,semi_private',
             'total_beds'=> 'required|integer|min:1',
             'floor'     => 'nullable|string|max:50',
             'notes'     => 'nullable|string',
         ]);
-        $validated['clinic_id']  = auth()->user()->clinic_id;
-        $validated['is_active']  = true;
-        DB::table('wards')->insert(array_merge($validated, ['created_at' => now(), 'updated_at' => now()]));
+        // DB column is ward_type, not type
+        $insert = [
+            'name'       => $validated['name'],
+            'ward_type'  => $validated['type'],
+            'total_beds' => $validated['total_beds'],
+            'floor'      => $validated['floor'] ?? null,
+            'notes'      => $validated['notes'] ?? null,
+            'clinic_id'  => auth()->user()->clinic_id,
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+        DB::table('wards')->insert($insert);
         return back()->with('success', 'Ward added');
     }
 }

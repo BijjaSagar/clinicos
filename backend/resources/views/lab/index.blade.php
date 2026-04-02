@@ -186,6 +186,9 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">Patient</label>
                             <select x-model="orderForm.patient_id" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
                                 <option value="">Select patient</option>
+                                @foreach($patients as $patient)
+                                <option value="{{ $patient->id }}">{{ $patient->name }}{{ $patient->phone ? ' ('.$patient->phone.')' : '' }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div>

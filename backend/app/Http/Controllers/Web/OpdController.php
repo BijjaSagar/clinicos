@@ -64,7 +64,7 @@ class OpdController extends Controller
     public function walkin(Request $request)
     {
         $clinicId = auth()->user()->clinic_id;
-        $validated = $request->validate([
+        $request->validate([
             'patient_id'       => 'required|exists:patients,id',
             'doctor_id'        => 'required|exists:users,id',
             'chief_complaint'  => 'nullable|string|max:500',
@@ -72,12 +72,19 @@ class OpdController extends Controller
             'appointment_time' => 'required',
         ]);
 
-        $validated['clinic_id'] = $clinicId;
-        $validated['status']    = 'confirmed';
-        $validated['type']      = 'walkin';
-        $validated['booked_by'] = auth()->id();
+        // Appointments table uses scheduled_at (datetime), appointment_type, notes
+        $scheduledAt = $request->appointment_date . ' ' . $request->appointment_time . ':00';
 
-        Appointment::create($validated);
+        Appointment::create([
+            'clinic_id'        => $clinicId,
+            'patient_id'       => $request->patient_id,
+            'doctor_id'        => $request->doctor_id,
+            'scheduled_at'     => $scheduledAt,
+            'status'           => 'confirmed',
+            'appointment_type' => 'new',
+            'booking_source'   => 'walkin',
+            'notes'            => $request->chief_complaint,
+        ]);
 
         return redirect()->route('opd.queue')->with('success', 'Walk-in patient added to queue');
     }

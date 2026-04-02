@@ -74,7 +74,7 @@
                         @foreach($pendingOrders as $order)
                             @php
                                 $testCount = \Illuminate\Support\Facades\DB::table('lab_order_items')
-                                    ->where('lab_order_id', $order->id)->count();
+                                    ->where('order_id', $order->id)->count();
                                 $age = $order->date_of_birth
                                     ? \Carbon\Carbon::parse($order->date_of_birth)->age . 'y'
                                     : '—';
