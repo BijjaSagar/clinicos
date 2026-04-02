@@ -17,11 +17,10 @@ class PharmacyDispensing extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'dispensed_at' => 'datetime',
-        'subtotal'     => 'decimal:2',
-        'gst_amount'   => 'decimal:2',
-        'discount'     => 'decimal:2',
-        'total'        => 'decimal:2',
+        'dispensed_at'    => 'datetime',
+        'total_amount'    => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'paid_amount'     => 'decimal:2',
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────

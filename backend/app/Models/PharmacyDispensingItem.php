@@ -12,24 +12,19 @@ class PharmacyDispensingItem extends Model
     protected $fillable = [
         'dispensing_id',
         'item_id',
-        'stock_id',
         'batch_number',
-        'expiry_date',
         'quantity',
-        'selling_price',
-        'gst_rate',
+        'unit_price',
         'gst_amount',
-        'total',
+        'total_price',
         'instructions',
     ];
 
     protected $casts = [
-        'expiry_date'   => 'date',
-        'quantity'      => 'integer',
-        'selling_price' => 'decimal:2',
-        'gst_rate'      => 'decimal:2',
-        'gst_amount'    => 'decimal:2',
-        'total'         => 'decimal:2',
+        'quantity'    => 'integer',
+        'unit_price'  => 'decimal:2',
+        'gst_amount'  => 'decimal:2',
+        'total_price' => 'decimal:2',
     ];
 
     public function dispensing(): BelongsTo
@@ -40,10 +35,5 @@ class PharmacyDispensingItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(PharmacyItem::class, 'item_id');
-    }
-
-    public function stock(): BelongsTo
-    {
-        return $this->belongsTo(PharmacyStock::class, 'stock_id');
     }
 }

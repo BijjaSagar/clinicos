@@ -16,12 +16,15 @@ class OpdController extends Controller
         $clinicId = auth()->user()->clinic_id;
         $date = $request->get('date', today()->toDateString());
 
+        // appointments table uses scheduled_at (datetime), not appointment_date/time columns
         $appointments = Appointment::with(['patient', 'doctor'])
             ->where('clinic_id', $clinicId)
-            ->whereDate('appointment_date', $date)
-            ->orderBy('appointment_time')
+            ->whereDate('scheduled_at', $date)
+            ->orderBy('scheduled_at')
             ->get()
             ->map(function ($appt) {
+                // Add virtual fields so the queue view's existing appointment_time references work
+                $appt->appointment_time = $appt->scheduled_at?->format('H:i');
                 $appt->queue_status = $appt->status === 'confirmed' ? 'waiting'
                     : ($appt->status === 'completed' ? 'done' : $appt->status);
                 return $appt;
