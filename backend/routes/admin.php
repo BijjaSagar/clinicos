@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminClinicController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminSubscriptionController;
+use App\Http\Controllers\Admin\AdminWhatsAppSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,4 +73,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'super_admin'])->gro
     Route::get('/settings', function () {
         return view('admin.settings.index');
     })->name('settings.index');
+
+    // WhatsApp Settings
+    Route::prefix('whatsapp-settings')->name('whatsapp-settings.')->group(function () {
+        Route::get('/', [AdminWhatsAppSettingsController::class, 'index'])->name('index');
+        Route::post('/save', [AdminWhatsAppSettingsController::class, 'save'])->name('save');
+    });
 });
