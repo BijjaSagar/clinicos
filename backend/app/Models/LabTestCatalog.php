@@ -3,23 +3,27 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
 
 class LabTestCatalog extends Model
 {
-    protected $table = 'lab_test_catalog';
+    protected $table = 'lab_tests_catalog';
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
-        'vendor_id',
-        'test_code',
-        'test_name',
-        'department',
+        'clinic_id',
+        'name',
+        'code',
+        'category',
         'sample_type',
+        'method',
         'turnaround_hours',
         'price',
+        'reference_range_male',
+        'reference_range_female',
+        'reference_range_pediatric',
+        'unit',
         'is_active',
     ];
 
@@ -33,15 +37,10 @@ class LabTestCatalog extends Model
     {
         static::creating(function (LabTestCatalog $test) {
             Log::info('Creating lab test catalog entry', [
-                'vendor_id' => $test->vendor_id,
-                'test_name' => $test->test_name
+                'clinic_id' => $test->clinic_id,
+                'name' => $test->name
             ]);
         });
-    }
-
-    public function vendor(): BelongsTo
-    {
-        return $this->belongsTo(VendorLab::class, 'vendor_id');
     }
 
     public function scopeActive($query)
@@ -49,14 +48,14 @@ class LabTestCatalog extends Model
         return $query->where('is_active', true);
     }
 
-    public function scopeByDepartment($query, string $department)
+    public function scopeByCategory($query, string $category)
     {
-        return $query->where('department', $department);
+        return $query->where('category', $category);
     }
 
     public function scopeSearchByName($query, string $search)
     {
-        return $query->where('test_name', 'like', "%{$search}%");
+        return $query->where('name', 'like', "%{$search}%");
     }
 
     public function getTurnaroundDescription(): string

@@ -26,7 +26,7 @@ class LabTechnicianController extends Controller
             ->whereIn('lab_orders.status', ['pending', 'sample_collected', 'processing'])
             ->select(
                 'lab_orders.*',
-                'patients.full_name as patient_name',
+                'patients.name as patient_name',
                 'patients.phone as patient_phone',
                 'patients.date_of_birth',
                 'patients.gender',
@@ -101,7 +101,7 @@ class LabTechnicianController extends Controller
             ->where('lab_orders.clinic_id', $clinicId)
             ->select(
                 'lab_orders.*',
-                'patients.full_name as patient_name',
+                'patients.name as patient_name',
                 'patients.date_of_birth',
                 'patients.gender',
                 'doctors.name as doctor_name',
@@ -180,11 +180,11 @@ class LabTechnicianController extends Controller
             $order = DB::table('lab_orders')
                 ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
                 ->where('lab_orders.id', $orderId)
-                ->select('patients.id as patient_id', 'patients.phone', 'patients.full_name', 'patients.name as patient_name', 'lab_orders.order_number', 'lab_orders.clinic_id')
+                ->select('patients.id as patient_id', 'patients.phone', 'patients.name', 'patients.name as patient_name', 'lab_orders.order_number', 'lab_orders.clinic_id')
                 ->first();
 
             if ($order && $order->phone) {
-                $patientName = $order->full_name ?? $order->patient_name ?? 'Patient';
+                $patientName = $order->patient_name ?? 'Patient';
                 $orderRef = $order->order_number ?? ('LAB-' . $orderId);
                 $clinicName = auth()->user()->clinic->name ?? 'ClinicOS';
 
@@ -225,7 +225,7 @@ class LabTechnicianController extends Controller
             ->where('lab_orders.clinic_id', $clinicId)
             ->where('lab_orders.ordered_by', $doctorId)
             ->where('lab_orders.status', 'completed')
-            ->select('lab_orders.*', 'patients.full_name as patient_name', 'patients.phone')
+            ->select('lab_orders.*', 'patients.name as patient_name', 'patients.phone')
             ->orderByDesc('lab_orders.completed_at')
             ->paginate(20);
 
@@ -246,7 +246,7 @@ class LabTechnicianController extends Controller
             ->where('lab_orders.clinic_id', $clinicId)
             ->select(
                 'lab_orders.*',
-                'patients.full_name as patient_name',
+                'patients.name as patient_name',
                 'patients.date_of_birth',
                 'patients.gender',
                 'patients.phone',

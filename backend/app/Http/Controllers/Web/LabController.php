@@ -53,10 +53,10 @@ class LabController extends Controller
         $orders = DB::table('lab_orders')
             ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
             ->where('lab_orders.clinic_id', $clinicId)
-            ->select('lab_orders.*', 'patients.full_name as patient_name', 'patients.phone as patient_phone')
+            ->select('lab_orders.*', 'patients.name as patient_name', 'patients.phone as patient_phone')
             ->orderByDesc('lab_orders.created_at')
             ->paginate(20);
-        $patients = Patient::where('clinic_id', $clinicId)->orderBy('full_name')->get(['id','full_name','phone']);
+        $patients = Patient::where('clinic_id', $clinicId)->orderBy('name')->get(['id','name','phone']);
         $tests = LabTestCatalog::where('clinic_id', $clinicId)->where('is_active', true)->orderBy('name')->get();
         return view('lab.orders', compact('orders', 'patients', 'tests'));
     }
@@ -105,7 +105,7 @@ class LabController extends Controller
             ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
             ->where('lab_orders.id', $orderId)
             ->where('lab_orders.clinic_id', $clinicId)
-            ->select('lab_orders.*', 'patients.full_name as patient_name')
+            ->select('lab_orders.*', 'patients.name as patient_name')
             ->firstOrFail();
         $items = DB::table('lab_order_items')
             ->join('lab_tests_catalog', 'lab_order_items.lab_test_catalog_id', '=', 'lab_tests_catalog.id')
