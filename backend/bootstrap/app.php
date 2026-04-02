@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'clinic.auth' => \App\Http\Middleware\ClinicAuthMiddleware::class,
             'super_admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'role' => \App\Http\Middleware\CheckRole::class,
+            'hims' => \App\Http\Middleware\CheckHimsFeature::class,
             'clinic.tenant' => \App\Http\Middleware\EnsureApiClinicTenant::class,
             'clinic.module' => \App\Http\Middleware\EnsureClinicProductModule::class,
         ]);

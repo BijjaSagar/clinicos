@@ -53,7 +53,21 @@ class AuthController extends Controller
 
                 Log::info('User logged in via web', ['user_id' => Auth::id()]);
 
-                return redirect()->intended(route('dashboard'));
+                // Role-aware redirect after login
+                $authUser = Auth::user();
+                $redirectRoute = match($authUser->role) {
+                    'lab_technician' => 'lab.technician.dashboard',
+                    'pharmacist'     => 'pharmacy.index',
+                    'receptionist'   => 'opd.queue',
+                    'nurse'          => 'ipd.index',
+                    default          => 'dashboard', // owner, doctor, staff
+                };
+
+                $target = \Illuminate\Support\Facades\Route::has($redirectRoute)
+                    ? route($redirectRoute)
+                    : route('dashboard');
+
+                return redirect()->intended($target);
             }
 
             return back()

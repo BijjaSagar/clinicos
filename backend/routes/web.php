@@ -390,7 +390,7 @@ Route::middleware(['auth'])->group(function () {
     // ═══════════════════════════════════════════════════════════════════════
     // IPD MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
-    Route::prefix('ipd')->name('ipd.')->group(function () {
+    Route::prefix('ipd')->name('ipd.')->middleware(['role:doctor,nurse', 'hims:ipd'])->group(function () {
         Route::get('/', [IpdController::class, 'index'])->name('index');
         Route::get('/bed-map', [IpdController::class, 'bedMap'])->name('bed-map');
         Route::get('/admit', [IpdController::class, 'create'])->name('create');
@@ -405,7 +405,7 @@ Route::middleware(['auth'])->group(function () {
     // ═══════════════════════════════════════════════════════════════════════
     // PHARMACY MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
-    Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
+    Route::prefix('pharmacy')->name('pharmacy.')->middleware(['role:doctor,pharmacist', 'hims:pharmacy_inventory'])->group(function () {
         Route::get('/', [PharmacyController::class, 'index'])->name('index');
         Route::get('/inventory', [PharmacyController::class, 'inventory'])->name('inventory');
         Route::post('/items', [PharmacyController::class, 'addItem'])->name('items.store');
@@ -419,7 +419,7 @@ Route::middleware(['auth'])->group(function () {
     // ═══════════════════════════════════════════════════════════════════════
     // LAB MANAGEMENT (Internal LIS)
     // ═══════════════════════════════════════════════════════════════════════
-    Route::prefix('laboratory')->name('laboratory.')->group(function () {
+    Route::prefix('laboratory')->name('laboratory.')->middleware(['role:doctor,lab_technician', 'hims:lis_collection'])->group(function () {
         Route::get('/', [LabController::class, 'dashboard'])->name('index');
         Route::get('/catalog', [LabController::class, 'catalog'])->name('catalog');
         Route::post('/catalog', [LabController::class, 'storeTest'])->name('catalog.store');
@@ -432,7 +432,7 @@ Route::middleware(['auth'])->group(function () {
     // ═══════════════════════════════════════════════════════════════════════
     // LAB TECHNICIAN PORTAL
     // ═══════════════════════════════════════════════════════════════════════
-    Route::prefix('lab-portal')->name('lab.technician.')->group(function () {
+    Route::prefix('lab-portal')->name('lab.technician.')->middleware(['role:lab_technician', 'hims:lis_collection'])->group(function () {
         Route::get('/', [LabTechnicianController::class, 'dashboard'])->name('dashboard');
         Route::post('/{orderId}/collect', [LabTechnicianController::class, 'collectSample'])->name('collect');
         Route::get('/{orderId}/results', [LabTechnicianController::class, 'resultForm'])->name('result-form');
@@ -444,7 +444,7 @@ Route::middleware(['auth'])->group(function () {
     // ═══════════════════════════════════════════════════════════════════════
     // OPD QUEUE MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
-    Route::prefix('opd')->name('opd.')->group(function () {
+    Route::prefix('opd')->name('opd.')->middleware(['role:doctor,receptionist,nurse', 'hims:opd_hospital'])->group(function () {
         Route::get('/queue', [OpdController::class, 'queue'])->name('queue');
         Route::post('/walkin', [OpdController::class, 'walkin'])->name('walkin');
         Route::post('/{appointment}/status', [OpdController::class, 'updateStatus'])->name('status');
