@@ -171,6 +171,26 @@ class Patient extends Model
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
+    // ─── Compatibility Accessors ─────────────────────────────────────────────
+    // These map old column name conventions to actual DB columns (dob, sex, name)
+
+    public function getFullNameAttribute(): string
+    {
+        return $this->name ?? '';
+    }
+
+    public function getDateOfBirthAttribute(): mixed
+    {
+        return $this->dob;
+    }
+
+    public function getGenderAttribute(): ?string
+    {
+        return $this->sex;
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
     public function getAge(): ?int
     {
         if ($this->dob) {

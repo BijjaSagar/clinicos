@@ -21,15 +21,15 @@ class LabTechnicianController extends Controller
 
         $pendingOrders = DB::table('lab_orders')
             ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
-            ->join('users as doctors', 'lab_orders.ordered_by', '=', 'doctors.id')
+            ->leftJoin('users as doctors', 'lab_orders.doctor_id', '=', 'doctors.id')
             ->where('lab_orders.clinic_id', $clinicId)
             ->whereIn('lab_orders.status', ['pending', 'sample_collected', 'processing'])
             ->select(
                 'lab_orders.*',
                 'patients.name as patient_name',
                 'patients.phone as patient_phone',
-                'patients.date_of_birth',
-                'patients.gender',
+                'patients.dob as date_of_birth',
+                'patients.sex as gender',
                 'doctors.name as doctor_name'
             )
             ->orderByRaw("FIELD(lab_orders.priority,'stat','urgent','routine')")
@@ -96,14 +96,14 @@ class LabTechnicianController extends Controller
 
         $order = DB::table('lab_orders')
             ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
-            ->join('users as doctors', 'lab_orders.ordered_by', '=', 'doctors.id')
+            ->leftJoin('users as doctors', 'lab_orders.doctor_id', '=', 'doctors.id')
             ->where('lab_orders.id', $orderId)
             ->where('lab_orders.clinic_id', $clinicId)
             ->select(
                 'lab_orders.*',
                 'patients.name as patient_name',
-                'patients.date_of_birth',
-                'patients.gender',
+                'patients.dob as date_of_birth',
+                'patients.sex as gender',
                 'doctors.name as doctor_name',
                 'doctors.id as doctor_id'
             )
@@ -223,7 +223,7 @@ class LabTechnicianController extends Controller
         $completedOrders = DB::table('lab_orders')
             ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
             ->where('lab_orders.clinic_id', $clinicId)
-            ->where('lab_orders.ordered_by', $doctorId)
+            ->where('lab_orders.doctor_id', $doctorId)
             ->where('lab_orders.status', 'completed')
             ->select('lab_orders.*', 'patients.name as patient_name', 'patients.phone')
             ->orderByDesc('lab_orders.completed_at')
@@ -241,14 +241,14 @@ class LabTechnicianController extends Controller
 
         $order = DB::table('lab_orders')
             ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
-            ->join('users as doctors', 'lab_orders.ordered_by', '=', 'doctors.id')
+            ->leftJoin('users as doctors', 'lab_orders.doctor_id', '=', 'doctors.id')
             ->where('lab_orders.id', $orderId)
             ->where('lab_orders.clinic_id', $clinicId)
             ->select(
                 'lab_orders.*',
                 'patients.name as patient_name',
-                'patients.date_of_birth',
-                'patients.gender',
+                'patients.dob as date_of_birth',
+                'patients.sex as gender',
                 'patients.phone',
                 'doctors.name as doctor_name'
             )

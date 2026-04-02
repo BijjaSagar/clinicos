@@ -24,7 +24,7 @@ class CheckHimsFeature
         }
 
         // Super admins bypass
-        if ($user->clinic_id === null && $user->hasRole('super-admin')) {
+        if ($user->clinic_id === null && $user->role === 'super_admin') {
             return $next($request);
         }
 

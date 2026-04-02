@@ -46,7 +46,7 @@ class SubdomainTenant
 
         // If user is authenticated, verify they belong to this clinic
         if ($user = $request->user()) {
-            if ($user->clinic_id !== $clinic->id && !$user->hasRole('super-admin')) {
+            if ($user->clinic_id !== $clinic->id && $user->role !== 'super_admin') {
                 Log::warning('SubdomainTenant: User does not belong to this clinic', [
                     'user_id' => $user->id,
                     'user_clinic' => $user->clinic_id,

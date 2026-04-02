@@ -217,6 +217,17 @@ class PharmacyController extends Controller
         ]);
     }
 
+    // ── Dispensing Form (GET alias) ───────────────────────────────────────────
+
+    public function dispensingForm()
+    {
+        $clinicId = auth()->user()->clinic_id;
+        $patients = Patient::where('clinic_id', $clinicId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone', 'age_years', 'sex']);
+        return view('pharmacy.dispensing', compact('patients'));
+    }
+
     // ── Dispense ─────────────────────────────────────────────────────────────
 
     public function dispense(Request $request)

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class Bed extends Model
 {
-    protected $table = 'beds';
+    protected $table = 'hospital_beds';
 
     protected $fillable = [
         'clinic_id',

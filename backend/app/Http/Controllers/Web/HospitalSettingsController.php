@@ -34,7 +34,7 @@ class HospitalSettingsController extends Controller
     {
         $clinicId = auth()->user()->clinic_id;
         $settings = $this->getSettings($clinicId);
-        $wards    = DB::table('wards')->where('clinic_id', $clinicId)->get();
+        $wards    = DB::table('hospital_wards')->where('clinic_id', $clinicId)->get();
         return view('hospital-settings.index', compact('settings', 'wards'));
     }
 
@@ -79,7 +79,7 @@ class HospitalSettingsController extends Controller
         ]);
         $validated['clinic_id']  = auth()->user()->clinic_id;
         $validated['is_active']  = true;
-        DB::table('wards')->insert(array_merge($validated, ['created_at' => now(), 'updated_at' => now()]));
+        DB::table('hospital_wards')->insert(array_merge($validated, ['created_at' => now(), 'updated_at' => now()]));
         return back()->with('success', 'Ward added');
     }
 }

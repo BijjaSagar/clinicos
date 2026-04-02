@@ -15,8 +15,10 @@ class LabController extends Controller
     {
         $clinicId = auth()->user()->clinic_id;
         $stats = [
-            'total_tests' => LabTestCatalog::where('clinic_id', $clinicId)->count(),
-            'active_tests' => LabTestCatalog::where('clinic_id', $clinicId)->where('is_active', true)->count(),
+            'total_tests'     => LabTestCatalog::where('clinic_id', $clinicId)->count(),
+            'active_tests'    => LabTestCatalog::where('clinic_id', $clinicId)->where('is_active', true)->count(),
+            'pending_results' => DB::table('lab_orders')->where('clinic_id', $clinicId)->whereIn('status', ['pending', 'sample_collected', 'processing'])->count(),
+            'orders_today'    => DB::table('lab_orders')->where('clinic_id', $clinicId)->whereDate('created_at', today())->count(),
         ];
         return view('lab.index', compact('stats'));
     }
@@ -75,7 +77,8 @@ class LabController extends Controller
             $orderId = DB::table('lab_orders')->insertGetId([
                 'clinic_id' => $clinicId,
                 'patient_id' => $validated['patient_id'],
-                'ordered_by' => auth()->id(),
+                'doctor_id' => auth()->id(),
+                'created_by' => auth()->id(),
                 'status' => 'pending',
                 'priority' => $validated['priority'] ?? 'routine',
                 'notes' => $validated['notes'] ?? null,

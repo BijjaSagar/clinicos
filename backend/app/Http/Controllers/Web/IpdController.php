@@ -104,7 +104,7 @@ class IpdController extends Controller
 
         $wards = Ward::where('clinic_id', $clinicId)->active()->get();
 
-        return view('ipd.admission-form', compact('patients', 'doctors', 'availableBeds', 'wards'));
+        return view('ipd.create', compact('patients', 'doctors', 'availableBeds', 'wards'));
     }
 
     // ─── Store ───────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ class IpdController extends Controller
     {
         $validated = $request->validate([
             'patient_id'             => ['required', 'integer', 'exists:patients,id'],
-            'bed_id'                 => ['required', 'integer', 'exists:beds,id'],
+            'bed_id'                 => ['required', 'integer', 'exists:hospital_beds,id'],
             'primary_doctor_id'      => ['required', 'integer', 'exists:users,id'],
             'admission_type'         => ['required', 'string', 'max:50'],
             'diagnosis_at_admission' => ['required', 'string', 'max:1000'],
