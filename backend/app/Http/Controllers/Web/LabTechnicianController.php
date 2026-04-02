@@ -116,13 +116,15 @@ class LabTechnicianController extends Controller
             )
             ->firstOrFail();
 
+        // Load items from lab_order_items (preferred — has FK to each test)
         $items = DB::table('lab_order_items')
             ->join('lab_tests_catalog', 'lab_order_items.test_id', '=', 'lab_tests_catalog.id')
             ->where('lab_order_items.order_id', $orderId)
             ->select(
                 'lab_order_items.*',
                 'lab_tests_catalog.test_name',
-                'lab_tests_catalog.unit'
+                'lab_tests_catalog.unit',
+                'lab_tests_catalog.normal_range as reference_range'
             )
             ->get()
             ->map(function ($item) {
@@ -130,12 +132,66 @@ class LabTechnicianController extends Controller
                 $result = DB::table('lab_results')
                     ->where('order_item_id', $item->id)
                     ->first();
-                $item->result_value  = $result->value      ?? null;
+                $item->result_value  = $result->value       ?? null;
                 $item->is_abnormal   = $result->is_abnormal ?? false;
+                $item->is_critical   = $result->is_critical ?? false;
                 $item->remarks       = $result->notes       ?? null;
-                $item->reference_range = null;
                 return $item;
             });
+
+        // Fallback: if no items in lab_order_items, parse the JSON tests column
+        // (orders created via LabController::storeOrder store test IDs in tests JSON)
+        if ($items->isEmpty() && !empty($order->tests)) {
+            $testIds = is_string($order->tests)
+                ? json_decode($order->tests, true)
+                : (array) $order->tests;
+
+            if (!empty($testIds)) {
+                $catalogTests = DB::table('lab_tests_catalog')
+                    ->whereIn('id', $testIds)
+                    ->get();
+
+                // Create corresponding lab_order_items rows so we can save results later
+                $now = now();
+                foreach ($catalogTests as $test) {
+                    $existingItem = DB::table('lab_order_items')
+                        ->where('order_id', $orderId)
+                        ->where('test_id', $test->id)
+                        ->first();
+
+                    if (!$existingItem) {
+                        DB::table('lab_order_items')->insert([
+                            'order_id'   => $orderId,
+                            'test_id'    => $test->id,
+                            'status'     => 'pending',
+                            'price'      => $test->price ?? 0,
+                            'discount'   => 0,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ]);
+                    }
+                }
+
+                // Re-query now that items exist
+                $items = DB::table('lab_order_items')
+                    ->join('lab_tests_catalog', 'lab_order_items.test_id', '=', 'lab_tests_catalog.id')
+                    ->where('lab_order_items.order_id', $orderId)
+                    ->select(
+                        'lab_order_items.*',
+                        'lab_tests_catalog.test_name',
+                        'lab_tests_catalog.unit',
+                        'lab_tests_catalog.normal_range as reference_range'
+                    )
+                    ->get()
+                    ->map(function ($item) {
+                        $item->result_value  = null;
+                        $item->is_abnormal   = false;
+                        $item->is_critical   = false;
+                        $item->remarks       = null;
+                        return $item;
+                    });
+            }
+        }
 
         // Advance status to processing
         DB::table('lab_orders')->where('id', $orderId)
