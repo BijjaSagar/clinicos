@@ -36,7 +36,7 @@ class OpdController extends Controller
         ];
 
         $doctors = User::where('clinic_id', $clinicId)
-            ->whereHas('roles', fn($q) => $q->where('name', 'doctor'))
+            ->where('role', 'doctor')
             ->get(['id', 'name']);
 
         $patients = Patient::where('clinic_id', $clinicId)

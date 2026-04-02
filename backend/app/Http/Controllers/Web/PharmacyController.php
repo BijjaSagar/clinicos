@@ -23,33 +23,42 @@ class PharmacyController extends Controller
         $clinicId = auth()->user()->clinic_id;
 
         // ── Stats ────────────────────────────────────────────────────────────
-        $itemsInStock = PharmacyItem::where('clinic_id', $clinicId)
+        $total_medicines = PharmacyItem::where('clinic_id', $clinicId)
             ->active()
             ->count();
 
-        $lowStockCount = PharmacyItem::where('clinic_id', $clinicId)
+        $low_stock_count = PharmacyItem::where('clinic_id', $clinicId)
             ->active()
             ->lowStock()
             ->count();
 
-        $expiringSoon = PharmacyStock::where('clinic_id', $clinicId)
-            ->where('quantity_available', '>', 0)
-            ->where('expiry_date', '>=', now()->toDateString())
-            ->where('expiry_date', '<=', now()->addDays(30)->toDateString())
+        $dispensed_today = PharmacyDispensing::where('clinic_id', $clinicId)
+            ->whereDate('dispensed_at', today())
             ->count();
 
-        $todaysSalesAmount = PharmacyDispensing::where('clinic_id', $clinicId)
-            ->whereDate('created_at', today())
-            ->sum('total');
+        $monthly_revenue = PharmacyDispensing::where('clinic_id', $clinicId)
+            ->whereYear('dispensed_at', now()->year)
+            ->whereMonth('dispensed_at', now()->month)
+            ->sum('total_amount');
 
-        $stats = compact('itemsInStock', 'lowStockCount', 'expiringSoon', 'todaysSalesAmount');
+        $stats = compact('total_medicines', 'low_stock_count', 'dispensed_today', 'monthly_revenue');
 
-        // ── Recent dispensing records (last 20) ───────────────────────────────
-        $recentDispensing = PharmacyDispensing::with(['patient', 'items.item', 'dispensedBy'])
-            ->where('clinic_id', $clinicId)
-            ->latest()
+        // ── Recent dispensing records (last 20) — flat query for view ─────────
+        $recentDispensing = DB::table('pharmacy_dispensing')
+            ->leftJoin('patients', 'pharmacy_dispensing.patient_id', '=', 'patients.id')
+            ->where('pharmacy_dispensing.clinic_id', $clinicId)
+            ->orderByDesc('pharmacy_dispensing.dispensed_at')
             ->limit(20)
-            ->get();
+            ->select(
+                'pharmacy_dispensing.*',
+                'patients.name as patient_name'
+            )
+            ->get()
+            ->each(function ($row) {
+                $row->items_count = DB::table('pharmacy_dispensing_items')
+                    ->where('dispensing_id', $row->id)
+                    ->count();
+            });
 
         // ── Low stock alerts ──────────────────────────────────────────────────
         $lowStockItems = PharmacyItem::where('clinic_id', $clinicId)
@@ -68,33 +77,37 @@ class PharmacyController extends Controller
         $clinicId = auth()->user()->clinic_id;
 
         $pendingCount = PharmacyDispensing::where('clinic_id', $clinicId)
-            ->where('status', 'pending')
+            ->whereDate('dispensed_at', today())
             ->count();
 
-        $dispensedToday = PharmacyDispensing::where('clinic_id', $clinicId)
-            ->whereDate('created_at', today())
-            ->where('status', 'dispensed')
-            ->count();
+        $dispensedToday = $pendingCount;
 
         $lowStockItems = PharmacyItem::where('clinic_id', $clinicId)
             ->active()
-            ->whereColumn('current_stock', '<=', 'reorder_level')
-            ->orderBy('current_stock')
+            ->lowStock()
+            ->orderBy('name')
             ->take(10)
             ->get();
 
         $nearExpiryItems = PharmacyStock::where('clinic_id', $clinicId)
             ->where('expiry_date', '<=', now()->addDays(30))
             ->where('expiry_date', '>', now())
-            ->where('quantity', '>', 0)
-            ->with('pharmacyItem')
+            ->where('quantity_available', '>', 0)
+            ->with('item')
             ->take(10)
             ->get();
 
-        $recentDispensing = PharmacyDispensing::where('clinic_id', $clinicId)
-            ->with(['patient', 'dispensedBy'])
-            ->orderByDesc('created_at')
+        $recentDispensing = DB::table('pharmacy_dispensing')
+            ->leftJoin('patients', 'pharmacy_dispensing.patient_id', '=', 'patients.id')
+            ->leftJoin('users', 'pharmacy_dispensing.dispensed_by', '=', 'users.id')
+            ->where('pharmacy_dispensing.clinic_id', $clinicId)
+            ->orderByDesc('pharmacy_dispensing.dispensed_at')
             ->take(10)
+            ->select(
+                'pharmacy_dispensing.*',
+                'patients.name as patient_name',
+                'users.name as dispensed_by_name'
+            )
             ->get();
 
         return view('pharmacy.pharmacist-portal', compact(
@@ -120,7 +133,7 @@ class PharmacyController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        if ($request->boolean('low_stock')) {
+        if ($request->boolean('low_stock') || $request->input('stock_status') === 'low-stock') {
             $query->lowStock();
         }
 
@@ -143,6 +156,17 @@ class PharmacyController extends Controller
         $items = $query->orderBy('name')->paginate(30)->withQueryString();
 
         return view('pharmacy.inventory', compact('items'));
+    }
+
+    // ── Dispense Form (GET) ──────────────────────────────────────────────────
+
+    public function dispensingForm()
+    {
+        $clinicId = auth()->user()->clinic_id;
+        $patients = Patient::where('clinic_id', $clinicId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone', 'age_years', 'sex']);
+        return view('pharmacy.dispensing', compact('patients'));
     }
 
     // ── Add Item ─────────────────────────────────────────────────────────────
@@ -171,8 +195,8 @@ class PharmacyController extends Controller
             'storage_conditions' => 'nullable|string|max:255',
         ]);
 
-        $validated['clinic_id']    = auth()->user()->clinic_id;
-        $validated['is_active']    = true;
+        $validated['clinic_id']     = auth()->user()->clinic_id;
+        $validated['is_active']     = true;
         $validated['is_controlled'] = $request->boolean('is_controlled');
 
         $item = PharmacyItem::create($validated);
@@ -202,9 +226,9 @@ class PharmacyController extends Controller
             'grn_id'        => 'nullable|integer',
         ]);
 
-        $validated['clinic_id']          = auth()->user()->clinic_id;
-        $validated['quantity_out']        = 0;
-        $validated['quantity_available']  = $validated['quantity_in'];
+        $validated['clinic_id']         = auth()->user()->clinic_id;
+        $validated['quantity_out']       = 0;
+        $validated['quantity_available'] = $validated['quantity_in'];
 
         $stock = PharmacyStock::create($validated);
 
@@ -217,32 +241,24 @@ class PharmacyController extends Controller
         ]);
     }
 
-    // ── Dispense ─────────────────────────────────────────────────────────────
+    // ── Dispense (POST) ──────────────────────────────────────────────────────
 
     public function dispense(Request $request)
     {
-        if ($request->isMethod('GET')) {
-            $clinicId = auth()->user()->clinic_id;
-            $patients = Patient::where('clinic_id', $clinicId)
-                ->orderBy('name')
-                ->get(['id', 'name', 'phone', 'age_years', 'sex']);
-            return view('pharmacy.dispensing', compact('patients'));
-        }
-
         // POST — process dispensing
         $validated = $request->validate([
-            'patient_id'       => 'nullable|integer|exists:patients,id',
-            'payment_mode'     => 'required|in:cash,card,upi',
-            'discount'         => 'nullable|numeric|min:0',
-            'notes'            => 'nullable|string|max:500',
-            'items'            => 'required|array|min:1',
-            'items.*.item_id'  => 'required|integer|exists:pharmacy_items,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'patient_id'           => 'nullable|integer|exists:patients,id',
+            'payment_mode'         => 'required|in:cash,card,upi,credit',
+            'discount'             => 'nullable|numeric|min:0',
+            'notes'                => 'nullable|string|max:500',
+            'items'                => 'required|array|min:1',
+            'items.*.item_id'      => 'required|integer|exists:pharmacy_items,id',
+            'items.*.quantity'     => 'required|integer|min:1',
             'items.*.instructions' => 'nullable|string|max:255',
         ]);
 
         $clinicId = auth()->user()->clinic_id;
-        $discount = (float) ($validated['discount'] ?? 0);
+        $discountAmount = (float) ($validated['discount'] ?? 0);
 
         DB::beginTransaction();
         try {
@@ -251,8 +267,8 @@ class PharmacyController extends Controller
             $lineItems = [];
 
             foreach ($validated['items'] as $line) {
-                $item     = PharmacyItem::findOrFail($line['item_id']);
-                $needed   = (int) $line['quantity'];
+                $item   = PharmacyItem::findOrFail($line['item_id']);
+                $needed = (int) $line['quantity'];
 
                 // FIFO: oldest expiry first, non-expired batches only
                 $batches = PharmacyStock::where('clinic_id', $clinicId)
@@ -262,16 +278,14 @@ class PharmacyController extends Controller
                     ->orderBy('expiry_date')
                     ->get();
 
-                $remaining = $needed;
+                $remaining   = $needed;
                 $usedBatches = [];
 
                 foreach ($batches as $batch) {
-                    if ($remaining <= 0) {
-                        break;
-                    }
-                    $take = min($batch->quantity_available, $remaining);
+                    if ($remaining <= 0) break;
+                    $take          = min($batch->quantity_available, $remaining);
                     $usedBatches[] = ['batch' => $batch, 'qty' => $take];
-                    $remaining -= $take;
+                    $remaining    -= $take;
                 }
 
                 if ($remaining > 0) {
@@ -282,43 +296,36 @@ class PharmacyController extends Controller
                     ], 422);
                 }
 
-                // Deduct stock and build line items
+                // Deduct stock
                 $firstBatch = $usedBatches[0]['batch'];
                 foreach ($usedBatches as $entry) {
-                    /** @var PharmacyStock $batch */
                     $batch = $entry['batch'];
                     $take  = $entry['qty'];
-
                     $batch->quantity_out       += $take;
                     $batch->quantity_available -= $take;
                     $batch->save();
                 }
 
-                $unitPrice  = (float) $item->selling_price;
-                $gstRate    = (float) $item->gst_rate;
-                $lineTotal  = round($unitPrice * $needed, 2);
-                $lineGst    = round($lineTotal * $gstRate / 100, 2);
+                $unitPrice = (float) $item->selling_price;
+                $gstRate   = (float) $item->gst_rate;
+                $lineBase  = round($unitPrice * $needed, 2);
+                $lineGst   = round($lineBase * $gstRate / 100, 2);
 
-                $subtotal += $lineTotal;
+                $subtotal += $lineBase;
                 $gstTotal += $lineGst;
 
                 $lineItems[] = [
-                    'item_id'       => $item->id,
-                    'stock_id'      => $firstBatch->id,
-                    'batch_number'  => $firstBatch->batch_number,
-                    'expiry_date'   => $firstBatch->expiry_date,
-                    'quantity'      => $needed,
-                    'selling_price' => $unitPrice,
-                    'gst_rate'      => $gstRate,
-                    'gst_amount'    => $lineGst,
-                    'total'         => $lineTotal + $lineGst,
-                    'instructions'  => $line['instructions'] ?? null,
+                    'item_id'      => $item->id,
+                    'batch_number' => $firstBatch->batch_number,
+                    'quantity'     => $needed,
+                    'unit_price'   => $unitPrice,        // DB column: unit_price
+                    'gst_amount'   => $lineGst,          // DB column: gst_amount
+                    'total_price'  => $lineBase + $lineGst, // DB column: total_price
+                    'instructions' => $line['instructions'] ?? null,
                 ];
             }
 
-            $total = round($subtotal + $gstTotal - $discount, 2);
-
-            // Build dispensing number
+            $totalAmount = round($subtotal + $gstTotal - $discountAmount, 2);
             $dispensingNumber = 'RX-' . strtoupper(uniqid());
 
             $dispensing = PharmacyDispensing::create([
@@ -327,10 +334,9 @@ class PharmacyController extends Controller
                 'dispensing_number' => $dispensingNumber,
                 'dispensed_by'      => auth()->id(),
                 'payment_mode'      => $validated['payment_mode'],
-                'subtotal'          => $subtotal,
-                'gst_amount'        => $gstTotal,
-                'discount'          => $discount,
-                'total'             => $total,
+                'total_amount'      => $totalAmount,      // DB column: total_amount
+                'discount_amount'   => $discountAmount,   // DB column: discount_amount
+                'paid_amount'       => $totalAmount,      // DB column: paid_amount
                 'notes'             => $validated['notes'] ?? null,
                 'dispensed_at'      => now(),
             ]);
@@ -350,7 +356,7 @@ class PharmacyController extends Controller
             return response()->json([
                 'success'           => true,
                 'dispensing_number' => $dispensingNumber,
-                'total'             => $total,
+                'total'             => $totalAmount,
             ]);
 
         } catch (\Throwable $e) {
@@ -370,18 +376,18 @@ class PharmacyController extends Controller
 
         $query = PharmacyDispensing::with(['patient', 'items.item', 'dispensedBy'])
             ->where('clinic_id', $clinicId)
-            ->latest();
+            ->latest('dispensed_at');
 
         if ($request->filled('patient_id')) {
             $query->where('patient_id', $request->patient_id);
         }
 
         if ($request->filled('from')) {
-            $query->whereDate('created_at', '>=', $request->from);
+            $query->whereDate('dispensed_at', '>=', $request->from);
         }
 
         if ($request->filled('to')) {
-            $query->whereDate('created_at', '<=', $request->to);
+            $query->whereDate('dispensed_at', '<=', $request->to);
         }
 
         if ($request->filled('search')) {
@@ -416,13 +422,13 @@ class PharmacyController extends Controller
         ->orderBy('name')
         ->get();
 
-        $today       = now()->toDateString();
-        $soon        = now()->addDays(90)->toDateString();
+        $today = now()->toDateString();
+        $soon  = now()->addDays(90)->toDateString();
 
         return view('pharmacy.stock-report', compact('items', 'today', 'soon'));
     }
 
-    // ── Expiry Alert (JSON for dashboard widget) ──────────────────────────────
+    // ── Expiry Alert (JSON) ───────────────────────────────────────────────────
 
     public function expiryAlert()
     {
@@ -442,7 +448,7 @@ class PharmacyController extends Controller
         ]);
     }
 
-    // ── Drug Search (JSON for dispensing autocomplete) ────────────────────────
+    // ── Drug Search (JSON) ────────────────────────────────────────────────────
 
     public function searchDrugs(Request $request)
     {
@@ -458,7 +464,6 @@ class PharmacyController extends Controller
             ->limit(15)
             ->get(['id', 'name', 'generic_name', 'selling_price', 'gst_rate', 'unit', 'schedule']);
 
-        // Attach live stock qty
         $items->each(function ($item) {
             $item->stock_quantity = $item->stock_quantity;
         });
@@ -466,7 +471,7 @@ class PharmacyController extends Controller
         return response()->json($items);
     }
 
-    // ── Patient Search (JSON for dispensing autocomplete) ─────────────────────
+    // ── Patient Search (JSON) ─────────────────────────────────────────────────
 
     public function searchPatients(Request $request)
     {

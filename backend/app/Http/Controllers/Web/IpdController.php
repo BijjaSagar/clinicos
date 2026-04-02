@@ -92,7 +92,7 @@ class IpdController extends Controller
             ->get(['id', 'name', 'phone', 'age_years', 'sex']);
 
         $doctors = User::where('clinic_id', $clinicId)
-            ->whereIn('role', ['doctor', 'admin'])
+            ->whereIn('role', ['doctor', 'owner'])
             ->orderBy('name')
             ->get(['id', 'name', 'role']);
 
@@ -100,11 +100,11 @@ class IpdController extends Controller
             ->where('clinic_id', $clinicId)
             ->available()
             ->get()
-            ->groupBy('ward.name');
+            ->groupBy(fn($bed) => $bed->ward?->name ?? 'Unassigned');
 
         $wards = Ward::where('clinic_id', $clinicId)->active()->get();
 
-        return view('ipd.admission-form', compact('patients', 'doctors', 'availableBeds', 'wards'));
+        return view('ipd.create', compact('patients', 'doctors', 'availableBeds', 'wards'));
     }
 
     // ─── Store ───────────────────────────────────────────────────────────────
@@ -305,14 +305,14 @@ class IpdController extends Controller
         ]);
 
         $note = $admission->progressNotes()->create(array_merge($validated, [
-            'ipd_admission_id' => $admission->id,
-            'author_id'        => auth()->id(),
+            'clinic_id'        => $admission->clinic_id,
+            'recorded_by'      => auth()->id(),
         ]));
 
         Log::info('IPD progress note added', [
             'admission_id' => $admission->id,
             'note_id'      => $note->id,
-            'author_id'    => auth()->id(),
+            'recorded_by'  => auth()->id(),
         ]);
 
         return response()->json([
@@ -330,7 +330,7 @@ class IpdController extends Controller
 
         $admission->load(['patient', 'primaryDoctor', 'ward', 'bed']);
 
-        $medicationOrders = IpdMedicationOrder::where('ipd_admission_id', $admission->id)
+        $medicationOrders = IpdMedicationOrder::where('admission_id', $admission->id)
             ->where('status', '!=', 'cancelled')
             ->orderBy('created_at')
             ->get();

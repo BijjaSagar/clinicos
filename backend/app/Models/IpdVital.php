@@ -29,7 +29,7 @@ class IpdVital extends Model
 
     public function admission(): BelongsTo
     {
-        return $this->belongsTo(IpdAdmission::class, 'ipd_admission_id');
+        return $this->belongsTo(IpdAdmission::class, 'admission_id');
     }
 
     public function recordedBy(): BelongsTo

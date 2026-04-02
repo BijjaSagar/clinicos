@@ -12,22 +12,32 @@ class IpdMedicationOrder extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'start_date'    => 'date',
-        'end_date'      => 'date',
-        'is_prn'        => 'boolean',
-        'is_stat'       => 'boolean',
-        'is_active'     => 'boolean',
+        'start_date' => 'date',
+        'end_date'   => 'date',
+        'is_sos'     => 'boolean',
+        'stopped_at' => 'datetime',
     ];
 
     // ─── Relationships ───────────────────────────────────────────────────────
 
     public function admission(): BelongsTo
     {
-        return $this->belongsTo(IpdAdmission::class, 'ipd_admission_id');
+        return $this->belongsTo(IpdAdmission::class, 'admission_id');
     }
 
+    public function prescribedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'prescribed_by');
+    }
+
+    // Alias so views using ->orderedBy still work
     public function orderedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'ordered_by');
+        return $this->belongsTo(User::class, 'prescribed_by');
+    }
+
+    public function stoppedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'stopped_by');
     }
 }

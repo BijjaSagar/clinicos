@@ -19,11 +19,17 @@ class IpdProgressNote extends Model
 
     public function admission(): BelongsTo
     {
-        return $this->belongsTo(IpdAdmission::class, 'ipd_admission_id');
+        return $this->belongsTo(IpdAdmission::class, 'admission_id');
     }
 
+    // Alias for compatibility with views that use ->author
     public function author(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'author_id');
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function recordedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 }

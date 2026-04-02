@@ -434,6 +434,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [PharmacyController::class, 'index'])->name('index');
         Route::get('/portal', [PharmacyController::class, 'pharmacistPortal'])->name('portal');
         Route::get('/inventory', [PharmacyController::class, 'inventory'])->name('inventory');
+        Route::get('/items/create', [PharmacyController::class, 'addItem'])->name('items.create');
         Route::post('/items', [PharmacyController::class, 'addItem'])->name('items.store');
         Route::post('/stock-in', [PharmacyController::class, 'stockIn'])->name('stock.in');
         Route::get('/dispense', [PharmacyController::class, 'dispensingForm'])->name('dispense.form');

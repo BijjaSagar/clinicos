@@ -79,17 +79,17 @@ class IpdAdmission extends Model
 
     public function progressNotes(): HasMany
     {
-        return $this->hasMany(IpdProgressNote::class)->orderByDesc('note_date');
+        return $this->hasMany(IpdProgressNote::class, 'admission_id')->orderByDesc('note_date');
     }
 
     public function vitals(): HasMany
     {
-        return $this->hasMany(IpdVital::class)->orderByDesc('recorded_at');
+        return $this->hasMany(IpdVital::class, 'admission_id')->orderByDesc('recorded_at');
     }
 
     public function medicationOrders(): HasMany
     {
-        return $this->hasMany(IpdMedicationOrder::class)->orderByDesc('created_at');
+        return $this->hasMany(IpdMedicationOrder::class, 'admission_id')->orderByDesc('created_at');
     }
 
     // ─── Scopes ──────────────────────────────────────────────────────────────
