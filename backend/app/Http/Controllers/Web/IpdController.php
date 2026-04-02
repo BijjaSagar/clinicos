@@ -26,7 +26,7 @@ class IpdController extends Controller
     {
         $clinicId = auth()->user()->clinic_id;
 
-        $query = IpdAdmission::with(['patient', 'bed', 'ward', 'primaryDoctor'])
+        $query = IpdAdmission::with(['patient', 'bed.room.ward', 'primaryDoctor'])
             ->where('clinic_id', $clinicId)
             ->active();
 
@@ -50,7 +50,7 @@ class IpdController extends Controller
 
         $icuBedsAvailable = Bed::where('clinic_id', $clinicId)
             ->available()
-            ->whereHas('ward', fn ($q) => $q->where('ward_type', 'icu'))
+            ->whereHas('room.ward', fn ($q) => $q->where('is_icu', true))
             ->count();
 
         $dischargesToday = IpdAdmission::where('clinic_id', $clinicId)
@@ -59,7 +59,7 @@ class IpdController extends Controller
 
         $stats = compact('totalAdmitted', 'availableBeds', 'icuBedsAvailable', 'dischargesToday');
 
-        $wards = Ward::where('clinic_id', $clinicId)->active()->get();
+        $wards = Ward::where('clinic_id', $clinicId)->where('is_active', true)->get();
 
         return view('ipd.index', compact('admissions', 'stats', 'wards'));
     }
@@ -71,11 +71,10 @@ class IpdController extends Controller
         $clinicId = auth()->user()->clinic_id;
 
         $wards = Ward::with([
-            'beds.currentAdmission.patient',
-            'rooms',
+            'rooms.beds.currentAdmission.patient',
         ])
             ->where('clinic_id', $clinicId)
-            ->active()
+            ->where('is_active', true)
             ->get();
 
         return view('ipd.bed-map', compact('wards'));
@@ -96,13 +95,13 @@ class IpdController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'role']);
 
-        $availableBeds = Bed::with('ward')
+        $availableBeds = Bed::with('room.ward')
             ->where('clinic_id', $clinicId)
             ->available()
             ->get()
-            ->groupBy('ward.name');
+            ->groupBy(fn ($bed) => $bed->room?->ward?->name ?? 'Unassigned');
 
-        $wards = Ward::where('clinic_id', $clinicId)->active()->get();
+        $wards = Ward::where('clinic_id', $clinicId)->where('is_active', true)->get();
 
         return view('ipd.create', compact('patients', 'doctors', 'availableBeds', 'wards'));
     }
@@ -123,7 +122,8 @@ class IpdController extends Controller
 
         $clinicId = auth()->user()->clinic_id;
 
-        $bed = Bed::where('id', $validated['bed_id'])
+        $bed = Bed::with('room')
+            ->where('id', $validated['bed_id'])
             ->where('clinic_id', $clinicId)
             ->where('status', 'available')
             ->firstOrFail();

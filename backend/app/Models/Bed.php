@@ -13,26 +13,20 @@ class Bed extends Model
 
     protected $fillable = [
         'clinic_id',
-        'ward_id',
         'room_id',
-        'bed_number',
-        'bed_type',
+        'bed_code',
         'status',
-        'floor',
-        'features',
-    ];
-
-    protected $casts = [
-        'features' => 'array',
+        'gender_restriction',
+        'notes',
     ];
 
     protected static function booted(): void
     {
         static::creating(function (Bed $bed) {
             Log::info('Creating bed', [
-                'clinic_id'  => $bed->clinic_id,
-                'ward_id'    => $bed->ward_id,
-                'bed_number' => $bed->bed_number,
+                'clinic_id' => $bed->clinic_id,
+                'room_id'   => $bed->room_id,
+                'bed_code'  => $bed->bed_code,
             ]);
         });
 
@@ -40,7 +34,7 @@ class Bed extends Model
             if ($bed->isDirty('status')) {
                 Log::info('Bed status changed', [
                     'id'         => $bed->id,
-                    'bed_number' => $bed->bed_number,
+                    'bed_code'   => $bed->bed_code,
                     'old_status' => $bed->getOriginal('status'),
                     'new_status' => $bed->status,
                 ]);
@@ -50,14 +44,15 @@ class Bed extends Model
 
     // ─── Relationships ───────────────────────────────────────────────────────
 
-    public function ward(): BelongsTo
-    {
-        return $this->belongsTo(Ward::class);
-    }
-
     public function room(): BelongsTo
     {
-        return $this->belongsTo(ClinicRoom::class, 'room_id');
+        return $this->belongsTo(HospitalRoom::class, 'room_id');
+    }
+
+    // Access ward through room
+    public function ward(): BelongsTo
+    {
+        return $this->room->ward ?? null;
     }
 
     public function currentAdmission(): HasOne
@@ -82,11 +77,6 @@ class Bed extends Model
         return $query->where('clinic_id', $clinicId);
     }
 
-    public function scopeForWard($query, int $wardId)
-    {
-        return $query->where('ward_id', $wardId);
-    }
-
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     public function isAvailable(): bool
@@ -97,6 +87,18 @@ class Bed extends Model
     public function isOccupied(): bool
     {
         return $this->status === 'occupied';
+    }
+
+    // Compatibility accessor — old code uses bed_number
+    public function getBedNumberAttribute(): ?string
+    {
+        return $this->bed_code;
+    }
+
+    // Compatibility: old code checks bed->ward_id
+    public function getWardIdAttribute(): ?int
+    {
+        return $this->room?->ward_id;
     }
 
     public function getStatusColorClass(): string

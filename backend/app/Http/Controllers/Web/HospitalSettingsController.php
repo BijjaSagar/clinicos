@@ -70,16 +70,23 @@ class HospitalSettingsController extends Controller
 
     public function storeWard(Request $request)
     {
-        $validated = $request->validate([
-            'name'      => 'required|string|max:100',
-            'type'      => 'required|in:general,icu,emergency,maternity,paediatric,surgical,medical,private,semi_private',
-            'total_beds'=> 'required|integer|min:1',
-            'floor'     => 'nullable|string|max:50',
-            'notes'     => 'nullable|string',
+        $request->validate([
+            'name'   => 'required|string|max:120',
+            'floor'  => 'nullable|string|max:30',
+            'wing'   => 'nullable|string|max:60',
+            'is_icu' => 'nullable',
         ]);
-        $validated['clinic_id']  = auth()->user()->clinic_id;
-        $validated['is_active']  = true;
-        DB::table('hospital_wards')->insert(array_merge($validated, ['created_at' => now(), 'updated_at' => now()]));
+        DB::table('hospital_wards')->insert([
+            'clinic_id'  => auth()->user()->clinic_id,
+            'name'       => $request->name,
+            'floor'      => $request->floor,
+            'wing'       => $request->wing,
+            'is_icu'     => $request->boolean('is_icu'),
+            'is_active'  => 1,
+            'sort_order' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         return back()->with('success', 'Ward added');
     }
 }
