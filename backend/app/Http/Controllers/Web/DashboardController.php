@@ -11,7 +11,7 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(): View|\Illuminate\Http\RedirectResponse
     {
         // Redirect to setup wizard if clinic hasn't completed setup
         $clinic = auth()->user()->clinic;
