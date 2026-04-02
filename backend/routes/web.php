@@ -32,6 +32,7 @@ use App\Http\Controllers\Web\SubscriptionController;
 use App\Http\Controllers\Web\IpdController;
 use App\Http\Controllers\Web\PharmacyController;
 use App\Http\Controllers\Web\LabController;
+use App\Http\Controllers\Web\LabTechnicianController;
 use App\Http\Controllers\Web\OpdController;
 use App\Http\Controllers\Web\HospitalSettingsController;
 
@@ -426,6 +427,18 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/orders', [LabController::class, 'storeOrder'])->name('orders.store');
         Route::get('/orders/{orderId}/results', [LabController::class, 'resultEntry'])->name('result-entry');
         Route::post('/orders/{orderId}/results', [LabController::class, 'saveResult'])->name('save-result');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // LAB TECHNICIAN PORTAL
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('lab-portal')->name('lab.technician.')->group(function () {
+        Route::get('/', [LabTechnicianController::class, 'dashboard'])->name('dashboard');
+        Route::post('/{orderId}/collect', [LabTechnicianController::class, 'collectSample'])->name('collect');
+        Route::get('/{orderId}/results', [LabTechnicianController::class, 'resultForm'])->name('result-form');
+        Route::post('/{orderId}/results', [LabTechnicianController::class, 'saveResults'])->name('save-results');
+        Route::get('/doctor-results', [LabTechnicianController::class, 'doctorResults'])->name('doctor-results');
+        Route::get('/{orderId}/report', [LabTechnicianController::class, 'viewReport'])->name('report');
     });
 
     // ═══════════════════════════════════════════════════════════════════════
