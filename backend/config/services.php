@@ -32,9 +32,12 @@ return [
     */
 
     'whatsapp' => [
-        'api_url' => env('WHATSAPP_API_URL', 'https://graph.facebook.com/v18.0'),
-        'token' => env('WHATSAPP_TOKEN', ''),
-        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID', ''),
+        'api_url' => env('WHATSAPP_API_URL', 'https://graph.facebook.com/v19.0'),
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN', 'clinicos_webhook_verify'),
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v19.0'),
     ],
 
     /*
