@@ -25,10 +25,20 @@ class PatientPortalController extends Controller
         $request->validate(['phone' => 'required|string|min:10|max:15']);
 
         $phone = preg_replace('/[^0-9]/', '', $request->phone);
+        // Match last 10 digits to handle +91 prefix variants
+        $last10 = strlen($phone) > 10 ? substr($phone, -10) : $phone;
 
         $patient = DB::table('patients')
-            ->where(DB::raw("REGEXP_REPLACE(phone, '[^0-9]', '')"), $phone)
-            ->orWhere(DB::raw("REGEXP_REPLACE(phone_alt, '[^0-9]', '')"), $phone)
+            ->where(function ($q) use ($phone, $last10) {
+                $q->where('phone', $phone)
+                  ->orWhere('phone', $last10)
+                  ->orWhere('phone', '91' . $last10)
+                  ->orWhere('phone', '+91' . $last10)
+                  ->orWhere('phone_alt', $phone)
+                  ->orWhere('phone_alt', $last10)
+                  ->orWhere('phone_alt', '91' . $last10)
+                  ->orWhere('phone_alt', '+91' . $last10);
+            })
             ->first();
 
         if (!$patient) {

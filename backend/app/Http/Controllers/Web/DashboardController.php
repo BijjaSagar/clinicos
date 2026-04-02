@@ -167,7 +167,7 @@ class DashboardController extends Controller
                     ->whereNull('reviewed_at')
                     ->count();
                 if ($pendingLabs > 0) {
-                    $tasks[] = ['count' => $pendingLabs, 'label' => 'lab results to review', 'urgency' => 'warning', 'url' => route('lab.index'), 'icon' => 'flask'];
+                    $tasks[] = ['count' => $pendingLabs, 'label' => 'lab results to review', 'urgency' => 'warning', 'url' => route('laboratory.index'), 'icon' => 'flask'];
                 }
 
                 // Critical lab results
@@ -178,7 +178,7 @@ class DashboardController extends Controller
                     ->whereDate('lab_results.created_at', $today)
                     ->count();
                 if ($criticalLabs > 0) {
-                    $tasks[] = ['count' => $criticalLabs, 'label' => 'critical lab alert(s)', 'urgency' => 'critical', 'url' => route('lab.index'), 'icon' => 'alert'];
+                    $tasks[] = ['count' => $criticalLabs, 'label' => 'critical lab alert(s)', 'urgency' => 'critical', 'url' => route('laboratory.index'), 'icon' => 'alert'];
                 }
 
                 // Active IPD patients

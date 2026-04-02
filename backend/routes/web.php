@@ -500,7 +500,7 @@ Route::middleware(['auth'])->group(function () {
     // ═══════════════════════════════════════════════════════════════════════
     // SHIFT HANDOVER NOTES (Item 11)
     // ═══════════════════════════════════════════════════════════════════════
-    Route::prefix('shift-handover')->name('shift-handover.')->middleware(['role:doctor,nurse'])->group(function () {
+    Route::prefix('shift-handover')->name('shift-handover.')->middleware(['role:owner,doctor,nurse'])->group(function () {
         Route::get('/', [ShiftHandoverController::class, 'index'])->name('index');
         Route::post('/', [ShiftHandoverController::class, 'store'])->name('store');
     });
