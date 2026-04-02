@@ -75,6 +75,185 @@
             </div>
         </div>
 
+        {{-- Hospital / HIMS Configuration --}}
+        <div class="bg-white rounded-xl p-6 border border-gray-100" x-data="{
+            facilityType: '{{ old('facility_type', 'clinic') }}',
+            selectAll: false,
+            himsFeatures: {
+                @foreach(array_keys(config('hims_expansion.hims_feature_keys')) as $key)
+                '{{ $key }}': {{ old('hims_features.' . $key) ? 'true' : 'false' }},
+                @endforeach
+            },
+            toggleAll() {
+                this.selectAll = !this.selectAll;
+                Object.keys(this.himsFeatures).forEach(k => this.himsFeatures[k] = this.selectAll);
+            }
+        }">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Hospital / HIMS Configuration</h3>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                {{-- Facility Type --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Facility Type</label>
+                    <select name="facility_type" x-model="facilityType"
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        @foreach(config('hims_expansion.facility_types') as $value => $meta)
+                            <option value="{{ $value }}" {{ old('facility_type', 'clinic') === $value ? 'selected' : '' }}>{{ $meta['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('facility_type') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Licensed Beds --}}
+                <div x-show="facilityType !== 'clinic'" x-transition>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Licensed Beds</label>
+                    <input type="number" name="licensed_beds" min="0" value="{{ old('licensed_beds') }}"
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="0">
+                    @error('licensed_beds') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            {{-- Subdomain --}}
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Subdomain</label>
+                <p class="text-sm text-gray-500">&lt;slug&gt;.clinic0s.com — auto-generated from clinic name</p>
+            </div>
+
+            {{-- HIMS Features --}}
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <label class="block text-sm font-medium text-gray-700">HIMS Features</label>
+                    <button type="button" @click="toggleAll()"
+                        class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                        Select All Hospital Features
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    {{-- Bed & Ward --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Bed & Ward</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['bed_management'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- OPD --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">OPD</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['opd_hospital'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- IPD --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">IPD</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['ipd', 'emergency'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Pharmacy --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Pharmacy</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['pharmacy_inventory', 'pharmacy_ip_dispensing', 'pharmacy_op_dispensing', 'pharmacy_purchase_grn', 'pharmacy_returns'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Lab / LIS --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Lab / LIS</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['lis_collection', 'lis_processing', 'lis_results', 'lis_reports_pdf', 'lis_hl7'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Billing --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Billing</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['billing_unified', 'billing_insurance_extended', 'billing_credit_corporate', 'billing_gst_slabs', 'mis_revenue'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Nursing --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Nursing</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['nursing_notes', 'mar', 'vitals_chart', 'nursing_care_plans', 'nursing_handover'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Analytics --}}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Analytics</p>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['analytics_census', 'analytics_lab_tat', 'analytics_pharmacy_alerts', 'analytics_opd'] as $key)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" name="hims_features[{{ $key }}]" value="1"
+                                    x-model="himsFeatures['{{ $key }}']"
+                                    class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ config('hims_expansion.hims_feature_keys.' . $key) }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         @include('admin.clinics.partials.product-modules', ['enabledProductModuleKeys' => $enabledProductModuleKeys])
 
         {{-- Owner Information --}}
