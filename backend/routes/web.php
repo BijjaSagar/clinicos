@@ -43,7 +43,7 @@ use App\Http\Controllers\Web\WhatsAppSettingsController;
 Route::get('/', fn() => view('welcome'))->name('home');
 
 // Auth routes (guest only)
-Route::middleware('guest')->group(function () {
+Route::middleware(['guest', 'throttle:auth'])->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');

@@ -23,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             \App\Http\Middleware\SubdomainTenant::class,
+            \App\Http\Middleware\SanitizeInput::class,
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
 
         $middleware->api(prepend: [
@@ -46,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'webhooks/razorpay',
+            'subscription/webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
