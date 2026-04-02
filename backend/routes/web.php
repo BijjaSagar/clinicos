@@ -407,6 +407,7 @@ Route::middleware(['auth'])->group(function () {
     // ═══════════════════════════════════════════════════════════════════════
     Route::prefix('pharmacy')->name('pharmacy.')->middleware(['role:doctor,pharmacist', 'hims:pharmacy_inventory'])->group(function () {
         Route::get('/', [PharmacyController::class, 'index'])->name('index');
+        Route::get('/portal', [PharmacyController::class, 'pharmacistPortal'])->name('portal');
         Route::get('/inventory', [PharmacyController::class, 'inventory'])->name('inventory');
         Route::post('/items', [PharmacyController::class, 'addItem'])->name('items.store');
         Route::post('/stock-in', [PharmacyController::class, 'stockIn'])->name('stock.in');

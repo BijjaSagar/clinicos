@@ -61,6 +61,47 @@ class PharmacyController extends Controller
         return view('pharmacy.index', compact('stats', 'recentDispensing', 'lowStockItems'));
     }
 
+    // ── Pharmacist Portal ──────────────────────────────────────────────────
+
+    public function pharmacistPortal()
+    {
+        $clinicId = auth()->user()->clinic_id;
+
+        $pendingCount = PharmacyDispensing::where('clinic_id', $clinicId)
+            ->where('status', 'pending')
+            ->count();
+
+        $dispensedToday = PharmacyDispensing::where('clinic_id', $clinicId)
+            ->whereDate('created_at', today())
+            ->where('status', 'dispensed')
+            ->count();
+
+        $lowStockItems = PharmacyItem::where('clinic_id', $clinicId)
+            ->active()
+            ->whereColumn('current_stock', '<=', 'reorder_level')
+            ->orderBy('current_stock')
+            ->take(10)
+            ->get();
+
+        $nearExpiryItems = PharmacyStock::where('clinic_id', $clinicId)
+            ->where('expiry_date', '<=', now()->addDays(30))
+            ->where('expiry_date', '>', now())
+            ->where('quantity', '>', 0)
+            ->with('pharmacyItem')
+            ->take(10)
+            ->get();
+
+        $recentDispensing = PharmacyDispensing::where('clinic_id', $clinicId)
+            ->with(['patient', 'dispensedBy'])
+            ->orderByDesc('created_at')
+            ->take(10)
+            ->get();
+
+        return view('pharmacy.pharmacist-portal', compact(
+            'pendingCount', 'dispensedToday', 'lowStockItems', 'nearExpiryItems', 'recentDispensing'
+        ));
+    }
+
     // ── Inventory ────────────────────────────────────────────────────────────
 
     public function inventory(Request $request)

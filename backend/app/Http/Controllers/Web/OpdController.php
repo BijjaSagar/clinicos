@@ -39,7 +39,11 @@ class OpdController extends Controller
             ->whereHas('roles', fn($q) => $q->where('name', 'doctor'))
             ->get(['id', 'name']);
 
-        return view('opd.queue', compact('appointments', 'stats', 'date', 'doctors'));
+        $patients = Patient::where('clinic_id', $clinicId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone']);
+
+        return view('opd.queue', compact('appointments', 'stats', 'date', 'doctors', 'patients'));
     }
 
     public function updateStatus(Request $request, Appointment $appointment)
