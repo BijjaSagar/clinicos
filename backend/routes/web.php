@@ -73,8 +73,11 @@ Route::middleware(['guest', 'throttle:auth'])->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+// Subscription expired page
+Route::get('/subscription/expired', fn() => view('subscription.expired'))->name('subscription.expired')->middleware('auth');
+
 // Authenticated routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'trial'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // ═══════════════════════════════════════════════════════════════════════

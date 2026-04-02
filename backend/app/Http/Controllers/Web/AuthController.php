@@ -96,27 +96,32 @@ class AuthController extends Controller
             'name'        => ['required', 'string', 'max:255'],
             'email'       => ['required', 'email', 'unique:users,email'],
             'phone'       => ['required', 'string', 'max:15'],
+            'specialty'   => ['nullable', 'string', 'max:100'],
+            'plan'        => ['nullable', 'string', 'in:starter,professional,hospital,trial'],
             'password'    => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         try {
+            $selectedPlan = $validated['plan'] ?? 'trial';
+
             // Create the clinic first
             $clinic = Clinic::create([
-                'name'    => $validated['clinic_name'],
-                'slug'    => Str::slug($validated['clinic_name']) . '-' . Str::random(6),
-                'plan'    => 'trial',
+                'name'      => $validated['clinic_name'],
+                'slug'      => Str::slug($validated['clinic_name']) . '-' . Str::random(6),
+                'plan'      => 'trial',
+                'specialty' => $validated['specialty'] ?? null,
                 'is_active' => true,
-                'trial_ends_at' => now()->addDays(30),
+                'trial_ends_at' => now()->addDays(14),
             ]);
 
-            // Create admin user tied to the clinic
+            // Create owner user tied to the clinic
             $user = User::create([
                 'clinic_id' => $clinic->id,
                 'name'      => $validated['name'],
                 'email'     => $validated['email'],
                 'phone'     => $validated['phone'],
                 'password'  => Hash::make($validated['password']),
-                'role'      => 'admin',
+                'role'      => 'owner',
                 'is_active' => true,
             ]);
 
@@ -131,7 +136,7 @@ class AuthController extends Controller
                 'user_id'   => $user->id,
             ]);
 
-            return redirect()->route('dashboard')->with('success', 'Welcome to ClinicOS! Your 30-day trial has started.');
+            return redirect()->route('dashboard')->with('success', 'Welcome to ClinicOS! Your 14-day trial has started.');
         } catch (\Throwable $e) {
             Log::error('Registration error', ['error' => $e->getMessage()]);
 

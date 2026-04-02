@@ -33,10 +33,23 @@ class WhatsAppService
 
     public function __construct()
     {
-        $this->phoneNumberId = config('services.whatsapp.phone_number_id', '');
-        $this->accessToken   = config('services.whatsapp.token', '');
-        $this->apiVersion    = config('services.whatsapp.api_version', 'v19.0');
-        $this->baseUrl       = "https://graph.facebook.com/{$this->apiVersion}";
+        // Load from system_settings (super admin configured) first, then fall back to .env
+        try {
+            $this->phoneNumberId = \Illuminate\Support\Facades\DB::table('system_settings')
+                ->where('key', 'whatsapp_phone_number_id')->value('value')
+                ?: config('services.whatsapp.phone_number_id', '');
+
+            $this->accessToken = \Illuminate\Support\Facades\DB::table('system_settings')
+                ->where('key', 'whatsapp_access_token')->value('value')
+                ?: config('services.whatsapp.token', '');
+        } catch (\Throwable $e) {
+            // DB might not be available (e.g. during migrations)
+            $this->phoneNumberId = config('services.whatsapp.phone_number_id', '');
+            $this->accessToken   = config('services.whatsapp.token', '');
+        }
+
+        $this->apiVersion = config('services.whatsapp.api_version', 'v19.0');
+        $this->baseUrl    = "https://graph.facebook.com/{$this->apiVersion}";
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -19,10 +19,38 @@
             </div>
         </div>
 
+        {{-- Plan Cards --}}
+        <div class="mb-6" x-data="{ plan: '{{ old('plan', 'professional') }}' }">
+            <p class="text-center text-gray-300 text-sm font-medium mb-3">Choose your plan — all start with a <span class="text-cyan-400 font-bold">14-day free trial</span></p>
+            <div class="grid grid-cols-3 gap-3">
+                @php
+                $plans = [
+                    ['key'=>'starter',     'name'=>'Starter',     'price'=>'₹2,999', 'features'=>['EMR, Billing, WhatsApp']],
+                    ['key'=>'professional','name'=>'Pro',         'price'=>'₹5,999', 'features'=>['+ Analytics, ABDM']],
+                    ['key'=>'hospital',    'name'=>'Hospital',    'price'=>'₹14,999','features'=>['+ IPD, Pharmacy, Lab']],
+                ];
+                @endphp
+                @foreach($plans as $p)
+                <label class="cursor-pointer" x-on:click="plan = '{{ $p['key'] }}'">
+                    <input type="radio" name="plan" value="{{ $p['key'] }}" class="sr-only"
+                        {{ old('plan', 'professional') === $p['key'] ? 'checked' : '' }}>
+                    <div class="rounded-xl border-2 p-3 text-center transition-all"
+                         :class="plan === '{{ $p['key'] }}' ? 'border-cyan-400 bg-cyan-900/30' : 'border-gray-600 bg-gray-800/50 hover:border-gray-500'">
+                        <div class="text-xs font-bold text-white">{{ $p['name'] }}</div>
+                        <div class="text-lg font-extrabold text-cyan-400 leading-tight">{{ $p['price'] }}</div>
+                        <div class="text-xs text-gray-400 leading-tight">/month</div>
+                        <div class="text-xs text-gray-400 mt-1">{{ $p['features'][0] }}</div>
+                    </div>
+                </label>
+                @endforeach
+            </div>
+            <p class="text-center text-gray-500 text-xs mt-2">Cancel anytime. No credit card required for trial.</p>
+        </div>
+
         {{-- Register Card --}}
         <div class="bg-white rounded-2xl shadow-2xl p-8">
             <h2 class="text-xl font-bold text-gray-900 mb-1">Create your account</h2>
-            <p class="text-gray-500 text-sm mb-6">Start managing your clinic in minutes</p>
+            <p class="text-gray-500 text-sm mb-6">14-day free trial, then your selected plan</p>
 
             @if($errors->any())
             <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">

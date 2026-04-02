@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminClinicController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminSubscriptionController;
+use App\Http\Controllers\Admin\AdminWhatsAppController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,4 +73,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'super_admin'])->gro
     Route::get('/settings', function () {
         return view('admin.settings.index');
     })->name('settings.index');
+
+    // WhatsApp Global Credentials
+    Route::prefix('whatsapp')->name('whatsapp.')->group(function () {
+        Route::get('/', [AdminWhatsAppController::class, 'index'])->name('index');
+        Route::post('/save', [AdminWhatsAppController::class, 'save'])->name('save');
+        Route::post('/test', [AdminWhatsAppController::class, 'test'])->name('test');
+    });
 });
