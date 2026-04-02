@@ -16,6 +16,7 @@ class ClinicFactory extends Factory
             'slug' => fake()->unique()->slug(2),
             'plan' => 'small',
             'facility_type' => 'clinic',
+            'specialties' => ['general_medicine'],
             'is_active' => true,
             'settings' => ['setup_completed' => true],
         ];
