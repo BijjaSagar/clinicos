@@ -36,6 +36,7 @@ use App\Http\Controllers\Web\LabTechnicianController;
 use App\Http\Controllers\Web\OpdController;
 use App\Http\Controllers\Web\HospitalSettingsController;
 use App\Http\Controllers\Web\AuditLogController;
+use App\Http\Controllers\Web\SetupWizardController;
 
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -60,6 +61,8 @@ Route::middleware(['auth'])->group(function () {
     // ALL ROLES - Dashboard & Schedule (everyone can access)
     // ═══════════════════════════════════════════════════════════════════════
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/setup', [SetupWizardController::class, 'index'])->name('setup-wizard.index');
+    Route::post('/setup/save', [SetupWizardController::class, 'saveStep'])->name('setup-wizard.save');
     Route::get('/app', [AppShellController::class, 'index'])->name('app.home');
     Route::get('/schedule', [AppointmentWebController::class, 'index'])->name('schedule');
 

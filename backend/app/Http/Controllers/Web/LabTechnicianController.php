@@ -175,6 +175,40 @@ class LabTechnicianController extends Controller
 
         Log::info('Lab results saved', ['order_id' => $orderId, 'by' => auth()->id()]);
 
+        // Send WhatsApp notification to patient
+        try {
+            $order = DB::table('lab_orders')
+                ->join('patients', 'lab_orders.patient_id', '=', 'patients.id')
+                ->where('lab_orders.id', $orderId)
+                ->select('patients.id as patient_id', 'patients.phone', 'patients.full_name', 'patients.name as patient_name', 'lab_orders.order_number', 'lab_orders.clinic_id')
+                ->first();
+
+            if ($order && $order->phone) {
+                $patientName = $order->full_name ?? $order->patient_name ?? 'Patient';
+                $orderRef = $order->order_number ?? ('LAB-' . $orderId);
+                $clinicName = auth()->user()->clinic->name ?? 'ClinicOS';
+
+                $patient = \App\Models\Patient::find($order->patient_id);
+                $labOrder = \App\Models\LabOrder::find($orderId);
+
+                if ($patient && $labOrder) {
+                    app(\App\Services\WhatsAppService::class)->sendLabResults($patient, $labOrder);
+                } else {
+                    // Fallback: send plain text message
+                    $message = "Dear {$patientName}, your lab results for order #{$orderRef} are ready. Please visit the hospital to collect your report or contact your doctor for details. — {$clinicName}";
+                    app(\App\Services\WhatsAppService::class)->sendText($order->phone, $message);
+                }
+
+                Log::info('WhatsApp lab notification sent', [
+                    'phone' => $order->phone,
+                    'patient' => $patientName,
+                    'order_id' => $orderId,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send WhatsApp lab notification', ['error' => $e->getMessage(), 'order_id' => $orderId]);
+        }
+
         return redirect()->route('lab.technician.dashboard')->with('success', 'Results saved. Doctor has been notified.');
     }
 

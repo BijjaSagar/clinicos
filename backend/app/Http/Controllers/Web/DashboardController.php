@@ -13,6 +13,12 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
+        // Redirect to setup wizard if clinic hasn't completed setup
+        $clinic = auth()->user()->clinic;
+        if ($clinic && !($clinic->settings['setup_completed'] ?? false) && auth()->user()->role === 'owner') {
+            return redirect()->route('setup-wizard.index');
+        }
+
         Log::info('DashboardController@index called');
 
         $user = auth()->user();
