@@ -401,6 +401,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{admission}/vitals', [IpdController::class, 'recordVitals'])->name('vitals.store');
         Route::post('/{admission}/progress-notes', [IpdController::class, 'addProgressNote'])->name('progress-notes.store');
         Route::get('/{admission}/print-card', [IpdController::class, 'printCard'])->name('print-card');
+        Route::get('/{admission}/print-prescription', [IpdController::class, 'printPrescription'])->name('print-prescription');
     });
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -322,6 +322,22 @@ class IpdController extends Controller
         ]);
     }
 
+    // ─── Print Prescription ─────────────────────────────────────────────────
+
+    public function printPrescription(IpdAdmission $admission): View
+    {
+        $this->authorizeClinic($admission->clinic_id);
+
+        $admission->load(['patient', 'primaryDoctor', 'ward', 'bed']);
+
+        $medicationOrders = IpdMedicationOrder::where('ipd_admission_id', $admission->id)
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('created_at')
+            ->get();
+
+        return view('ipd.print-prescription', compact('admission', 'medicationOrders'));
+    }
+
     // ─── Visiting Card / Admission Slip ──────────────────────────────────────
 
     public function printCard(IpdAdmission $admission): View
