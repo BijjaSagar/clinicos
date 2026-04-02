@@ -190,7 +190,7 @@
                                 <option value="icu">ICU</option>
                                 <option value="emergency">Emergency</option>
                                 <option value="maternity">Maternity</option>
-                                <option value="paediatric">Paediatric</option>
+                                <option value="pediatric">Paediatric</option>
                                 <option value="surgical">Surgical</option>
                                 <option value="medical">Medical</option>
                                 <option value="private">Private</option>

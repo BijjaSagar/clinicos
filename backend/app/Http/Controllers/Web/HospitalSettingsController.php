@@ -77,19 +77,45 @@ class HospitalSettingsController extends Controller
             'floor'     => 'nullable|string|max:50',
             'notes'     => 'nullable|string',
         ]);
+
+        $clinicId = auth()->user()->clinic_id;
+
+        // Map ward type to bed type (beds table has a narrower enum)
+        $bedTypeMap = [
+            'icu' => 'icu', 'nicu' => 'nicu', 'picu' => 'icu',
+            'maternity' => 'maternity', 'pediatric' => 'pediatric',
+        ];
+        $bedType = $bedTypeMap[$validated['type']] ?? 'general';
+
         // DB column is ward_type, not type
-        $insert = [
+        $wardId = DB::table('wards')->insertGetId([
             'name'       => $validated['name'],
             'ward_type'  => $validated['type'],
             'total_beds' => $validated['total_beds'],
             'floor'      => $validated['floor'] ?? null,
             'notes'      => $validated['notes'] ?? null,
-            'clinic_id'  => auth()->user()->clinic_id,
+            'clinic_id'  => $clinicId,
             'is_active'  => true,
             'created_at' => now(),
             'updated_at' => now(),
-        ];
-        DB::table('wards')->insert($insert);
-        return back()->with('success', 'Ward added');
+        ]);
+
+        // Auto-create individual bed records
+        $beds = [];
+        for ($i = 1; $i <= $validated['total_beds']; $i++) {
+            $beds[] = [
+                'clinic_id'  => $clinicId,
+                'ward_id'    => $wardId,
+                'bed_number' => $validated['name'] . '-' . str_pad($i, 2, '0', STR_PAD_LEFT),
+                'bed_type'   => $bedType,
+                'status'     => 'available',
+                'floor'      => $validated['floor'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        DB::table('beds')->insert($beds);
+
+        return back()->with('success', "Ward \"{$validated['name']}\" added with {$validated['total_beds']} beds.");
     }
 }

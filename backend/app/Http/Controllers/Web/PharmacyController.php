@@ -177,6 +177,17 @@ class PharmacyController extends Controller
             return view('pharmacy.add-item');
         }
 
+        // The inventory modal sends: price_per_unit, category (string)
+        // The dedicated add-item page sends: mrp, selling_price, category_id
+        // Normalise so both forms work.
+        $pricePerUnit = $request->input('price_per_unit');
+        if ($pricePerUnit !== null && !$request->filled('mrp')) {
+            $request->merge([
+                'mrp'           => $pricePerUnit,
+                'selling_price' => $pricePerUnit,
+            ]);
+        }
+
         $validated = $request->validate([
             'name'               => 'required|string|max:255',
             'generic_name'       => 'nullable|string|max:255',
@@ -187,7 +198,7 @@ class PharmacyController extends Controller
             'manufacturer'       => 'nullable|string|max:255',
             'schedule'           => 'nullable|string|max:10',
             'is_controlled'      => 'boolean',
-            'gst_rate'           => 'required|numeric|min:0|max:100',
+            'gst_rate'           => 'nullable|numeric|min:0|max:100',
             'mrp'                => 'required|numeric|min:0',
             'selling_price'      => 'required|numeric|min:0',
             'reorder_level'      => 'nullable|integer|min:0',
@@ -198,6 +209,10 @@ class PharmacyController extends Controller
         $validated['clinic_id']     = auth()->user()->clinic_id;
         $validated['is_active']     = true;
         $validated['is_controlled'] = $request->boolean('is_controlled');
+        $validated['gst_rate']      = $validated['gst_rate'] ?? 0;
+
+        // Remove keys not in fillable (e.g. category string from modal)
+        unset($validated['category']);
 
         $item = PharmacyItem::create($validated);
 
