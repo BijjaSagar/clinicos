@@ -311,6 +311,14 @@ class IpdController extends Controller
         ]);
     }
 
+    // ─── Visiting Card / Admission Slip ──────────────────────────────────────
+
+    public function printCard(IpdAdmission $admission): View
+    {
+        $admission->load(['patient', 'bed.room.ward', 'primaryDoctor', 'ward']);
+        return view('ipd.visiting-card', compact('admission'));
+    }
+
     // ─── Private Helpers ─────────────────────────────────────────────────────
 
     private function authorizeClinic(int $resourceClinicId): void

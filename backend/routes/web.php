@@ -398,6 +398,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{admission}/discharge', [IpdController::class, 'discharge'])->name('discharge');
         Route::post('/{admission}/vitals', [IpdController::class, 'recordVitals'])->name('vitals.store');
         Route::post('/{admission}/progress-notes', [IpdController::class, 'addProgressNote'])->name('progress-notes.store');
+        Route::get('/{admission}/print-card', [IpdController::class, 'printCard'])->name('print-card');
     });
 
     // ═══════════════════════════════════════════════════════════════════════
