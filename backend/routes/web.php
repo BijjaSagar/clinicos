@@ -37,6 +37,7 @@ use App\Http\Controllers\Web\OpdController;
 use App\Http\Controllers\Web\HospitalSettingsController;
 use App\Http\Controllers\Web\AuditLogController;
 use App\Http\Controllers\Web\SetupWizardController;
+use App\Http\Controllers\Web\WhatsAppSettingsController;
 
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -460,6 +461,17 @@ Route::middleware(['auth'])->group(function () {
     // AUDIT LOG - owner ONLY
     // ═══════════════════════════════════════════════════════════════════════
     Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index')->middleware('role:owner');
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // WHATSAPP SETTINGS
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::prefix('whatsapp-settings')->name('whatsapp-settings.')->middleware('role:owner')->group(function () {
+        Route::get('/', [WhatsAppSettingsController::class, 'index'])->name('index');
+        Route::post('/credentials', [WhatsAppSettingsController::class, 'saveCredentials'])->name('save-credentials');
+        Route::post('/test', [WhatsAppSettingsController::class, 'testConnection'])->name('test');
+        Route::post('/seed-templates', [WhatsAppSettingsController::class, 'seedTemplates'])->name('seed-templates');
+        Route::post('/toggle-reminder', [WhatsAppSettingsController::class, 'toggleReminder'])->name('toggle-reminder');
+    });
 
     // ═══════════════════════════════════════════════════════════════════════
     // HOSPITAL SETTINGS
