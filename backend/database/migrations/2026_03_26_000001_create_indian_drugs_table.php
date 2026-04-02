@@ -32,7 +32,9 @@ return new class extends Migration
                 $table->index('generic_name');
                 $table->index('drug_class');
                 $table->index('form');
-                $table->fullText(['generic_name']);
+                if (config('database.default') !== 'sqlite') {
+                    $table->fullText(['generic_name']);
+                }
             });
         }
 

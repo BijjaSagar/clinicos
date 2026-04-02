@@ -532,7 +532,9 @@ return new class extends Migration
             $table->json('common_dosages')->nullable();
             $table->boolean('is_controlled')->default(false);
             $table->index('generic_name');
-            $table->fullText('generic_name');
+            if (config('database.default') !== 'sqlite') {
+                $table->fullText('generic_name');
+            }
         });
 
         // ── 13. Photo Vault ───────────────────────────────────────────────────
