@@ -12,7 +12,7 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════════════
-         SECTION 1: Meta API Credentials
+         SECTION 1: API Credentials — Managed by Platform Admin
     ═══════════════════════════════════════════════════════════════════ --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-5 border-b border-gray-100">
@@ -20,95 +20,40 @@
                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                 </svg>
-                Meta API Credentials
+                WhatsApp API Connection
             </h2>
-            <p class="text-sm text-gray-500 mt-1">Enter your WhatsApp Business API credentials from the Meta Developer Console.</p>
         </div>
-        <form action="{{ route('whatsapp-settings.save-credentials') }}" method="POST" class="p-6 space-y-5">
-            @csrf
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {{-- Phone Number ID --}}
-                <div>
-                    <label for="phone_number_id" class="block text-sm font-medium text-gray-700 mb-1">Phone Number ID <span class="text-red-500">*</span></label>
-                    <input type="text" name="phone_number_id" id="phone_number_id"
-                           value="{{ old('phone_number_id', $whatsapp['phone_number_id'] ?? '') }}"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-blue text-sm"
-                           placeholder="e.g. 123456789012345" required>
-                    @error('phone_number_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+        <div class="p-6">
+            @php
+                $isConfigured = !empty(\Illuminate\Support\Facades\DB::table('system_settings')->where('key', 'whatsapp_access_token')->value('value'));
+            @endphp
+            @if($isConfigured)
+            <div class="flex items-start gap-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
                 </div>
-
-                {{-- WABA ID --}}
                 <div>
-                    <label for="waba_id" class="block text-sm font-medium text-gray-700 mb-1">WABA ID</label>
-                    <input type="text" name="waba_id" id="waba_id"
-                           value="{{ old('waba_id', $whatsapp['waba_id'] ?? '') }}"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-blue text-sm"
-                           placeholder="WhatsApp Business Account ID">
+                    <p class="font-semibold text-green-800">WhatsApp is connected</p>
+                    <p class="text-sm text-green-700 mt-0.5">The WhatsApp Business API credentials are configured and active for your clinic. Messages will be sent automatically.</p>
                 </div>
             </div>
-
-            {{-- Access Token --}}
-            <div x-data="{ showToken: false }">
-                <label for="access_token" class="block text-sm font-medium text-gray-700 mb-1">Permanent Access Token <span class="text-red-500">*</span></label>
-                <div class="relative">
-                    <input :type="showToken ? 'text' : 'password'" name="access_token" id="access_token"
-                           value="{{ old('access_token', $whatsapp['access_token'] ?? '') }}"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-blue text-sm pr-20"
-                           placeholder="EAAxxxxxxx..." required>
-                    <button type="button" @click="showToken = !showToken"
-                            class="absolute inset-y-0 right-0 px-3 flex items-center text-sm text-gray-500 hover:text-gray-700">
-                        <span x-text="showToken ? 'Hide' : 'Show'"></span>
-                    </button>
+            @else
+            <div class="flex items-start gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div class="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                 </div>
-                @error('access_token') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {{-- App Secret --}}
                 <div>
-                    <label for="app_secret" class="block text-sm font-medium text-gray-700 mb-1">App Secret</label>
-                    <input type="text" name="app_secret" id="app_secret"
-                           value="{{ old('app_secret', $whatsapp['app_secret'] ?? '') }}"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-blue text-sm"
-                           placeholder="For webhook signature verification">
-                    <p class="text-xs text-gray-400 mt-1">Used to verify webhook payload signatures.</p>
-                </div>
-
-                {{-- Verify Token --}}
-                <div>
-                    <label for="verify_token" class="block text-sm font-medium text-gray-700 mb-1">Verify Token</label>
-                    <input type="text" name="verify_token" id="verify_token"
-                           value="{{ old('verify_token', $whatsapp['verify_token'] ?? $verifyToken) }}"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-blue focus:ring-brand-blue text-sm"
-                           placeholder="clinicos_webhook_verify">
-                    <p class="text-xs text-gray-400 mt-1">Must match the token you enter in Meta webhook config.</p>
+                    <p class="font-semibold text-amber-800">WhatsApp not yet configured</p>
+                    <p class="text-sm text-amber-700 mt-0.5">The platform administrator has not set up the WhatsApp API credentials yet. Please contact <strong>support@clinicos.in</strong> to get WhatsApp messaging enabled for your clinic.</p>
                 </div>
             </div>
-
-            <div class="flex items-center gap-3 pt-2">
-                <button type="submit"
-                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-blue text-white text-sm font-semibold rounded-lg hover:bg-brand-blue-dark transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    Save Credentials
-                </button>
-
-                <button type="button" @click="testConnection()"
-                        :disabled="testing"
-                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50">
-                    <svg x-show="!testing" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <svg x-show="testing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                    <span x-text="testing ? 'Testing...' : 'Test Connection'"></span>
-                </button>
-
-                {{-- Test result badge --}}
-                <template x-if="testResult">
-                    <span :class="testResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-                          class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                          x-text="testResult.message"></span>
-                </template>
-            </div>
-        </form>
+            @endif
+            <p class="text-xs text-gray-400 mt-4">WhatsApp Business API credentials are managed centrally by the ClinicOS platform team and shared across all clinics.</p>
+        </div>
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════════════
