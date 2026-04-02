@@ -4,24 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Log;
 
 class AuditLog extends Model
 {
-    protected $table = 'audit_logs';
-
     public $timestamps = false;
 
     protected $fillable = [
-        'clinic_id',
-        'user_id',
-        'action',
-        'entity_type',
-        'entity_id',
-        'old_values',
-        'new_values',
-        'ip_address',
-        'user_agent',
+        'clinic_id', 'user_id', 'user_name', 'user_role', 'action',
+        'model_type', 'model_id', 'description', 'old_values', 'new_values',
+        'ip_address', 'user_agent',
     ];
 
     protected $casts = [
@@ -30,64 +21,37 @@ class AuditLog extends Model
         'created_at' => 'datetime',
     ];
 
-    public function clinic(): BelongsTo
-    {
-        return $this->belongsTo(Clinic::class);
-    }
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function scopeForClinic($query, int $clinicId)
-    {
-        return $query->where('clinic_id', $clinicId);
-    }
-
-    public function scopeByAction($query, string $action)
-    {
-        return $query->where('action', $action);
-    }
-
-    public function scopeForEntity($query, string $entityType, ?int $entityId = null)
-    {
-        $query->where('entity_type', $entityType);
-        
-        if ($entityId) {
-            $query->where('entity_id', $entityId);
-        }
-
-        return $query;
-    }
-
+    /**
+     * Static helper to log an audit event.
+     */
     public static function log(
-        int $clinicId,
-        ?int $userId,
         string $action,
-        string $entityType,
-        ?int $entityId = null,
+        string $description,
+        ?string $modelType = null,
+        ?int $modelId = null,
         ?array $oldValues = null,
         ?array $newValues = null
     ): self {
-        $log = self::create([
-            'clinic_id' => $clinicId,
-            'user_id' => $userId,
-            'action' => $action,
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'old_values' => $oldValues,
-            'new_values' => $newValues,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
+        $user = auth()->user();
 
-        Log::info('Audit log created', [
-            'action' => $action,
-            'entity_type' => $entityType,
-            'entity_id' => $entityId
+        return self::create([
+            'clinic_id'   => $user?->clinic_id ?? 0,
+            'user_id'     => $user?->id,
+            'user_name'   => $user?->name ?? 'System',
+            'user_role'   => $user?->role ?? 'system',
+            'action'      => $action,
+            'model_type'  => $modelType,
+            'model_id'    => $modelId,
+            'description' => $description,
+            'old_values'  => $oldValues,
+            'new_values'  => $newValues,
+            'ip_address'  => request()?->ip(),
+            'user_agent'  => request()?->userAgent(),
         ]);
-
-        return $log;
     }
 }

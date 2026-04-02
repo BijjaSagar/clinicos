@@ -166,6 +166,13 @@ class LabTechnicianController extends Controller
             ]);
         });
 
+        \App\Models\AuditLog::log(
+            'lab_results_saved',
+            "Lab results saved for order #{$orderId}",
+            'lab_orders',
+            $orderId
+        );
+
         Log::info('Lab results saved', ['order_id' => $orderId, 'by' => auth()->id()]);
 
         return redirect()->route('lab.technician.dashboard')->with('success', 'Results saved. Doctor has been notified.');

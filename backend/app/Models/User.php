@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
+use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -125,6 +126,11 @@ class User extends Authenticatable
     public function isReceptionist(): bool
     {
         return $this->role === 'receptionist';
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     public function hasHprId(): bool

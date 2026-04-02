@@ -35,6 +35,7 @@ use App\Http\Controllers\Web\LabController;
 use App\Http\Controllers\Web\LabTechnicianController;
 use App\Http\Controllers\Web\OpdController;
 use App\Http\Controllers\Web\HospitalSettingsController;
+use App\Http\Controllers\Web\AuditLogController;
 
 // Landing page
 Route::get('/', fn() => view('welcome'))->name('home');
@@ -450,6 +451,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/walkin', [OpdController::class, 'walkin'])->name('walkin');
         Route::post('/{appointment}/status', [OpdController::class, 'updateStatus'])->name('status');
     });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // AUDIT LOG - owner ONLY
+    // ═══════════════════════════════════════════════════════════════════════
+    Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index')->middleware('role:owner');
 
     // ═══════════════════════════════════════════════════════════════════════
     // HOSPITAL SETTINGS

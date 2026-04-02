@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Bed;
 use App\Models\IpdAdmission;
 use App\Models\IpdProgressNote;
+use App\Models\IpdMedicationOrder;
 use App\Models\IpdVital;
 use App\Models\Patient;
 use App\Models\User;
@@ -225,6 +227,15 @@ class IpdController extends Controller
         ]);
 
         $admission->bed->update(['status' => 'cleaning']);
+
+        AuditLog::log(
+            'discharged',
+            "Patient {$admission->patient->name} discharged ({$validated['discharge_type']})",
+            IpdAdmission::class,
+            $admission->id,
+            ['status' => 'admitted'],
+            ['status' => 'discharged', 'discharge_type' => $validated['discharge_type']]
+        );
 
         Log::info('Patient discharged', [
             'admission_id'     => $admission->id,
