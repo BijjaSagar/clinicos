@@ -251,8 +251,25 @@ class AdminClinicController extends Controller
                 'enabled_count' => count($settings['enabled_product_modules'] ?? []),
             ]);
 
+            // Build HIMS features JSON from submitted checkboxes
+            $himsFeatures = [];
+            $validHimsKeys = array_keys(config('hims_expansion.hims_feature_keys'));
+            foreach ($validHimsKeys as $key) {
+                $himsFeatures[$key] = !empty($validated['hims_features'][$key]);
+            }
+
+            // Auto-generate slug from name if clinic has no slug
+            $slug = $clinic->slug;
+            if (empty($slug)) {
+                $slug = Str::slug($validated['name']);
+                if (Clinic::where('slug', $slug)->where('id', '!=', $clinic->id)->exists()) {
+                    $slug = $slug . '-' . Str::random(6);
+                }
+            }
+
             $clinic->update([
                 'name' => $validated['name'],
+                'slug' => $slug,
                 'plan' => $validated['plan'],
                 'specialties' => $validated['specialty'] ? [$validated['specialty']] : $clinic->specialties,
                 'city' => $validated['city'] ?? $clinic->city,
@@ -263,6 +280,9 @@ class AdminClinicController extends Controller
                 'is_active' => $validated['is_active'] ?? true,
                 'trial_ends_at' => $validated['trial_ends_at'] ?? $clinic->trial_ends_at,
                 'settings' => $settings,
+                'facility_type' => $validated['facility_type'] ?? 'clinic',
+                'licensed_beds' => $validated['licensed_beds'] ?? null,
+                'hims_features' => $himsFeatures,
             ]);
 
             Log::info('Clinic updated by admin', ['clinic_id' => $clinic->id]);

@@ -37,6 +37,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'domain' => env('APP_DOMAIN', 'clinic0s.com'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
